@@ -231,6 +231,76 @@
     .row .nm { font-size: 13px; }
   }
 
+  /* ---------- коммерческое предложение ---------- */
+  #kpView { display: none; }
+  body.kp-open #kpView { display: block; }
+  body.kp-open .inner, body.kp-open .dock { display: none; }
+
+  .kp-bar { max-width: 840px; margin: 0 auto 14px; display: flex; gap: 10px; flex-wrap: wrap; }
+  .kp-sheet {
+    max-width: 840px; margin: 0 auto; background: #FFFFFF; color: #1C2228;
+    border-radius: 6px; padding: clamp(22px, 5vw, 46px);
+    box-shadow: 0 18px 60px rgba(0,0,0,0.55);
+    font-family: var(--sans); line-height: 1.55; font-size: 14px;
+  }
+  .kp-sheet input, .kp-sheet textarea {
+    border: 0; border-bottom: 1px dashed #C9BFA8; border-radius: 0;
+    background: transparent; color: #1C2228; font: inherit;
+    padding: 2px 4px; outline: none; width: 100%;
+  }
+  .kp-sheet input:focus, .kp-sheet textarea:focus { border-bottom-color: #A88547; border-bottom-style: solid; }
+  .kp-sheet textarea { resize: vertical; min-height: 40px; }
+
+  .kp-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; border-bottom: 2px solid #A88547; padding-bottom: 14px; }
+  .kp-logo { font-family: var(--serif); letter-spacing: 0.26em; font-size: 25px; text-transform: uppercase; color: #1C2228; }
+  .kp-logo b { color: #A88547; font-weight: 400; }
+  .kp-tag { font-size: 11.5px; color: #6B7280; letter-spacing: 0.06em; margin-top: 3px; }
+  .kp-meta { text-align: right; font-size: 13px; color: #4B5563; min-width: 180px; }
+  .kp-meta .kp-num { display: flex; align-items: baseline; gap: 6px; justify-content: flex-end; font-weight: 600; color: #1C2228; }
+  .kp-meta .kp-num input { width: 130px; text-align: right; font-weight: 600; }
+
+  .kp-to { display: grid; grid-template-columns: 110px 1fr; gap: 6px 12px; margin: 18px 0 14px; font-size: 14px; align-items: baseline; }
+  .kp-to .l { color: #6B7280; font-size: 12px; text-transform: uppercase; letter-spacing: 0.07em; }
+  .kp-intro { color: #374151; margin: 0 0 20px; }
+
+  .kp-h {
+    font-family: var(--serif); font-size: 17.5px; color: #1C2228;
+    margin: 28px 0 12px; padding-left: 10px; border-left: 3px solid #A88547;
+  }
+
+  table.kp-t { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  .kp-t th {
+    text-align: left; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.08em;
+    color: #6B7280; border-bottom: 1px solid #D6D0C2; padding: 8px 6px; font-weight: 600;
+  }
+  .kp-t td { padding: 7px 6px; border-bottom: 1px solid #EEEAE0; vertical-align: top; }
+  .kp-t .r { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .kp-t tr.sec td { font-weight: 700; background: #FAF7F0; border-bottom: 1px solid #E4DCC9; }
+  .kp-t tr.it td:first-child { padding-left: 16px; color: #374151; }
+  .kp-t tr.koef td { color: #8a6d3b; font-weight: 600; }
+
+  .kp-total { display: flex; justify-content: space-between; align-items: baseline; margin: 16px 0 4px; padding-top: 12px; border-top: 2px solid #A88547; }
+  .kp-total .t { font-family: var(--serif); font-size: 18px; }
+  .kp-total .v { font: 700 26px var(--mono); font-variant-numeric: tabular-nums; }
+  .kp-small { font-size: 12px; color: #6B7280; }
+
+  .kp-ben { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 20px; }
+  .kp-b { font-size: 13px; color: #374151; }
+  .kp-b b { display: block; color: #1C2228; font-size: 13.5px; margin-bottom: 2px; }
+  .kp-terms ul { margin: 0; padding-left: 18px; font-size: 13px; color: #374151; }
+  .kp-terms li { margin: 4px 0; }
+
+  .kp-foot { display: flex; justify-content: space-between; align-items: flex-end; gap: 14px; margin-top: 28px; padding-top: 14px; border-top: 1px solid #E4DCC9; flex-wrap: wrap; }
+  .kp-foot .l { color: #6B7280; font-size: 11px; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 2px; }
+  .kp-foot .cell { min-width: 200px; flex: 1; }
+  .kp-empty { color: #6B7280; padding: 20px 0; }
+
+  @media (max-width: 640px) {
+    .kp-ben { grid-template-columns: 1fr; }
+    .kp-meta { text-align: left; }
+    .kp-meta .kp-num { justify-content: flex-start; }
+  }
+
   /* ---------- печать ---------- */
   @media print {
     body { background: #fff; color: #14161A; padding: 0; }
@@ -245,6 +315,16 @@
     .est-line.sub { color: #555; }
     .est-total .v, .est-line.koef .v { color: #8a6d3b; }
     .est-line .v { color: #14161A; }
+
+    /* режим КП: печатается только лист */
+    body.kp-open { padding: 0; }
+    body.kp-open .kp-bar { display: none !important; }
+    body.kp-open .kp-sheet { box-shadow: none; border-radius: 0; max-width: none; padding: 0; font-size: 13px; }
+    body.kp-open .kp-sheet input, body.kp-open .kp-sheet textarea { border-bottom-color: transparent; }
+    body.kp-open .kp-sheet input::placeholder, body.kp-open .kp-sheet textarea::placeholder { color: transparent; }
+    .kp-comment:has(textarea:placeholder-shown) { display: none; }
+    .kp-ben, .kp-t tr, .kp-terms li { break-inside: avoid; }
+    .kp-h { break-after: avoid; }
   }
 </style>
 </head>
@@ -342,7 +422,8 @@
     <div class="card-body">
       <div id="estBody"></div>
       <div class="est-actions">
-        <button class="btn gold" id="btnCopy" type="button">Копировать смету</button>
+        <button class="btn gold" id="btnKP" type="button">Коммерческое предложение →</button>
+        <button class="btn" id="btnCopy" type="button">Копировать смету</button>
         <button class="btn" id="btnPrint" type="button">Печать / PDF</button>
         <button class="btn ghost" id="btnResetPrices" type="button">Сбросить цены к прайсу</button>
         <button class="btn ghost" id="btnResetAll" type="button">Очистить расчёт</button>
@@ -359,7 +440,77 @@
       <div class="lbl">Итого по смете</div>
       <div class="tot" id="dockTotal">0 ₽</div>
     </div>
-    <button class="btn gold" type="button" onclick="document.getElementById('secEst').scrollIntoView({behavior:'smooth'})">К смете ↓</button>
+    <div style="display:flex; gap:8px;">
+      <button class="btn ghost" type="button" onclick="document.getElementById('secEst').scrollIntoView({behavior:'smooth'})">Смета</button>
+      <button class="btn gold" id="btnKPdock" type="button">Создать КП →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= КОММЕРЧЕСКОЕ ПРЕДЛОЖЕНИЕ ================= -->
+<div id="kpView">
+  <div class="kp-bar">
+    <button class="btn" id="kpBack" type="button">← К расчёту</button>
+    <button class="btn gold" id="kpPdf" type="button">Скачать PDF</button>
+    <button class="btn" id="kpShare" type="button">Поделиться</button>
+  </div>
+
+  <div class="kp-sheet">
+    <div class="kp-head">
+      <div>
+        <div class="kp-logo">Astra<b>lium</b></div>
+        <div class="kp-tag">натуральный камень · производство · монтаж</div>
+      </div>
+      <div class="kp-meta">
+        <div class="kp-num"><span>КП №</span><input id="kpNum" type="text"></div>
+        <div id="kpDate"></div>
+        <div id="kpValid" class="kp-small"></div>
+      </div>
+    </div>
+
+    <div class="kp-to">
+      <div class="l">Кому</div><input id="kpClient" type="text" placeholder="Имя клиента / компания">
+      <div class="l">Объект</div><input id="kpObject" type="text" placeholder="Адрес или название объекта">
+    </div>
+
+    <p class="kp-intro">Благодарим за обращение в ASTRALIUM. Ниже — расчёт стоимости по вашему проекту:
+      материал, изготовление и монтаж. Финальную цену зафиксируем в договоре после выезда на замер.</p>
+
+    <div class="kp-h">Смета</div>
+    <div id="kpTable"></div>
+    <div class="kp-total"><div class="t">Итого по проекту</div><div class="v" id="kpTotal">0 ₽</div></div>
+    <div class="kp-small">Расчёт предварительный. Точная стоимость фиксируется после замера и утверждения проекта.</div>
+
+    <div class="kp-comment">
+      <div class="kp-h">Комментарий к предложению</div>
+      <textarea id="kpNote" rows="2" placeholder="Например: в расчёт включён камень с запасом на подрезку; срок изготовления — 3 недели…"></textarea>
+    </div>
+
+    <div class="kp-h">Почему ASTRALIUM</div>
+    <div class="kp-ben">
+      <div class="kp-b"><b>Один подрядчик на весь цикл</b>Замер, проект, производство и монтаж в одних руках. Вам не нужно координировать смежников и искать ответственных — за результат отвечает одна команда.</div>
+      <div class="kp-b"><b>Ювелирная гидроабразивная резка</b>Стыки и примыкания, которые не приходится прятать. Сложная геометрия, радиусы и врезки — наша штатная работа, а не «доплата за сложность».</div>
+      <div class="kp-b"><b>Опыт работы со сложным камнем</b>Оникс с подсветкой, кварцит, крупноформатные слэбы. Технологию подбираем под материал — риск сколов и трещин берём на себя.</div>
+      <div class="kp-b"><b>Прозрачная смета до договора</b>Вы видите каждую позицию и её цену до начала работ. После замера стоимость фиксируется — без «сюрпризов» в процессе.</div>
+      <div class="kp-b"><b>Подбор камня под задачу и бюджет</b>От травертина для фасада до медового оникса для лестницы: покажем образцы, реализованные объекты и честно скажем, где можно сэкономить.</div>
+      <div class="kp-b"><b>Сроки — в договоре</b>Этапы и даты прописываем письменно. Монтаж планируем так, чтобы не останавливать другие работы на вашем объекте.</div>
+      <div class="kp-b"><b>Гарантия на изделия и монтаж</b>Если что-то не так — приезжаем и устраняем. Камень служит десятилетиями, и наша работа должна служить столько же.</div>
+    </div>
+
+    <div class="kp-h">Условия</div>
+    <div class="kp-terms">
+      <ul>
+        <li>Предложение действительно 14 дней с даты выставления.</li>
+        <li>Стоимость фиксируется в договоре после выезда на замер.</li>
+        <li>Этапы оплаты и сроки выполнения закрепляются в договоре.</li>
+      </ul>
+    </div>
+
+    <div class="kp-foot">
+      <div class="cell"><div class="l">Телефон</div><input id="kpPhone" type="text" placeholder="+7 ___ ___-__-__"></div>
+      <div class="cell"><div class="l">Сайт / e-mail</div><input id="kpMail" type="text" placeholder="astralium.ru · info@…"></div>
+      <div class="cell" style="text-align:right; flex:none;"><div class="l">Менеджер</div><input id="kpManager" type="text" placeholder="Имя" style="text-align:right;"></div>
+    </div>
   </div>
 </div>
 <div class="toast" id="toast">Скопировано</div>
@@ -518,6 +669,7 @@ let S = {
   matRows: [],                 // [{stone, area, price, waste}]
   edgeRows: [],                // [{type, thick, len}]  thick: '20'|'40'|'pl'
   coefs: {},                   // id -> bool
+  kp: {},                      // реквизиты КП: num, client, object, note, phone, mail, manager
 };
 
 function save() { try { localStorage.setItem(LS_KEY, JSON.stringify(S)); } catch (e) {} }
@@ -869,6 +1021,117 @@ function estimateText() {
   return L.join('\n');
 }
 
+/* ================= КОММЕРЧЕСКОЕ ПРЕДЛОЖЕНИЕ ================= */
+
+const KP_FIELDS = ['num', 'client', 'object', 'note', 'phone', 'mail', 'manager'];
+const kpEl = id => document.getElementById(id);
+const kpInputId = f => 'kp' + f.charAt(0).toUpperCase() + f.slice(1);
+
+function kpDefaultNum() {
+  const d = new Date();
+  const p = n => String(n).padStart(2, '0');
+  return `${String(d.getFullYear()).slice(2)}${p(d.getMonth() + 1)}${p(d.getDate())}-1`;
+}
+const DATE_FMT = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+
+function openKP() {
+  if (!S.kp.num) S.kp.num = kpDefaultNum();
+  KP_FIELDS.forEach(f => { kpEl(kpInputId(f)).value = S.kp[f] || ''; });
+  const now = new Date();
+  const valid = new Date(now.getTime() + 14 * 86400000);
+  kpEl('kpDate').textContent = 'от ' + DATE_FMT.format(now);
+  kpEl('kpValid').textContent = 'действительно до ' + DATE_FMT.format(valid);
+  renderKPTable();
+  document.body.classList.add('kp-open');
+  document.title = 'КП ASTRALIUM № ' + S.kp.num;
+  window.scrollTo(0, 0);
+}
+function closeKP() {
+  document.body.classList.remove('kp-open');
+  document.title = 'ASTRALIUM — калькулятор натурального камня';
+}
+
+function renderKPTable() {
+  const c = calc();
+  const box = kpEl('kpTable');
+  box.innerHTML = '';
+  kpEl('kpTotal').textContent = fmt(c.grand);
+  if (c.grand <= 0) {
+    box.appendChild(el('div', 'kp-empty', 'Смета пуста — вернитесь к расчёту и заполните позиции.'));
+    return;
+  }
+  const table = el('table', 'kp-t');
+  const thead = document.createElement('thead');
+  const hr = document.createElement('tr');
+  [['Наименование', ''], ['Кол-во', 'r'], ['Цена', 'r'], ['Сумма', 'r']].forEach(([t, cls]) => {
+    const th = el('th', cls || null, t); hr.appendChild(th);
+  });
+  thead.appendChild(hr); table.appendChild(thead);
+  const tb = document.createElement('tbody');
+
+  const secRow = (title, sum) => {
+    const tr = el('tr', 'sec');
+    const td = el('td', null, title); td.colSpan = 3;
+    tr.append(td, el('td', 'r', fmt(sum)));
+    tb.appendChild(tr);
+  };
+  const itRowT = (name, qty, price, total) => {
+    const tr = el('tr', 'it');
+    tr.append(el('td', null, name), el('td', 'r', qty), el('td', 'r', fmt(price)), el('td', 'r', fmt(total)));
+    tb.appendChild(tr);
+  };
+
+  if (c.matSum > 0) {
+    secRow('Камень / материал', c.matSum);
+    c.mat.forEach(x => itRowT(`${x.st ? x.st.name : x.stone} (запас +${x.waste}%)`, x.area + ' м²', num(x.price), x.total));
+  }
+  if (c.prodSum > 0) {
+    secRow('Изготовление на производстве', c.prodSum);
+    c.prodL.forEach(x => itRowT(x.it.name, x.q + ' ' + x.it.unit, x.p, x.total));
+  }
+  if (c.edgeSum > 0) {
+    secRow('Обработка торцов (кромка)', c.edgeSum);
+    c.edges.forEach(x => itRowT(`Профиль ${x.type}, ${THICK_LABEL[x.thick]}`, x.len + ' м/п', x.p, x.total));
+  }
+  if (c.mountSum > 0) {
+    secRow('Монтаж', c.mountSum);
+    c.mountL.forEach(x => itRowT(x.it.name, x.q + ' ' + x.it.unit, x.p, x.total));
+  }
+  if (c.tileSum > 0) {
+    secRow('Укладка керамогранита', c.tileSum);
+    c.tileL.forEach(x => itRowT(x.it.name, x.q + ' ' + x.it.unit, x.p, x.total));
+  }
+  if (c.k !== 1 && c.worksBase > 0) {
+    const tr = el('tr', 'koef');
+    const names = COEFS.filter(x => S.coefs[x.id]).map(x => `${x.name} ×${x.k.toFixed(2)}`).join(', ');
+    const td = el('td', null, 'Коэффициент сложности: ' + names); td.colSpan = 3;
+    tr.append(td, el('td', 'r', '+' + fmt(c.worksTotal - c.worksBase)));
+    tb.appendChild(tr);
+  }
+  if (c.otherSum > 0) {
+    secRow('Прочие услуги', c.otherSum);
+    c.otherL.forEach(x => itRowT(x.it.name, x.q + ' ' + x.it.unit, x.p, x.total));
+  }
+
+  table.appendChild(tb);
+  box.appendChild(table);
+}
+
+function kpText() {
+  const L = [];
+  L.push(`Коммерческое предложение ASTRALIUM № ${S.kp.num || kpDefaultNum()}`);
+  if (S.kp.client) L.push('Для: ' + S.kp.client);
+  if (S.kp.object) L.push('Объект: ' + S.kp.object);
+  L.push('');
+  L.push(estimateText());
+  if (S.kp.note) { L.push(''); L.push('Комментарий: ' + S.kp.note); }
+  L.push('');
+  const contacts = [S.kp.phone, S.kp.mail, S.kp.manager].filter(Boolean).join(' · ');
+  if (contacts) L.push('Контакты: ' + contacts);
+  L.push('Предложение действительно 14 дней.');
+  return L.join('\n');
+}
+
 /* ================= СОБЫТИЯ ================= */
 
 function setMode(m) {
@@ -933,6 +1196,31 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
   document.getElementById('btnPrint').addEventListener('click', () => window.print());
+
+  // коммерческое предложение
+  document.getElementById('btnKP').addEventListener('click', openKP);
+  document.getElementById('btnKPdock').addEventListener('click', openKP);
+  document.getElementById('kpBack').addEventListener('click', closeKP);
+  document.getElementById('kpPdf').addEventListener('click', () => window.print());
+  document.getElementById('kpShare').addEventListener('click', async () => {
+    const txt = kpText();
+    if (navigator.share) {
+      try { await navigator.share({ title: 'КП ASTRALIUM', text: txt }); return; } catch (e) { if (e.name === 'AbortError') return; }
+    }
+    try { await navigator.clipboard.writeText(txt); toast('КП скопировано — вставь в сообщение'); }
+    catch (e) {
+      const ta = document.createElement('textarea');
+      ta.value = txt; document.body.appendChild(ta); ta.select();
+      document.execCommand('copy'); ta.remove(); toast('КП скопировано — вставь в сообщение');
+    }
+  });
+  KP_FIELDS.forEach(f => {
+    kpEl(kpInputId(f)).addEventListener('input', e => {
+      S.kp[f] = e.target.value;
+      if (f === 'num') document.title = 'КП ASTRALIUM № ' + (S.kp.num || '');
+      save();
+    });
+  });
   document.getElementById('btnResetPrices').addEventListener('click', () => {
     S.priceOv = {};
     recalc(); save(); toast('Цены возвращены к прайсу');
