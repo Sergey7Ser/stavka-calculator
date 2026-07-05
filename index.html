@@ -1,0 +1,960 @@
+<title>Калькулятор ставки эксперта</title>
+<style>
+  :root {
+    --paper: #EDF0F1;
+    --card: #FFFFFF;
+    --ink: #142634;
+    --ink-2: #1B3A4B;
+    --muted: #66727A;
+    --line: #DBE1E5;
+    --line-strong: #C2CBD0;
+    --accent: #1B3A4B;
+    --accent-deep: #142634;
+    --accent-soft: #E4EBEE;
+    --gold: #B8963E;
+    --gold-bright: #D9BF85;
+    --amber: #B8963E;
+    --amber-soft: #F5EEDC;
+    --crit: #C0603A;
+    --crit-soft: #F6E7DD;
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", "Cascadia Code", Menlo, Consolas, monospace;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --r: 12px;
+  }
+
+  * { box-sizing: border-box; }
+
+  .wrap {
+    font-family: var(--sans);
+    color: var(--ink);
+    background:
+      radial-gradient(120% 90% at 100% 0%, rgba(217,191,133,0.12), transparent 58%),
+      var(--paper);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    padding: clamp(16px, 3vw, 40px);
+    min-height: 100%;
+  }
+
+  .inner { max-width: 1160px; margin: 0 auto; }
+
+  /* ---- header ---- */
+  header.hd { margin-bottom: 28px; }
+  .eyebrow {
+    font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--accent); font-weight: 700; margin: 0 0 12px;
+    display: inline-flex; align-items: center; gap: 9px;
+  }
+  .eyebrow::before { content: ""; width: 22px; height: 2px; background: var(--gold-bright); display: inline-block; }
+  h1 {
+    font-size: clamp(28px, 4.4vw, 44px);
+    line-height: 1.04; letter-spacing: -0.02em; text-wrap: balance;
+    margin: 0 0 12px; font-weight: 680;
+  }
+  .lede { font-size: clamp(15px, 1.6vw, 17px); color: var(--muted); max-width: 60ch; margin: 0; }
+
+  /* ---- layout ---- */
+  .grid { display: grid; grid-template-columns: 1fr 340px; gap: 24px; align-items: start; }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+
+  .col-main { display: flex; flex-direction: column; gap: 24px; min-width: 0; }
+
+  /* ---- panels ---- */
+  .panel {
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: var(--r); padding: clamp(18px, 2.4vw, 26px);
+  }
+  .panel-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 18px; }
+  .step-no {
+    font-family: var(--mono); font-size: 13px; font-weight: 600;
+    color: var(--accent); background: var(--accent-soft);
+    width: 26px; height: 26px; border-radius: 7px;
+    display: grid; place-items: center; flex: none;
+  }
+  .panel-head h2 { font-size: 19px; letter-spacing: -0.01em; margin: 0; font-weight: 640; }
+  .panel-head p { margin: 3px 0 0; font-size: 13px; color: var(--muted); }
+
+  /* ---- fields ---- */
+  .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 20px; }
+  @media (max-width: 520px) { .fields { grid-template-columns: 1fr; } }
+  .field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  .field > label {
+    font-size: 12.5px; font-weight: 560; color: var(--ink);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .field .hint { font-size: 11.5px; color: var(--muted); font-weight: 400; }
+  .ctrl {
+    font-family: var(--sans); font-size: 15px; color: var(--ink);
+    background: #FBFCFB; border: 1px solid var(--line-strong);
+    border-radius: 9px; padding: 10px 12px; width: 100%;
+    transition: border-color .12s, box-shadow .12s;
+  }
+  .ctrl:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  input.ctrl { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+  select.ctrl { appearance: none; cursor: pointer;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path d='M1 1l5 5 5-5' fill='none' stroke='%2366716B' stroke-width='1.6' stroke-linecap='round'/></svg>");
+    background-repeat: no-repeat; background-position: right 12px center; padding-right: 34px;
+  }
+  .with-suffix { position: relative; }
+  .with-suffix .suffix {
+    position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+    font-size: 13px; color: var(--muted); font-family: var(--mono); pointer-events: none;
+  }
+  .with-suffix input { padding-right: 42px; }
+
+  /* ---- sticky summary ---- */
+  .summary { position: sticky; top: 16px; display: flex; flex-direction: column; gap: 16px; }
+  @media (max-width: 900px) { .summary { position: static; } }
+
+  .rate-card {
+    background: linear-gradient(158deg, #1B3A4B, #142634 78%);
+    color: #EEF3F6; border-radius: var(--r); padding: 22px 22px 20px;
+    border: 1px solid #101E2A;
+    box-shadow: inset 0 2px 0 rgba(217,191,133,0.55);
+  }
+  .rate-card .cap { font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gold-bright); margin: 0 0 8px; font-weight: 600; }
+  .rate-big {
+    font-family: var(--mono); font-variant-numeric: tabular-nums;
+    font-size: clamp(30px, 5vw, 40px); font-weight: 620; letter-spacing: -0.01em; line-height: 1;
+  }
+  .rate-big small { font-size: 15px; color: #93A7B3; font-weight: 500; margin-left: 4px; }
+  .rate-note { font-size: 12.5px; color: #9DB0BB; margin: 10px 0 0; }
+
+  .stat-list { background: var(--card); border: 1px solid var(--line); border-radius: var(--r); padding: 8px 4px; }
+  .stat-row { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 9px 16px; }
+  .stat-row + .stat-row { border-top: 1px solid var(--line); }
+  .stat-row .k { font-size: 12.5px; color: var(--muted); }
+  .stat-row .v { font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 14px; font-weight: 560; }
+
+  /* ---- services ---- */
+  .svc-list { display: flex; flex-direction: column; gap: 16px; }
+  .svc {
+    border: 1px solid var(--line); border-radius: var(--r); overflow: hidden;
+    background: #FCFDFC;
+  }
+  .svc-top { display: flex; gap: 10px; align-items: center; padding: 12px 14px; background: #F6F8F6; border-bottom: 1px solid var(--line); }
+  .svc-top input.name { flex: 1 1 auto; font-family: var(--sans); font-weight: 580; font-size: 15px; }
+  .svc-top select { flex: 0 0 auto; width: auto; min-width: 130px; }
+  .btn-x {
+    flex: none; border: 1px solid var(--line-strong); background: #fff; color: var(--muted);
+    width: 32px; height: 32px; border-radius: 8px; cursor: pointer; font-size: 17px; line-height: 1;
+    transition: .12s;
+  }
+  .btn-x:hover { color: var(--crit); border-color: var(--crit); background: var(--crit-soft); }
+  .svc-body { padding: 16px 14px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px 16px; }
+  @media (max-width: 620px) { .svc-body { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 400px) { .svc-body { grid-template-columns: 1fr; } }
+
+  .svc-out {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px;
+    background: var(--line); border-top: 1px solid var(--line);
+  }
+  @media (max-width: 620px) { .svc-out { grid-template-columns: 1fr 1fr; } }
+  .out-cell { background: #fff; padding: 12px 14px; display: flex; flex-direction: column; gap: 3px; }
+  .out-cell .ol { font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+  .out-cell .ov { font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 17px; font-weight: 600; letter-spacing: -0.01em; }
+  .out-cell.floor .ov { color: var(--crit); }
+  .out-cell.rec { background: var(--amber-soft); box-shadow: inset 0 2px 0 var(--gold-bright); }
+  .out-cell.rec .ov { color: var(--ink); }
+  .out-cell.rec .ol { color: var(--gold); }
+  .out-cell.prem .ov { color: var(--gold); }
+  .out-cell .sub { font-size: 11px; color: var(--muted); font-family: var(--sans); }
+
+  .add-btn {
+    align-self: flex-start; margin-top: 4px;
+    border: 1px dashed var(--line-strong); background: transparent; color: var(--accent);
+    font-family: var(--sans); font-size: 14px; font-weight: 560; cursor: pointer;
+    padding: 10px 16px; border-radius: 10px; transition: .12s;
+  }
+  .add-btn:hover { background: var(--accent-soft); border-color: var(--accent); }
+
+  /* ---- economics verdict ---- */
+  .verdict { display: flex; flex-direction: column; gap: 14px; }
+  .verdict-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .verdict-num { font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: clamp(24px, 4vw, 32px); font-weight: 640; letter-spacing: -0.01em; }
+  .pill { font-size: 12.5px; font-weight: 600; padding: 5px 12px; border-radius: 999px; display: inline-flex; align-items: center; gap: 6px; }
+  .pill.ok { background: var(--accent-soft); color: var(--accent-deep); }
+  .pill.bad { background: var(--crit-soft); color: var(--crit); }
+  .bar { height: 12px; border-radius: 999px; background: var(--line); overflow: hidden; position: relative; }
+  .bar > i { display: block; height: 100%; background: linear-gradient(90deg, #2E6F7E, #1B3A4B); border-radius: 999px; transition: width .25s ease; }
+  .bar > i.over { background: linear-gradient(90deg, var(--gold-bright), var(--gold)); }
+  .bar > i.crit { background: linear-gradient(90deg, #A94E2C, var(--crit)); }
+  .cap-block { margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 12px; }
+  .cap-head { display: flex; justify-content: space-between; align-items: baseline; }
+  .cap-head span:first-child { font-size: 13px; color: var(--muted); font-weight: 540; }
+  .cap-head span:last-child { font-family: var(--mono); font-variant-numeric: tabular-nums; font-weight: 600; font-size: 15px; }
+  .verdict-line { font-size: 14px; color: var(--muted); }
+  .verdict-line b { color: var(--ink); font-weight: 600; }
+
+  footer.ft { margin-top: 30px; font-size: 12.5px; color: var(--muted); text-align: center; line-height: 1.6; }
+  footer.ft b { color: var(--ink); font-weight: 600; }
+
+  /* ---- top bar / mode toggle ---- */
+  .is-hidden { display: none !important; }
+  .topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 22px; padding-bottom: 18px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  .brand { font-weight: 700; font-size: 16px; letter-spacing: -0.01em; color: var(--ink); }
+  .modes { display: inline-flex; background: #fff; border: 1px solid var(--line); border-radius: 11px; padding: 3px; gap: 2px; }
+  .modes button { border: none; background: transparent; font-family: var(--sans); font-size: 13.5px; font-weight: 560; color: var(--muted); padding: 8px 15px; border-radius: 8px; cursor: pointer; transition: .14s; }
+  .modes button:hover { color: var(--ink); }
+  .modes button.active { background: var(--accent); color: #fff; }
+  .modes button.active:hover { color: #fff; }
+
+  /* ---- wizard ---- */
+  .wiz { display: flex; justify-content: center; padding: 6px 0 24px; }
+  .wiz-card { width: 100%; max-width: 580px; background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: clamp(22px, 4vw, 38px); box-shadow: 0 1px 3px rgba(20,33,29,0.05); }
+  .wiz-progress { display: flex; align-items: center; gap: 14px; margin-bottom: 28px; }
+  .wiz-progress span { font-size: 12px; font-weight: 600; color: var(--muted); letter-spacing: 0.03em; white-space: nowrap; }
+  .wiz-bar { flex: 1; height: 6px; background: var(--line); border-radius: 999px; overflow: hidden; }
+  .wiz-bar > i { display: block; height: 100%; background: linear-gradient(90deg, var(--gold-bright), var(--gold)); border-radius: 999px; transition: width .3s ease; }
+  .wiz-q { font-size: clamp(21px, 3.2vw, 28px); line-height: 1.14; letter-spacing: -0.02em; text-wrap: balance; margin: 0 0 8px; font-weight: 660; }
+  .wiz-hint { font-size: 14px; color: var(--muted); margin: 0 0 22px; line-height: 1.5; }
+  .wiz-inp-row { position: relative; }
+  .wiz-input { width: 100%; font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 26px; font-weight: 600; color: var(--ink); background: #FBFCFB; border: 1.5px solid var(--line-strong); border-radius: 12px; padding: 15px 18px; }
+  .wiz-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
+  .wiz-suffix { position: absolute; right: 18px; top: 50%; transform: translateY(-50%); font-size: 18px; color: var(--muted); font-family: var(--mono); pointer-events: none; }
+  .wiz-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+  .wiz-chip { border: 1px solid var(--line-strong); background: #fff; color: var(--ink); font-family: var(--sans); font-size: 13.5px; font-weight: 540; padding: 8px 14px; border-radius: 999px; cursor: pointer; transition: .12s; }
+  .wiz-chip:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+  .wiz-nav { display: flex; align-items: center; gap: 12px; margin-top: 28px; }
+  .wiz-nav button { font-family: var(--sans); font-size: 15px; font-weight: 580; padding: 12px 22px; border-radius: 11px; cursor: pointer; transition: .14s; border: 1px solid transparent; }
+  .wiz-back { background: transparent; color: var(--muted); border-color: var(--line-strong); }
+  .wiz-back:hover { color: var(--ink); background: #f6f8f6; }
+  .wiz-back:disabled { opacity: 0; pointer-events: none; }
+  .wiz-next { background: var(--accent); color: #fff; margin-left: auto; }
+  .wiz-next:hover { background: var(--accent-deep); }
+  .wiz-next:disabled { opacity: .4; pointer-events: none; }
+
+  /* ---- profession picker ---- */
+  .wiz-picker { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 4px; }
+  @media (max-width: 420px) { .wiz-picker { grid-template-columns: 1fr; } }
+  .wiz-prof { display: flex; align-items: center; gap: 11px; text-align: left; border: 1px solid var(--line-strong); background: #fff; border-radius: 12px; padding: 13px 14px; cursor: pointer; font-family: var(--sans); font-size: 14.5px; font-weight: 560; color: var(--ink); transition: .12s; }
+  .wiz-prof:hover { border-color: var(--accent); background: var(--accent-soft); }
+  .wiz-prof.sel { border-color: var(--accent); background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent); }
+  .wiz-prof .pic { font-size: 22px; line-height: 1; flex: none; }
+
+  /* ---- preset bar (full mode) ---- */
+  .preset-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; padding: 11px 14px; background: #F6F8F6; border: 1px solid var(--line); border-radius: 10px; }
+  .preset-bar span { font-size: 13px; color: var(--muted); font-weight: 540; }
+  .preset-bar select { width: auto; min-width: 210px; flex: 1 1 auto; }
+
+  /* ---- wizard reveal ---- */
+  .wiz-reveal { text-align: center; }
+  .wiz-reveal .cap { font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); font-weight: 600; margin: 0 0 12px; }
+  .wiz-reveal .big { font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: clamp(38px, 8.5vw, 60px); font-weight: 640; letter-spacing: -0.02em; line-height: 1; margin: 0; color: var(--ink); }
+  .wiz-reveal .big small { font-size: 19px; color: var(--muted); font-weight: 500; }
+  .wiz-reveal .say { font-size: 15px; color: var(--ink); max-width: 42ch; margin: 16px auto 0; line-height: 1.5; }
+  .wiz-reveal .mini { display: flex; justify-content: center; gap: 28px; margin-top: 24px; flex-wrap: wrap; }
+  .wiz-reveal .mini div { font-size: 12.5px; color: var(--muted); }
+  .wiz-reveal .mini b { display: block; font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 18px; color: var(--ink); font-weight: 600; margin-top: 3px; }
+
+  /* ---- explain trigger + modal ---- */
+  .svc-explain { border-top: 1px solid var(--line); }
+  .svc-explain button { width: 100%; border: none; background: #fff; color: var(--accent); font-family: var(--sans); font-size: 13.5px; font-weight: 560; padding: 11px 14px; cursor: pointer; transition: .12s; text-align: left; }
+  .svc-explain button:hover { background: var(--accent-soft); }
+
+  .modal-back { position: fixed; inset: 0; background: rgba(16,33,29,0.55); display: flex; align-items: center; justify-content: center; padding: 18px; z-index: 50; }
+  .modal-back.is-hidden { display: none !important; }
+  .modal { background: var(--card); border-radius: 16px; max-width: 560px; width: 100%; max-height: 90vh; overflow-y: auto; padding: clamp(20px, 3vw, 30px); position: relative; box-shadow: 0 20px 60px rgba(16,33,29,0.35); }
+  .modal-x { position: absolute; top: 14px; right: 14px; border: none; background: #f0f2f0; width: 32px; height: 32px; border-radius: 8px; font-size: 19px; cursor: pointer; color: var(--muted); line-height: 1; }
+  .modal-x:hover { background: var(--crit-soft); color: var(--crit); }
+
+  .ex-title { font-size: 20px; font-weight: 660; letter-spacing: -0.01em; margin: 0 30px 0 0; text-wrap: balance; }
+  .ex-price { font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 30px; font-weight: 640; color: var(--accent); margin: 6px 0 22px; letter-spacing: -0.01em; }
+  .ex-price span { font-family: var(--sans); font-size: 14px; color: var(--muted); font-weight: 500; }
+  .ex-sec { margin-bottom: 20px; }
+  .ex-sec h4 { font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-weight: 600; margin: 0 0 10px; }
+  .ex-sec ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 8px; }
+  .ex-sec li { font-size: 14px; line-height: 1.45; }
+  .ex-msg { width: 100%; min-height: 148px; font-family: var(--sans); font-size: 14px; line-height: 1.55; color: var(--ink); background: #FBFCFB; border: 1px solid var(--line-strong); border-radius: 10px; padding: 12px 14px; resize: vertical; }
+  .ex-msg:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .ex-copy { margin-top: 10px; background: var(--accent); color: #fff; border: none; border-radius: 9px; padding: 10px 18px; font-family: var(--sans); font-size: 14px; font-weight: 580; cursor: pointer; transition: .14s; }
+  .ex-copy:hover { background: var(--accent-deep); }
+  .ex-tip { background: var(--amber-soft); border: 1px solid #ecd9b0; border-radius: 10px; padding: 12px 14px; font-size: 13.5px; line-height: 1.5; color: #6b4e14; }
+  .ex-tip b { color: #5a3f0d; }
+</style>
+
+<div class="wrap">
+  <div class="inner">
+
+    <div class="topbar">
+      <div class="brand">Калькулятор ставки</div>
+      <div class="modes">
+        <button type="button" data-mode="wizard">Мастер по шагам</button>
+        <button type="button" data-mode="full">Все поля сразу</button>
+      </div>
+    </div>
+
+    <div id="wizardView" class="is-hidden">
+      <div class="wiz">
+        <div class="wiz-card">
+          <div class="wiz-progress"><span id="wizStepLabel">Шаг 1 из 6</span><div class="wiz-bar"><i id="wizBar" style="width:16%"></i></div></div>
+          <div id="wizStage"></div>
+          <div class="wiz-nav">
+            <button type="button" class="wiz-back" id="wizBack" disabled>Назад</button>
+            <button type="button" class="wiz-next" id="wizNext">Далее →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="appView">
+    <header class="hd">
+      <p class="eyebrow">Юнит-экономика эксперта</p>
+      <h1>Сколько на самом деле стоит твой час</h1>
+      <p class="lede">Считаем честную ставку от твоей цели по доходу, а потом превращаем её в цену за услугу, задачу или день — с поправкой на сложность, срочность и клиента. Для тех, кто вечно занижает.</p>
+    </header>
+
+    <div class="grid">
+      <div class="col-main">
+
+        <!-- STEP 1 -->
+        <section class="panel">
+          <div class="panel-head">
+            <span class="step-no">1</span>
+            <div>
+              <h2>Твоя базовая ставка</h2>
+              <p>Это «пол»: ниже этой цены за час ты работаешь себе в убыток.</p>
+            </div>
+          </div>
+          <div class="fields">
+            <div class="field">
+              <label>Хочу зарабатывать на руки <span class="hint">чистыми, в месяц</span></label>
+              <div class="with-suffix"><input class="ctrl" id="income" inputmode="numeric" value="200000"><span class="suffix">₽</span></div>
+            </div>
+            <div class="field">
+              <label>Расходы на бизнес <span class="hint">подписки, реклама, аренда</span></label>
+              <div class="with-suffix"><input class="ctrl" id="costs" inputmode="numeric" value="30000"><span class="suffix">₽</span></div>
+            </div>
+            <div class="field">
+              <label>Налог</label>
+              <div class="with-suffix"><input class="ctrl" id="tax" inputmode="numeric" value="6"><span class="suffix">%</span></div>
+            </div>
+            <div class="field">
+              <label>Рабочих дней в месяц</label>
+              <input class="ctrl" id="days" inputmode="numeric" value="21">
+            </div>
+            <div class="field">
+              <label>Продуктивных часов в день <span class="hint">не «в офисе», а в работе</span></label>
+              <input class="ctrl" id="hpd" inputmode="numeric" value="6">
+            </div>
+            <div class="field">
+              <label>Из них реально оплачивается <span class="hint">продажи и админку никто не платит</span></label>
+              <div class="with-suffix"><input class="ctrl" id="bill" inputmode="numeric" value="50"><span class="suffix">%</span></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- STEP 2 -->
+        <section class="panel" id="svcPanel">
+          <div class="panel-head">
+            <span class="step-no">2</span>
+            <div>
+              <h2>Твои услуги</h2>
+              <p>Каждая тянет цену из базовой ставки и накручивает реальность: сложность, срок, клиент.</p>
+            </div>
+          </div>
+          <div class="preset-bar">
+            <span>Шаблон профессии</span>
+            <select class="ctrl" id="presetSelect"><option value="">— заполнить шаблоном (заменит услуги) —</option></select>
+          </div>
+          <div class="svc-list" id="svcList"></div>
+          <button class="add-btn" id="addSvc" style="margin-top:16px">+ Добавить услугу</button>
+        </section>
+
+        <!-- STEP 3 -->
+        <section class="panel">
+          <div class="panel-head">
+            <span class="step-no">3</span>
+            <div>
+              <h2>Сходится ли экономика</h2>
+              <p>При этих ценах и таком числе клиентов в месяц — выходишь ли ты на свою цель.</p>
+            </div>
+          </div>
+          <div class="verdict">
+            <div class="verdict-head">
+              <div class="verdict-num" id="planRevenue">—</div>
+              <span class="pill ok" id="verdictPill">—</span>
+            </div>
+            <div class="bar"><i id="planBar" style="width:0%"></i></div>
+            <p class="verdict-line" id="verdictLine">—</p>
+            <div class="cap-block">
+              <div class="cap-head"><span>Загрузка твоего времени</span><span id="capPct">—</span></div>
+              <div class="bar"><i id="capBar" style="width:0%"></i></div>
+              <p class="verdict-line" id="capLine">—</p>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- SUMMARY -->
+      <aside class="summary">
+        <div class="rate-card">
+          <p class="cap">Честная ставка за час</p>
+          <div class="rate-big" id="floorRate">—<small>/час</small></div>
+          <p class="rate-note" id="rateNote">Меньше этого — значит, ты доплачиваешь клиенту за право поработать.</p>
+        </div>
+        <div class="stat-list">
+          <div class="stat-row"><span class="k">Нужно заработать грязными</span><span class="v" id="gross">—</span></div>
+          <div class="stat-row"><span class="k">Всего рабочих часов / мес</span><span class="v" id="totHours">—</span></div>
+          <div class="stat-row"><span class="k">Оплачиваемых часов / мес</span><span class="v" id="billHours">—</span></div>
+          <div class="stat-row"><span class="k">План по выручке / мес</span><span class="v" id="planMini">—</span></div>
+          <div class="stat-row"><span class="k">Загрузка времени</span><span class="v" id="loadMini">—</span></div>
+        </div>
+      </aside>
+    </div>
+
+    <footer class="ft">
+      <p>Считает <b>ориентир</b>, а не приговор. Рынок и переговоры важнее формулы — но теперь ты знаешь свой пол и понимаешь, откуда берётся цена.<br>Данные живут только в твоём браузере.</p>
+    </footer>
+    </div>
+
+    <div id="explainModal" class="modal-back is-hidden">
+      <div class="modal">
+        <button type="button" class="modal-x" aria-label="Закрыть">&times;</button>
+        <div id="explainBody"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var UNITS = ["за час", "за сессию", "за задачу", "за день", "за проект", "абонемент/мес"];
+  var COMPLEX = [["Стандарт", 1], ["Сложно", 1.5], ["Уникально", 2]];
+  var URGENCY = [["Обычный срок", 1], ["Срочно", 1.4]];
+  var CLIENT  = [["Частное лицо", 1], ["Малый бизнес", 1.3], ["Крупный клиент", 1.7]];
+  var PREMIUM = 1.35;
+
+  var SEED = [
+    { name: "Разворачивание сервера", unit: "за проект", hours: 8,  direct: 3000, cx: 1.5, ur: 1,   cl: 1.3, qty: 4 },
+    { name: "Консультация 60 минут",  unit: "за сессию", hours: 1.5, direct: 0,    cx: 1,   ur: 1,   cl: 1,   qty: 30 }
+  ];
+
+  var PRESETS = {
+    dev: {
+      label: "Айтишник / разработчик", icon: "🖥️",
+      base: { days: 21, hpd: 6, bill: 50 },
+      services: [
+        { name: "Разворачивание сервера", unit: "за проект", hours: 8, direct: 3000, cx: 1.5, ur: 1, cl: 1.3, qty: 4 },
+        { name: "Интеграция Битрикс24", unit: "за проект", hours: 24, direct: 0, cx: 1.5, ur: 1, cl: 1.3, qty: 2 },
+        { name: "Чат-бот под ключ", unit: "за проект", hours: 16, direct: 0, cx: 1.5, ur: 1, cl: 1.3, qty: 3 },
+        { name: "Час доработок / консультации", unit: "за час", hours: 1, direct: 0, cx: 1, ur: 1, cl: 1, qty: 20 }
+      ]
+    },
+    psy: {
+      label: "Психолог / коуч", icon: "🧠",
+      base: { days: 20, hpd: 5, bill: 60 },
+      services: [
+        { name: "Индивидуальная консультация", unit: "за сессию", hours: 1.5, direct: 0, cx: 1, ur: 1, cl: 1, qty: 40 },
+        { name: "Глубокая диагностика / разбор", unit: "за сессию", hours: 2, direct: 0, cx: 1.5, ur: 1, cl: 1, qty: 6 },
+        { name: "Групповая программа (с участника)", unit: "абонемент/мес", hours: 2, direct: 0, cx: 1.5, ur: 1, cl: 1, qty: 12 },
+        { name: "Корпоративный тренинг (день)", unit: "за день", hours: 8, direct: 2000, cx: 2, ur: 1, cl: 1.7, qty: 1 }
+      ]
+    },
+    design: {
+      label: "Дизайнер", icon: "🎨",
+      base: { days: 21, hpd: 6, bill: 50 },
+      services: [
+        { name: "Логотип", unit: "за проект", hours: 12, direct: 0, cx: 1.5, ur: 1, cl: 1.3, qty: 3 },
+        { name: "Дизайн лендинга", unit: "за проект", hours: 30, direct: 0, cx: 1.5, ur: 1, cl: 1.3, qty: 2 },
+        { name: "Фирменный стиль", unit: "за проект", hours: 50, direct: 0, cx: 2, ur: 1, cl: 1.3, qty: 1 },
+        { name: "Правки / час", unit: "за час", hours: 1, direct: 0, cx: 1, ur: 1, cl: 1, qty: 15 }
+      ]
+    },
+    smm: {
+      label: "Маркетолог / таргетолог", icon: "📈",
+      base: { days: 22, hpd: 6, bill: 55 },
+      services: [
+        { name: "Настройка рекламы (старт)", unit: "за проект", hours: 16, direct: 0, cx: 1.5, ur: 1, cl: 1.3, qty: 3 },
+        { name: "Ведение рекламы (месяц)", unit: "абонемент/мес", hours: 20, direct: 0, cx: 1.3, ur: 1, cl: 1.3, qty: 5 },
+        { name: "Аудит рекламного кабинета", unit: "за задачу", hours: 6, direct: 0, cx: 1.5, ur: 1, cl: 1.3, qty: 4 },
+        { name: "Стратегия / консультация час", unit: "за час", hours: 1, direct: 0, cx: 1, ur: 1, cl: 1, qty: 10 }
+      ]
+    },
+    copy: {
+      label: "Копирайтер", icon: "✍️",
+      base: { days: 22, hpd: 5, bill: 55 },
+      services: [
+        { name: "Статья / пост", unit: "за задачу", hours: 4, direct: 0, cx: 1, ur: 1, cl: 1, qty: 20 },
+        { name: "Текст для лендинга", unit: "за проект", hours: 12, direct: 0, cx: 1.5, ur: 1, cl: 1.3, qty: 3 },
+        { name: "Контент-план (месяц)", unit: "абонемент/мес", hours: 8, direct: 0, cx: 1.3, ur: 1, cl: 1.3, qty: 4 },
+        { name: "Редактура / час", unit: "за час", hours: 1, direct: 0, cx: 1, ur: 1, cl: 1, qty: 15 }
+      ]
+    },
+    tutor: {
+      label: "Репетитор / преподаватель", icon: "📚",
+      base: { days: 22, hpd: 5, bill: 70 },
+      services: [
+        { name: "Индивидуальный урок", unit: "за час", hours: 1.3, direct: 0, cx: 1, ur: 1, cl: 1, qty: 60 },
+        { name: "Мини-группа (с ученика)", unit: "за час", hours: 1.3, direct: 0, cx: 1, ur: 1, cl: 1, qty: 40 },
+        { name: "Интенсив-подготовка (курс)", unit: "за проект", hours: 20, direct: 0, cx: 1.5, ur: 1, cl: 1, qty: 2 }
+      ]
+    },
+    photo: {
+      label: "Фотограф / видеограф", icon: "📷",
+      base: { days: 18, hpd: 6, bill: 45 },
+      services: [
+        { name: "Съёмка (час)", unit: "за час", hours: 1.5, direct: 0, cx: 1, ur: 1, cl: 1, qty: 20 },
+        { name: "Съёмка + обработка (пакет)", unit: "за проект", hours: 8, direct: 1000, cx: 1.5, ur: 1, cl: 1.3, qty: 6 },
+        { name: "Коммерческая съёмка (день)", unit: "за день", hours: 8, direct: 3000, cx: 2, ur: 1, cl: 1.7, qty: 2 }
+      ]
+    },
+    custom: {
+      label: "Свой вариант", icon: "✨",
+      base: { days: 21, hpd: 6, bill: 50 },
+      services: [
+        { name: "Услуга за час", unit: "за час", hours: 1, direct: 0, cx: 1, ur: 1, cl: 1, qty: 20 },
+        { name: "Услуга-проект", unit: "за проект", hours: 8, direct: 0, cx: 1.5, ur: 1, cl: 1.3, qty: 4 }
+      ]
+    }
+  };
+
+  var $ = function (id) { return document.getElementById(id); };
+  var money = function (n) {
+    if (!isFinite(n)) n = 0;
+    return Math.round(n).toLocaleString("ru-RU") + " ₽";
+  };
+  var num = function (el) { var v = parseFloat((el.value || "").replace(",", ".")); return isFinite(v) ? v : 0; };
+
+  function optionsHTML(list, chosen) {
+    return list.map(function (o) {
+      var label = Array.isArray(o) ? o[0] : o;
+      var val = Array.isArray(o) ? o[1] : o;
+      var sel = (String(val) === String(chosen)) ? " selected" : "";
+      return '<option value="' + val + '"' + sel + '>' + label + '</option>';
+    }).join("");
+  }
+
+  function svcHTML(s) {
+    return '' +
+      '<div class="svc">' +
+        '<div class="svc-top">' +
+          '<input class="ctrl name" type="text" value="' + s.name.replace(/"/g, "&quot;") + '" placeholder="Название услуги">' +
+          '<select class="ctrl f-unit">' + optionsHTML(UNITS, s.unit) + '</select>' +
+          '<button class="btn-x" title="Удалить" aria-label="Удалить услугу">&times;</button>' +
+        '</div>' +
+        '<div class="svc-body">' +
+          '<div class="field"><label>Часов на выполнение <span class="hint">с подготовкой</span></label><input class="ctrl f-hours" inputmode="numeric" value="' + s.hours + '"></div>' +
+          '<div class="field"><label>Сложность / экспертность</label><select class="ctrl f-cx">' + optionsHTML(COMPLEX, s.cx) + '</select></div>' +
+          '<div class="field"><label>Срочность</label><select class="ctrl f-ur">' + optionsHTML(URGENCY, s.ur) + '</select></div>' +
+          '<div class="field"><label>Тип клиента</label><select class="ctrl f-cl">' + optionsHTML(CLIENT, s.cl) + '</select></div>' +
+          '<div class="field"><label>Прямые расходы <span class="hint">материалы, подряд</span></label><div class="with-suffix"><input class="ctrl f-direct" inputmode="numeric" value="' + s.direct + '"><span class="suffix">₽</span></div></div>' +
+          '<div class="field"><label>Сколько в месяц <span class="hint">для плана выручки</span></label><input class="ctrl f-qty" inputmode="numeric" value="' + s.qty + '"></div>' +
+        '</div>' +
+        '<div class="svc-out">' +
+          '<div class="out-cell floor"><span class="ol">Порог</span><span class="ov o-floor">—</span><span class="sub">только окупает</span></div>' +
+          '<div class="out-cell rec"><span class="ol">Рекомендую</span><span class="ov o-rec">—</span><span class="sub">твоя цена</span></div>' +
+          '<div class="out-cell prem"><span class="ol">Премиум</span><span class="ov o-prem">—</span><span class="sub">за максимум</span></div>' +
+          '<div class="out-cell"><span class="ol">В месяц</span><span class="ov o-month">—</span><span class="sub o-monthsub">выручка</span></div>' +
+        '</div>' +
+        '<div class="svc-explain"><button type="button" class="ex-trigger">💬 Как объяснить эту цену клиенту</button></div>' +
+      '</div>';
+  }
+
+  function addSvc(s) {
+    var wrap = document.createElement("div");
+    wrap.innerHTML = svcHTML(s);
+    $("svcList").appendChild(wrap.firstChild);
+  }
+
+  function applyPreset(key, withBase) {
+    var p = PRESETS[key];
+    if (!p) return;
+    if (withBase && p.base) {
+      ["days", "hpd", "bill"].forEach(function (k) {
+        if (p.base[k] != null) $(k).value = p.base[k];
+      });
+    }
+    $("svcList").innerHTML = "";
+    p.services.forEach(addSvc);
+    recompute();
+  }
+
+  function escapeHTML(s) {
+    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+  var UNIT_GET = {
+    "за час": "час предметной работы над вашей задачей",
+    "за сессию": "полноценную сессию, сфокусированную на вашем запросе",
+    "за задачу": "задачу, доведённую до готового результата",
+    "за день": "целый день, полностью посвящённый вам",
+    "за проект": "готовый проект под ключ — вам не нужно ничего доделывать",
+    "абонемент/мес": "системную работу в течение месяца, а не разовое действие"
+  };
+
+  function openExplain(card) {
+    var name = card.querySelector(".name").value || "Услуга";
+    var unit = card.querySelector(".f-unit").value;
+    var hours = num(card.querySelector(".f-hours"));
+    var direct = num(card.querySelector(".f-direct"));
+    var cx = parseFloat(card.querySelector(".f-cx").value);
+    var ur = parseFloat(card.querySelector(".f-ur").value);
+    var cl = parseFloat(card.querySelector(".f-cl").value);
+    var rec = card.querySelector(".o-rec").textContent;
+
+    var unitGet = UNIT_GET[unit] || "результат по вашему запросу";
+    var hoursStr = (Math.round(hours * 10) / 10).toString().replace(".", ",");
+
+    var cxPhrase = cx >= 2 ? "Это редкая экспертиза — таких специалистов на рынке немного."
+      : cx >= 1.5 ? "Задача нестандартная: нужен опыт, чтобы найти решение, а не действовать наугад."
+      : "Это понятная, отработанная задача — делаю такое регулярно, без сюрпризов и переделок.";
+    var urPhrase = ur >= 1.4 ? "Работа в сжатые сроки: чтобы успеть к вашему дедлайну, я сдвигаю другие задачи — отсюда надбавка за срочность." : "";
+    var clPhrase = cl >= 1.7 ? "Уровень задач и ответственности здесь выше — цена отражает требования крупного проекта."
+      : cl >= 1.3 ? "Для бизнеса эта работа окупается: экономит ваше время и приносит результат, а не просто закрывает задачу." : "";
+    var directPart = direct > 0 ? (", плюс " + money(direct) + " прямых расходов на материалы — они уже внутри цены") : "";
+
+    var bullets = [];
+    bullets.push("Вы получаете " + unitGet + ".");
+    bullets.push("За ценой — около " + hoursStr + " ч моей работы, включая подготовку, а не только время, которое видно снаружи.");
+    if (cx >= 1.5) bullets.push("Здесь работает экспертиза, а не шаблон — поэтому результат предсказуемый.");
+    if (direct > 0) bullets.push("Материалы и расходы на " + money(direct) + " уже включены — доплачивать отдельно не придётся.");
+
+    var msg = [];
+    msg.push("«" + name + "» — " + rec + " " + unit + ".");
+    msg.push("");
+    msg.push("Что вы получаете: " + unitGet + ".");
+    msg.push("За этой ценой — около " + hoursStr + " ч работы с подготовкой" + directPart + ". " + cxPhrase);
+    if (urPhrase) msg.push(urPhrase);
+    if (clPhrase) msg.push(clPhrase);
+    msg.push("");
+    msg.push("Могу приступить сразу после подтверждения — подскажите, с чего удобнее начать.");
+    var message = msg.join("\n");
+
+    $("explainBody").innerHTML =
+      '<h3 class="ex-title">' + escapeHTML(name) + '</h3>' +
+      '<div class="ex-price">' + escapeHTML(rec) + ' <span>' + escapeHTML(unit) + '</span></div>' +
+      '<div class="ex-sec"><h4>Что получает клиент</h4><ul>' +
+        bullets.map(function (b) { return '<li>' + escapeHTML(b) + '</li>'; }).join("") +
+      '</ul></div>' +
+      '<div class="ex-sec"><h4>Готовое сообщение клиенту</h4>' +
+        '<textarea class="ex-msg" readonly>' + escapeHTML(message) + '</textarea>' +
+        '<button type="button" class="ex-copy">Скопировать</button>' +
+      '</div>' +
+      '<div class="ex-tip"><b>Если просят скидку:</b> дешевле — это меньше времени на подготовку и выше риск переделок. Снижай цену, только убирая часть объёма, а не качество.</div>';
+
+    $("explainModal").classList.remove("is-hidden");
+  }
+
+  function closeExplain() { $("explainModal").classList.add("is-hidden"); }
+
+  function baseRate() {
+    var income = num($("income")), costs = num($("costs")), tax = num($("tax"));
+    var days = num($("days")), hpd = num($("hpd")), bill = num($("bill"));
+    var totHours = days * hpd;
+    var billHours = totHours * (bill / 100);
+    var gross = (income + costs) / Math.max(0.01, (1 - tax / 100));
+    var rate = billHours > 0 ? gross / billHours : 0;
+    return { rate: rate, gross: gross, totHours: totHours, billHours: billHours };
+  }
+
+  function recompute() {
+    var b = baseRate();
+    $("floorRate").innerHTML = money(b.rate) + '<small>/час</small>';
+    $("gross").textContent = money(b.gross);
+    $("totHours").textContent = Math.round(b.totHours) + " ч";
+    $("billHours").textContent = Math.round(b.billHours) + " ч";
+
+    var planRevenue = 0, hoursNeeded = 0;
+    var cards = document.querySelectorAll(".svc");
+    cards.forEach(function (card) {
+      var hours = num(card.querySelector(".f-hours"));
+      var direct = num(card.querySelector(".f-direct"));
+      var cx = parseFloat(card.querySelector(".f-cx").value);
+      var ur = parseFloat(card.querySelector(".f-ur").value);
+      var cl = parseFloat(card.querySelector(".f-cl").value);
+      var qty = num(card.querySelector(".f-qty"));
+
+      var floor = b.rate * hours + direct;
+      var rec = b.rate * hours * cx * ur * cl + direct;
+      var prem = (b.rate * hours * cx * ur * cl) * PREMIUM + direct;
+      var monthRev = rec * qty;
+      planRevenue += monthRev;
+      hoursNeeded += hours * qty;
+
+      card.querySelector(".o-floor").textContent = money(floor);
+      card.querySelector(".o-rec").textContent = money(rec);
+      card.querySelector(".o-prem").textContent = money(prem);
+      card.querySelector(".o-month").textContent = money(monthRev);
+      card.querySelector(".o-monthsub").textContent = qty + " × рекоменд.";
+    });
+
+    $("planMini").textContent = money(planRevenue);
+    $("planRevenue").textContent = money(planRevenue) + " / мес";
+
+    var target = b.gross;
+    var ratio = target > 0 ? planRevenue / target : 0;
+    var pct = Math.max(0, Math.min(100, ratio * 100));
+    var bar = $("planBar");
+    bar.style.width = pct + "%";
+    bar.classList.toggle("over", ratio >= 1);
+
+    var pill = $("verdictPill");
+    var line = $("verdictLine");
+    if (planRevenue <= 0) {
+      pill.className = "pill bad"; pill.textContent = "нет услуг";
+      line.innerHTML = "Добавь хотя бы одну услугу и укажи, сколько таких сделок бывает в месяц.";
+    } else if (ratio >= 1) {
+      pill.className = "pill ok"; pill.textContent = "цель закрыта";
+      var over = planRevenue - target;
+      line.innerHTML = "План перекрывает цель на <b>" + money(over) + "</b>. Есть запас — можно недобрать клиентов и всё равно выйти в плюс.";
+    } else {
+      pill.className = "pill bad"; pill.textContent = Math.round(ratio * 100) + "% от цели";
+      var gap = target - planRevenue;
+      line.innerHTML = "Не хватает <b>" + money(gap) + "</b> до цели. Подними цены, добавь клиентов — или пересмотри желаемый доход.";
+    }
+
+    // capacity: does the plan fit into available paid hours?
+    var util = b.billHours > 0 ? hoursNeeded / b.billHours : 0;
+    var capPct = Math.round(util * 100);
+    $("capPct").textContent = hoursNeeded > 0 ? capPct + "%" : "—";
+    $("loadMini").textContent = hoursNeeded > 0 ? (Math.round(hoursNeeded) + " ч · " + capPct + "%") : "—";
+    var capBar = $("capBar");
+    capBar.style.width = Math.max(0, Math.min(100, util * 100)) + "%";
+    capBar.classList.toggle("crit", util > 1);
+    var capLine = $("capLine");
+    if (hoursNeeded <= 0) {
+      capLine.innerHTML = "Укажи, сколько услуг в месяц — посчитаю, влезает ли план в твоё время.";
+    } else if (util > 1) {
+      capLine.innerHTML = "План требует <b>" + Math.round(hoursNeeded) + " ч</b>, а у тебя только " + Math.round(b.billHours) + " оплачиваемых. Столько не отработать — подними цены или сократи объём.";
+    } else {
+      capLine.innerHTML = "План занимает <b>" + Math.round(hoursNeeded) + " ч</b> из " + Math.round(b.billHours) + " оплачиваемых. Время есть.";
+    }
+
+    save();
+  }
+
+  function collect() {
+    var arr = [];
+    document.querySelectorAll(".svc").forEach(function (card) {
+      arr.push({
+        name: card.querySelector(".name").value,
+        unit: card.querySelector(".f-unit").value,
+        hours: num(card.querySelector(".f-hours")),
+        direct: num(card.querySelector(".f-direct")),
+        cx: parseFloat(card.querySelector(".f-cx").value),
+        ur: parseFloat(card.querySelector(".f-ur").value),
+        cl: parseFloat(card.querySelector(".f-cl").value),
+        qty: num(card.querySelector(".f-qty"))
+      });
+    });
+    return arr;
+  }
+
+  function save() {
+    try {
+      var data = {
+        base: { income: $("income").value, costs: $("costs").value, tax: $("tax").value, days: $("days").value, hpd: $("hpd").value, bill: $("bill").value },
+        svc: collect()
+      };
+      localStorage.setItem("expertRateCalc", JSON.stringify(data));
+    } catch (e) {}
+  }
+
+  function load() {
+    var data = null;
+    try { data = JSON.parse(localStorage.getItem("expertRateCalc") || "null"); } catch (e) {}
+    if (data && data.base) {
+      ["income", "costs", "tax", "days", "hpd", "bill"].forEach(function (k) {
+        if (data.base[k] != null) $(k).value = data.base[k];
+      });
+    }
+    var svc = (data && data.svc && data.svc.length) ? data.svc : SEED;
+    svc.forEach(addSvc);
+  }
+
+  // events
+  document.addEventListener("input", function (e) {
+    if (e.target.closest(".panel") || e.target.closest(".svc")) recompute();
+  });
+  document.addEventListener("change", function (e) {
+    if (e.target.tagName === "SELECT") recompute();
+  });
+  document.addEventListener("click", function (e) {
+    if (e.target.classList.contains("btn-x")) {
+      var card = e.target.closest(".svc");
+      if (card) { card.remove(); recompute(); }
+      return;
+    }
+    var trg = e.target.closest(".ex-trigger");
+    if (trg) { var c = trg.closest(".svc"); if (c) openExplain(c); return; }
+    if (e.target.classList.contains("modal-x") || e.target.id === "explainModal") { closeExplain(); return; }
+    if (e.target.classList.contains("ex-copy")) {
+      var ta = document.querySelector("#explainBody .ex-msg");
+      if (ta) {
+        ta.focus(); ta.select();
+        var ok = false;
+        try { ok = document.execCommand("copy"); } catch (_) {}
+        if (navigator.clipboard && navigator.clipboard.writeText) { try { navigator.clipboard.writeText(ta.value); ok = true; } catch (_) {} }
+        e.target.textContent = ok ? "Скопировано ✓" : "Выдели текст и скопируй";
+        setTimeout(function () { e.target.textContent = "Скопировать"; }, 1800);
+      }
+      return;
+    }
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") closeExplain();
+  });
+  $("addSvc").addEventListener("click", function () {
+    addSvc({ name: "Новая услуга", unit: "за проект", hours: 4, direct: 0, cx: 1, ur: 1, cl: 1, qty: 5 });
+    recompute();
+  });
+
+  // ---- wizard ----
+  var WIZ = [
+    { type: "picker", key: "preset", q: "Чем ты занимаешься?", hint: "Подберём типовые услуги и ставки под профессию — дальше всё поправишь под себя." },
+    { key: "income", q: "Сколько хочешь зарабатывать на руки?", hint: "Чистыми, в месяц — то, что реально остаётся тебе. Не бойся хотеть много.", suffix: "₽", chips: [100000, 150000, 200000, 300000] },
+    { key: "costs", q: "Сколько уходит на бизнес каждый месяц?", hint: "Подписки, реклама, аренда, софт, подрядчики. Если ничего — ставь 0.", suffix: "₽", chips: [0, 10000, 30000, 50000] },
+    { key: "tax", q: "Какой у тебя налог?", hint: "Сколько государство забирает с каждого платежа.", suffix: "%", chips: [{ label: "Самозанятый · 6%", val: 6 }, { label: "ИП УСН · 6%", val: 6 }, { label: "ИП УСН · 15%", val: 15 }, { label: "Без налога", val: 0 }] },
+    { key: "days", q: "Сколько дней в месяц ты работаешь?", hint: "Реально, с учётом выходных и отдыха.", suffix: "", chips: [15, 18, 21, 25] },
+    { key: "hpd", q: "Сколько часов в день ты реально в работе?", hint: "Не «сколько на ногах», а именно за делом. Честно это обычно 5–7 часов.", suffix: "", chips: [4, 6, 8] },
+    { key: "bill", q: "Сколько из этого времени клиент реально оплачивает?", hint: "Продажи, переписку, обучение и админку никто не оплачивает. У большинства оплачивается 40–60%.", suffix: "%", chips: [40, 50, 60, 70] }
+  ];
+  var wizIdx = 0, wizReveal = false, selectedPresetKey = "";
+
+  function profGridHTML() {
+    return '<div class="wiz-picker">' + Object.keys(PRESETS).map(function (k) {
+      var p = PRESETS[k];
+      var sel = (selectedPresetKey === k) ? " sel" : "";
+      return '<button type="button" class="wiz-prof' + sel + '" data-preset="' + k + '"><span class="pic">' + p.icon + '</span>' + p.label + '</button>';
+    }).join("") + '</div>';
+  }
+
+  function chipsHTML(s) {
+    return '<div class="wiz-chips">' + s.chips.map(function (c) {
+      var val = (typeof c === "object") ? c.val : c;
+      var lab = (typeof c === "object") ? c.label : (s.suffix === "₽" ? Number(c).toLocaleString("ru-RU") : String(c));
+      return '<button type="button" class="wiz-chip" data-val="' + val + '">' + lab + '</button>';
+    }).join("") + '</div>';
+  }
+
+  function storeCurrent() {
+    var s = WIZ[wizIdx];
+    if (s.type === "picker") return;
+    var inp = document.getElementById("wizInput");
+    if (inp) $(s.key).value = inp.value;
+  }
+
+  function renderStep() {
+    var s = WIZ[wizIdx];
+    $("wizStepLabel").textContent = "Шаг " + (wizIdx + 1) + " из " + WIZ.length;
+    $("wizBar").style.width = ((wizIdx + 1) / WIZ.length * 100) + "%";
+    $("wizBack").disabled = (wizIdx === 0);
+    $("wizBack").textContent = "Назад";
+
+    if (s.type === "picker") {
+      $("wizStage").innerHTML =
+        '<p class="wiz-q">' + s.q + '</p>' +
+        '<p class="wiz-hint">' + s.hint + '</p>' +
+        profGridHTML();
+      $("wizNext").textContent = "Далее →";
+      $("wizNext").disabled = !selectedPresetKey;
+      return;
+    }
+
+    $("wizNext").disabled = false;
+    var cur = $(s.key).value;
+    var suffix = s.suffix ? '<span class="wiz-suffix">' + s.suffix + '</span>' : '';
+    $("wizStage").innerHTML =
+      '<p class="wiz-q">' + s.q + '</p>' +
+      '<p class="wiz-hint">' + s.hint + '</p>' +
+      '<div class="wiz-inp-row"><input class="wiz-input" id="wizInput" inputmode="numeric" value="' + cur + '">' + suffix + '</div>' +
+      chipsHTML(s);
+    $("wizNext").textContent = (wizIdx === WIZ.length - 1) ? "Показать ставку →" : "Далее →";
+    var inp = document.getElementById("wizInput");
+    inp.focus(); inp.select();
+  }
+
+  function renderReveal() {
+    recompute();
+    var b = baseRate();
+    $("wizStepLabel").textContent = "Готово";
+    $("wizBar").style.width = "100%";
+    $("wizStage").innerHTML =
+      '<div class="wiz-reveal">' +
+        '<p class="cap">Твоя честная ставка</p>' +
+        '<p class="big">' + money(b.rate) + '<small> / час</small></p>' +
+        '<p class="say">Ниже этой цены за час ты фактически доплачиваешь клиенту за право поработать. Считай это своим полом.</p>' +
+        '<div class="mini">' +
+          '<div>Нужно грязными<b>' + money(b.gross) + '</b></div>' +
+          '<div>Оплачиваемых часов<b>' + Math.round(b.billHours) + ' ч / мес</b></div>' +
+        '</div>' +
+      '</div>';
+    $("wizBack").disabled = false;
+    $("wizBack").textContent = "← Изменить ответы";
+    $("wizNext").textContent = "Собрать прайс-лист →";
+  }
+
+  function switchMode(mode) {
+    if (mode === "wizard") {
+      $("wizardView").classList.remove("is-hidden");
+      $("appView").classList.add("is-hidden");
+      wizReveal = false; wizIdx = 0; renderStep();
+    } else {
+      $("appView").classList.remove("is-hidden");
+      $("wizardView").classList.add("is-hidden");
+      recompute();
+    }
+    document.querySelectorAll(".modes button").forEach(function (b) {
+      b.classList.toggle("active", b.getAttribute("data-mode") === mode);
+    });
+  }
+
+  $("wizStage").addEventListener("click", function (e) {
+    var prof = e.target.closest(".wiz-prof");
+    if (prof) {
+      selectedPresetKey = prof.getAttribute("data-preset");
+      applyPreset(selectedPresetKey, true);
+      if (wizIdx < WIZ.length - 1) { wizIdx++; renderStep(); }
+      else { wizReveal = true; renderReveal(); }
+      return;
+    }
+    if (e.target.classList.contains("wiz-chip")) {
+      var inp = document.getElementById("wizInput");
+      if (inp) { inp.value = e.target.getAttribute("data-val"); inp.focus(); }
+    }
+  });
+  $("wizStage").addEventListener("keydown", function (e) {
+    if (e.key === "Enter" && e.target.id === "wizInput") { e.preventDefault(); $("wizNext").click(); }
+  });
+  $("wizNext").addEventListener("click", function () {
+    if (wizReveal) {
+      switchMode("full");
+      var p = $("svcPanel"); if (p) p.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+    storeCurrent();
+    if (wizIdx < WIZ.length - 1) { wizIdx++; renderStep(); }
+    else { wizReveal = true; renderReveal(); }
+  });
+  $("wizBack").addEventListener("click", function () {
+    if (wizReveal) { wizReveal = false; wizIdx = WIZ.length - 1; renderStep(); return; }
+    if (wizIdx > 0) { storeCurrent(); wizIdx--; renderStep(); }
+  });
+  document.querySelectorAll(".modes button").forEach(function (b) {
+    b.addEventListener("click", function () { switchMode(b.getAttribute("data-mode")); });
+  });
+
+  // preset select (full mode)
+  (function () {
+    var ps = $("presetSelect");
+    Object.keys(PRESETS).forEach(function (k) {
+      var o = document.createElement("option");
+      o.value = k; o.textContent = PRESETS[k].icon + " " + PRESETS[k].label;
+      ps.appendChild(o);
+    });
+    ps.addEventListener("change", function () {
+      var k = ps.value;
+      if (k) applyPreset(k, false);
+      ps.value = "";
+    });
+  })();
+
+  var hadSaved = false;
+  try { hadSaved = !!localStorage.getItem("expertRateCalc"); } catch (e) {}
+  load();
+  renderStep();
+  recompute();
+  switchMode(hadSaved ? "full" : "wizard");
+})();
+</script>
