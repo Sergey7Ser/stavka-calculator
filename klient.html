@@ -1,0 +1,1229 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ASTRALIUM — калькулятор натурального камня</title>
+<style>
+  :root {
+    --bg: #101215;
+    --bg-2: #15181D;
+    --card: #1A1D23;
+    --card-2: #21252C;
+    --line: #2C313A;
+    --line-strong: #3A4049;
+    --ink: #EDEAE2;
+    --ink-2: #CFCBC1;
+    --muted: #939AA3;
+    --brass: #C9A96E;
+    --brass-bright: #E3C88F;
+    --brass-dim: rgba(201,169,110,0.14);
+    --green: #8FB79E;
+    --crit: #D07A50;
+    --crit-soft: rgba(208,122,80,0.14);
+    --serif: Georgia, "Times New Roman", "Noto Serif", serif;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+    --r: 12px;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--sans);
+    background:
+      radial-gradient(90% 60% at 85% -10%, rgba(201,169,110,0.10), transparent 60%),
+      radial-gradient(70% 50% at 0% 100%, rgba(143,183,158,0.05), transparent 55%),
+      var(--bg);
+    color: var(--ink);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    padding: clamp(14px, 3vw, 36px);
+    padding-bottom: 110px;
+  }
+
+  .inner { max-width: 1080px; margin: 0 auto; }
+
+  /* ---------- header ---------- */
+  header { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 10px; }
+  .brand-name {
+    font-family: var(--serif);
+    font-size: clamp(26px, 4vw, 38px);
+    letter-spacing: 0.28em;
+    color: var(--brass-bright);
+    text-transform: uppercase;
+    line-height: 1.1;
+  }
+  .brand-name b { color: var(--ink); font-weight: 400; }
+  .brand-sub { color: var(--muted); font-size: 14px; margin-top: 4px; letter-spacing: 0.04em; }
+  .brand-rule { height: 1px; background: linear-gradient(90deg, var(--brass) 0%, rgba(201,169,110,0.15) 60%, transparent); margin: 14px 0 22px; }
+
+  .mode {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--card); border: 1px solid var(--line); border-radius: 999px; padding: 4px;
+  }
+  .mode button {
+    border: 0; background: transparent; color: var(--muted); font: 600 13px var(--sans);
+    padding: 7px 14px; border-radius: 999px; cursor: pointer; transition: 0.15s;
+  }
+  .mode button.on { background: var(--brass); color: #14161A; }
+
+  .note { color: var(--muted); font-size: 13px; margin: 0 0 20px; max-width: 720px; }
+  .note b { color: var(--brass-bright); font-weight: 600; }
+
+  /* ---------- cards / sections ---------- */
+  details.card {
+    background: var(--card); border: 1px solid var(--line); border-radius: var(--r);
+    margin-bottom: 14px; overflow: hidden;
+  }
+  details.card > summary {
+    list-style: none; cursor: pointer; user-select: none;
+    display: flex; align-items: center; gap: 12px;
+    padding: 15px 18px;
+  }
+  details.card > summary::-webkit-details-marker { display: none; }
+  details.card > summary .chev { color: var(--brass); transition: transform .15s; font-size: 12px; }
+  details[open].card > summary .chev { transform: rotate(90deg); }
+  .sec-title { font-family: var(--serif); font-size: 18px; letter-spacing: 0.02em; }
+  .sec-hint { color: var(--muted); font-size: 12.5px; margin-left: 2px; }
+  .sec-badge {
+    margin-left: auto; font: 600 13.5px var(--mono); color: var(--brass-bright);
+    background: var(--brass-dim); border: 1px solid rgba(201,169,110,0.25);
+    padding: 3px 10px; border-radius: 999px; white-space: nowrap;
+  }
+  .sec-badge.zero { color: var(--muted); background: transparent; border-color: var(--line); }
+  .card-body { padding: 4px 18px 16px; border-top: 1px solid var(--line); }
+
+  .group-label {
+    font: 600 11.5px var(--sans); text-transform: uppercase; letter-spacing: 0.12em;
+    color: var(--brass); margin: 16px 0 6px;
+  }
+
+  /* ---------- item rows ---------- */
+  .row {
+    display: grid; grid-template-columns: 1fr 108px 84px 110px;
+    gap: 10px; align-items: center;
+    padding: 7px 8px; margin: 0 -8px; border-radius: 8px;
+  }
+  .row + .row { border-top: 1px solid rgba(44,49,58,0.6); }
+  .row.active { background: var(--card-2); }
+  .row .nm { font-size: 14px; color: var(--ink-2); }
+  .row.active .nm { color: var(--ink); }
+  .row .unit { color: var(--muted); font-size: 12px; white-space: nowrap; }
+  .row .sum { text-align: right; font: 600 14px var(--mono); color: var(--muted); white-space: nowrap; }
+  .row.active .sum { color: var(--brass-bright); }
+  .row-note { grid-column: 1 / -1; color: var(--muted); font-size: 12px; margin-top: -4px; }
+
+  input[type="number"], input[type="text"], select {
+    width: 100%; background: var(--bg-2); color: var(--ink);
+    border: 1px solid var(--line); border-radius: 8px;
+    padding: 7px 9px; font: 500 14px var(--mono);
+    outline: none; transition: border-color .15s;
+  }
+  input[type="number"]:focus, input[type="text"]:focus, select:focus { border-color: var(--brass); }
+  input.price { color: var(--ink-2); }
+  input.price.edited { color: var(--brass-bright); border-color: rgba(201,169,110,0.4); }
+  input.qty { text-align: center; }
+  select { font-family: var(--sans); appearance: none; }
+  input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  input[type=number] { -moz-appearance: textfield; appearance: textfield; }
+
+  .thead {
+    display: grid; grid-template-columns: 1fr 108px 84px 110px; gap: 10px;
+    font: 600 11px var(--sans); text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--muted); padding: 10px 8px 6px; margin: 0 -8px;
+  }
+  .thead div:nth-child(2), .thead div:nth-child(3) { text-align: left; }
+  .thead div:last-child { text-align: right; }
+
+  .filter { margin: 10px 0 4px; }
+  .filter input { font-family: var(--sans); font-size: 13.5px; }
+
+  /* ---------- материал / кромки: динамические строки ---------- */
+  .mrow {
+    display: grid; grid-template-columns: 1.4fr 90px 108px 78px 100px 30px;
+    gap: 8px; align-items: center; padding: 8px 0;
+  }
+  .mrow + .mrow { border-top: 1px solid rgba(44,49,58,0.6); }
+  .erow { display: grid; grid-template-columns: 1.1fr 1fr 90px 108px 100px 30px; gap: 8px; align-items: center; padding: 8px 0; }
+  .erow + .erow { border-top: 1px solid rgba(44,49,58,0.6); }
+  .mhead, .ehead {
+    font: 600 11px var(--sans); text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--muted); padding: 10px 0 2px;
+  }
+  .mhead { display: grid; grid-template-columns: 1.4fr 90px 108px 78px 100px 30px; gap: 8px; }
+  .ehead { display: grid; grid-template-columns: 1.1fr 1fr 90px 108px 100px 30px; gap: 8px; }
+  .mhead div:last-child, .ehead div:last-child { text-align: right; }
+  .mrow .sum, .erow .sum { text-align: right; font: 600 14px var(--mono); color: var(--brass-bright); white-space: nowrap; }
+  .del {
+    border: 0; background: transparent; color: var(--muted); font-size: 16px;
+    cursor: pointer; border-radius: 6px; padding: 4px 6px;
+  }
+  .del:hover { color: var(--crit); background: var(--crit-soft); }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    border: 1px solid var(--line-strong); background: var(--card-2); color: var(--ink);
+    font: 600 13.5px var(--sans); padding: 9px 16px; border-radius: 9px; cursor: pointer;
+    transition: 0.15s;
+  }
+  .btn:hover { border-color: var(--brass); color: var(--brass-bright); }
+  .btn.gold { background: var(--brass); border-color: var(--brass); color: #14161A; }
+  .btn.gold:hover { background: var(--brass-bright); color: #14161A; }
+  .btn.ghost { background: transparent; }
+  .btn-add { margin-top: 10px; }
+
+  /* ---------- коэффициенты ---------- */
+  .coefs { display: flex; flex-wrap: wrap; gap: 10px; padding-top: 12px; }
+  .coef {
+    display: flex; align-items: flex-start; gap: 10px;
+    background: var(--bg-2); border: 1px solid var(--line); border-radius: 10px;
+    padding: 10px 14px; cursor: pointer; transition: 0.15s; flex: 1 1 260px;
+  }
+  .coef input { accent-color: var(--brass); margin-top: 3px; width: 15px; height: 15px; flex: none; }
+  .coef.on { border-color: var(--brass); background: var(--brass-dim); }
+  .coef .k { font: 700 14px var(--mono); color: var(--brass-bright); }
+  .coef .cn { font-size: 13.5px; }
+  .coef .cd { color: var(--muted); font-size: 12px; }
+
+  /* ---------- смета ---------- */
+  .estimate { border-color: var(--brass) !important; }
+  .est-line { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px dashed var(--line); font-size: 14.5px; }
+  .est-line .v { font: 600 14.5px var(--mono); white-space: nowrap; }
+  .est-line.sub { color: var(--muted); font-size: 13px; padding: 4px 0 4px 16px; border-bottom: 0; }
+  .est-line.sub .v { font-size: 13px; font-weight: 500; }
+  .est-line.koef .v { color: var(--brass-bright); }
+  .est-total { display: flex; justify-content: space-between; align-items: baseline; padding: 16px 0 4px; }
+  .est-total .t { font-family: var(--serif); font-size: 19px; }
+  .est-total .v { font: 700 clamp(22px, 3.4vw, 30px) var(--mono); color: var(--brass-bright); }
+  .est-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+  .est-empty { color: var(--muted); padding: 14px 0; font-size: 14px; }
+
+  /* ---------- нижняя панель ---------- */
+  .dock {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;
+    background: rgba(16,18,21,0.92); backdrop-filter: blur(10px);
+    border-top: 1px solid var(--line-strong);
+  }
+  .dock-in {
+    max-width: 1080px; margin: 0 auto; padding: 12px clamp(14px, 3vw, 36px);
+    display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  }
+  .dock .lbl { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em; }
+  .dock .tot { font: 700 clamp(18px, 3vw, 24px) var(--mono); color: var(--brass-bright); }
+
+  .toast {
+    position: fixed; bottom: 84px; left: 50%; transform: translateX(-50%) translateY(8px);
+    background: var(--brass); color: #14161A; font: 600 13.5px var(--sans);
+    padding: 9px 18px; border-radius: 999px; opacity: 0; pointer-events: none;
+    transition: 0.25s; z-index: 60;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  footer { color: var(--muted); font-size: 12.5px; margin-top: 26px; text-align: center; }
+
+  @media (max-width: 720px) {
+    .row, .thead { grid-template-columns: 1fr 84px 64px 84px; gap: 6px; }
+    .mrow, .mhead { grid-template-columns: 1.2fr 64px 84px 60px 84px 26px; gap: 5px; }
+    .erow, .ehead { grid-template-columns: 1fr 0.9fr 64px 84px 84px 26px; gap: 5px; }
+    input[type="number"], select { padding: 6px 6px; font-size: 13px; }
+    .row .nm { font-size: 13px; }
+  }
+
+  /* ---------- коммерческое предложение ---------- */
+  #kpView { display: none; }
+  body.kp-open #kpView { display: block; }
+  body.kp-open .inner, body.kp-open .dock { display: none; }
+
+  .kp-bar { max-width: 840px; margin: 0 auto 14px; display: flex; gap: 10px; flex-wrap: wrap; }
+  .kp-sheet {
+    max-width: 840px; margin: 0 auto; background: #FFFFFF; color: #1C2228;
+    border-radius: 6px; padding: clamp(22px, 5vw, 46px);
+    box-shadow: 0 18px 60px rgba(0,0,0,0.55);
+    font-family: var(--sans); line-height: 1.55; font-size: 14px;
+  }
+  .kp-sheet input, .kp-sheet textarea {
+    border: 0; border-bottom: 1px dashed #C9BFA8; border-radius: 0;
+    background: transparent; color: #1C2228; font: inherit;
+    padding: 2px 4px; outline: none; width: 100%;
+  }
+  .kp-sheet input:focus, .kp-sheet textarea:focus { border-bottom-color: #A88547; border-bottom-style: solid; }
+  .kp-sheet textarea { resize: vertical; min-height: 40px; }
+
+  .kp-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; border-bottom: 2px solid #A88547; padding-bottom: 14px; }
+  .kp-logo { font-family: var(--serif); letter-spacing: 0.26em; font-size: 25px; text-transform: uppercase; color: #1C2228; }
+  .kp-logo b { color: #A88547; font-weight: 400; }
+  .kp-tag { font-size: 11.5px; color: #6B7280; letter-spacing: 0.06em; margin-top: 3px; }
+  .kp-meta { text-align: right; font-size: 13px; color: #4B5563; min-width: 180px; }
+  .kp-meta .kp-num { display: flex; align-items: baseline; gap: 6px; justify-content: flex-end; font-weight: 600; color: #1C2228; }
+  .kp-meta .kp-num input { width: 130px; text-align: right; font-weight: 600; }
+
+  .kp-to { display: grid; grid-template-columns: 110px 1fr; gap: 6px 12px; margin: 18px 0 14px; font-size: 14px; align-items: baseline; }
+  .kp-to .l { color: #6B7280; font-size: 12px; text-transform: uppercase; letter-spacing: 0.07em; }
+  .kp-intro { color: #374151; margin: 0 0 20px; }
+
+  .kp-h {
+    font-family: var(--serif); font-size: 17.5px; color: #1C2228;
+    margin: 28px 0 12px; padding-left: 10px; border-left: 3px solid #A88547;
+  }
+
+  table.kp-t { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  .kp-t th {
+    text-align: left; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.08em;
+    color: #6B7280; border-bottom: 1px solid #D6D0C2; padding: 8px 6px; font-weight: 600;
+  }
+  .kp-t td { padding: 7px 6px; border-bottom: 1px solid #EEEAE0; vertical-align: top; }
+  .kp-t .r { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .kp-t tr.sec td { font-weight: 700; background: #FAF7F0; border-bottom: 1px solid #E4DCC9; }
+  .kp-t tr.it td:first-child { padding-left: 16px; color: #374151; }
+  .kp-t tr.koef td { color: #8a6d3b; font-weight: 600; }
+
+  .kp-total { display: flex; justify-content: space-between; align-items: baseline; margin: 16px 0 4px; padding-top: 12px; border-top: 2px solid #A88547; }
+  .kp-total .t { font-family: var(--serif); font-size: 18px; }
+  .kp-total .v { font: 700 26px var(--mono); font-variant-numeric: tabular-nums; }
+  .kp-small { font-size: 12px; color: #6B7280; }
+
+  .kp-ben { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 20px; }
+  .kp-b { font-size: 13px; color: #374151; }
+  .kp-b b { display: block; color: #1C2228; font-size: 13.5px; margin-bottom: 2px; }
+  .kp-terms ul { margin: 0; padding-left: 18px; font-size: 13px; color: #374151; }
+  .kp-terms li { margin: 4px 0; }
+
+  .kp-foot { display: flex; justify-content: space-between; align-items: flex-end; gap: 14px; margin-top: 28px; padding-top: 14px; border-top: 1px solid #E4DCC9; flex-wrap: wrap; }
+  .kp-foot .l { color: #6B7280; font-size: 11px; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 2px; }
+  .kp-foot .cell { min-width: 200px; flex: 1; }
+  .kp-empty { color: #6B7280; padding: 20px 0; }
+
+  @media (max-width: 640px) {
+    .kp-ben { grid-template-columns: 1fr; }
+    .kp-meta { text-align: left; }
+    .kp-meta .kp-num { justify-content: flex-start; }
+  }
+
+  /* ---------- печать ---------- */
+  @media print {
+    body { background: #fff; color: #14161A; padding: 0; }
+    header .mode, .note, details.card:not(.estimate), .dock, .est-actions, .btn, .toast { display: none !important; }
+    .brand-name { color: #14161A; }
+    .brand-name b { color: #8a6d3b; }
+    .brand-rule { background: #C9A96E; }
+    details.card.estimate { border: 1px solid #ccc; background: #fff; color: #14161A; }
+    details.card.estimate summary { color: #14161A; }
+    .sec-badge { display: none; }
+    .est-line { border-color: #ddd; color: #14161A; }
+    .est-line.sub { color: #555; }
+    .est-total .v, .est-line.koef .v { color: #8a6d3b; }
+    .est-line .v { color: #14161A; }
+
+    /* режим КП: печатается только лист */
+    body.kp-open { padding: 0; }
+    body.kp-open .kp-bar { display: none !important; }
+    body.kp-open .kp-sheet { box-shadow: none; border-radius: 0; max-width: none; padding: 0; font-size: 13px; }
+    body.kp-open .kp-sheet input, body.kp-open .kp-sheet textarea { border-bottom-color: transparent; }
+    body.kp-open .kp-sheet input::placeholder, body.kp-open .kp-sheet textarea::placeholder { color: transparent; }
+    .kp-comment:has(textarea:placeholder-shown) { display: none; }
+    .kp-ben, .kp-t tr, .kp-terms li { break-inside: avoid; }
+    .kp-h { break-after: avoid; }
+  }
+</style>
+</head>
+<body>
+<div class="inner">
+
+  <header>
+    <div>
+      <div class="brand-name">Astra<b>lium</b></div>
+      <div class="brand-sub">Натуральный камень · калькулятор сметы</div>
+    </div>
+      </header>
+  <div class="brand-rule"></div>
+
+  <p class="note">Предварительный расчёт стоимости камня и работ. Финальная цена фиксируется в договоре после выезда на замер.</p>
+
+  <!-- МАТЕРИАЛ -->
+  <details class="card" open id="secMat">
+    <summary><span class="chev">▶</span><span class="sec-title">Камень / материал</span><span class="sec-hint">площадь × цена + запас на подрезку</span><span class="sec-badge zero" id="bMat">0 ₽</span></summary>
+    <div class="card-body">
+      <div class="mhead"><div>Камень</div><div>м²</div><div>Цена ₽/м²</div><div>Запас %</div><div>Сумма</div><div></div></div>
+      <div id="matRows"></div>
+      <button class="btn btn-add" id="addMat" type="button">+ Добавить камень</button>
+    </div>
+  </details>
+
+  <!-- ПРОИЗВОДСТВО -->
+  <details class="card" open id="secProd">
+    <summary><span class="chev">▶</span><span class="sec-title">Изготовление на производстве</span><span class="sec-hint">резы, вырезы, отверстия, обработка</span><span class="sec-badge zero" id="bProd">0 ₽</span></summary>
+    <div class="card-body">
+      <div class="filter"><input type="text" id="fProd" placeholder="Поиск по операциям…"></div>
+      <div class="thead"><div>Операция</div><div>Цена, ₽</div><div>Кол-во</div><div>Сумма</div></div>
+      <div id="prodRows"></div>
+    </div>
+  </details>
+
+  <!-- КРОМКИ -->
+  <details class="card" open id="secEdge">
+    <summary><span class="chev">▶</span><span class="sec-title">Обработка торцов (кромка)</span><span class="sec-hint">тип профиля × толщина × метры</span><span class="sec-badge zero" id="bEdge">0 ₽</span></summary>
+    <div class="card-body">
+      <div class="ehead"><div>Профиль</div><div>Толщина</div><div>м/п</div><div>Цена ₽/м</div><div>Сумма</div><div></div></div>
+      <div id="edgeRows"></div>
+      <button class="btn btn-add" id="addEdge" type="button">+ Добавить кромку</button>
+      <div class="row-note" style="margin-top:10px">Профили I и L+B — цена по запросу, в расчёт не входят.</div>
+    </div>
+  </details>
+
+  <!-- МОНТАЖ -->
+  <details class="card" open id="secMount">
+    <summary><span class="chev">▶</span><span class="sec-title">Монтаж</span><span class="sec-hint">подоконники, столешницы, ступени, полы, стены</span><span class="sec-badge zero" id="bMount">0 ₽</span></summary>
+    <div class="card-body">
+      <div class="thead"><div>Работа</div><div>Цена, ₽</div><div>Кол-во</div><div>Сумма</div></div>
+      <div id="mountRows"></div>
+    </div>
+  </details>
+
+  <!-- КЕРАМОГРАНИТ -->
+  <details class="card" id="secTile">
+    <summary><span class="chev">▶</span><span class="sec-title">Укладка керамогранита</span><span class="sec-hint">форматы, запилы, затирка, отверстия</span><span class="sec-badge zero" id="bTile">0 ₽</span></summary>
+    <div class="card-body">
+      <div class="filter"><input type="text" id="fTile" placeholder="Поиск по работам…"></div>
+      <div class="thead"><div>Работа</div><div>Цена, ₽</div><div>Кол-во</div><div>Сумма</div></div>
+      <div id="tileRows"></div>
+    </div>
+  </details>
+
+  <!-- ПРОЧИЕ -->
+  <details class="card" open id="secOther">
+    <summary><span class="chev">▶</span><span class="sec-title">Прочие услуги</span><span class="sec-hint">замер, проект, расходники, доставка</span><span class="sec-badge zero" id="bOther">0 ₽</span></summary>
+    <div class="card-body">
+      <div class="thead"><div>Услуга</div><div>Цена, ₽</div><div>Кол-во</div><div>Сумма</div></div>
+      <div id="otherRows"></div>
+    </div>
+  </details>
+
+  <!-- КОЭФФИЦИЕНТЫ -->
+  <details class="card" open id="secCoef">
+    <summary><span class="chev">▶</span><span class="sec-title">Коэффициенты сложности</span><span class="sec-hint">применяются к работам (производство, кромка, монтаж, укладка)</span><span class="sec-badge zero" id="bCoef">×1.00</span></summary>
+    <div class="card-body">
+      <div class="coefs" id="coefRows"></div>
+    </div>
+  </details>
+
+  <!-- СМЕТА -->
+  <details class="card estimate" open id="secEst">
+    <summary><span class="chev">▶</span><span class="sec-title">Смета</span><span class="sec-badge" id="bEst">0 ₽</span></summary>
+    <div class="card-body">
+      <div id="estBody"></div>
+      <div class="est-actions">
+        <button class="btn gold" id="btnKP" type="button">Коммерческое предложение →</button>
+        <button class="btn" id="btnCopy" type="button">Копировать смету</button>
+        <button class="btn" id="btnPrint" type="button">Печать / PDF</button>
+        <button class="btn ghost" id="btnResetPrices" type="button">Сбросить цены к прайсу</button>
+        <button class="btn ghost" id="btnResetAll" type="button">Очистить расчёт</button>
+      </div>
+    </div>
+  </details>
+
+  <footer>ASTRALIUM · натуральный камень проектов любой сложности · расчёт предварительный, финальная цена — после замера</footer>
+</div>
+
+<div class="dock">
+  <div class="dock-in">
+    <div>
+      <div class="lbl">Итого по смете</div>
+      <div class="tot" id="dockTotal">0 ₽</div>
+    </div>
+    <div style="display:flex; gap:8px;">
+      <button class="btn ghost" type="button" onclick="document.getElementById('secEst').scrollIntoView({behavior:'smooth'})">Смета</button>
+      <button class="btn gold" id="btnKPdock" type="button">Создать КП →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= КОММЕРЧЕСКОЕ ПРЕДЛОЖЕНИЕ ================= -->
+<div id="kpView">
+  <div class="kp-bar">
+    <button class="btn" id="kpBack" type="button">← К расчёту</button>
+    <button class="btn gold" id="kpPdf" type="button">Скачать PDF</button>
+    <button class="btn" id="kpShare" type="button">Поделиться</button>
+  </div>
+
+  <div class="kp-sheet">
+    <div class="kp-head">
+      <div>
+        <div class="kp-logo">Astra<b>lium</b></div>
+        <div class="kp-tag">натуральный камень · производство · монтаж</div>
+      </div>
+      <div class="kp-meta">
+        <div class="kp-num"><span>КП №</span><input id="kpNum" type="text"></div>
+        <div id="kpDate"></div>
+        <div id="kpValid" class="kp-small"></div>
+      </div>
+    </div>
+
+    <div class="kp-to">
+      <div class="l">Кому</div><input id="kpClient" type="text" placeholder="Имя клиента / компания">
+      <div class="l">Объект</div><input id="kpObject" type="text" placeholder="Адрес или название объекта">
+    </div>
+
+    <p class="kp-intro">Благодарим за обращение в ASTRALIUM. Ниже — расчёт стоимости по вашему проекту:
+      материал, изготовление и монтаж. Финальную цену зафиксируем в договоре после выезда на замер.</p>
+
+    <div class="kp-h">Смета</div>
+    <div id="kpTable"></div>
+    <div class="kp-total"><div class="t">Итого по проекту</div><div class="v" id="kpTotal">0 ₽</div></div>
+    <div class="kp-small">Расчёт предварительный. Точная стоимость фиксируется после замера и утверждения проекта.</div>
+
+    <div class="kp-comment">
+      <div class="kp-h">Комментарий к предложению</div>
+      <textarea id="kpNote" rows="2" placeholder="Например: в расчёт включён камень с запасом на подрезку; срок изготовления — 3 недели…"></textarea>
+    </div>
+
+    <div class="kp-h">Почему ASTRALIUM</div>
+    <div class="kp-ben">
+      <div class="kp-b"><b>Один подрядчик на весь цикл</b>Замер, проект, производство и монтаж в одних руках. Вам не нужно координировать смежников и искать ответственных — за результат отвечает одна команда.</div>
+      <div class="kp-b"><b>Ювелирная гидроабразивная резка</b>Стыки и примыкания, которые не приходится прятать. Сложная геометрия, радиусы и врезки — наша штатная работа, а не «доплата за сложность».</div>
+      <div class="kp-b"><b>Опыт работы со сложным камнем</b>Оникс с подсветкой, кварцит, крупноформатные слэбы. Технологию подбираем под материал — риск сколов и трещин берём на себя.</div>
+      <div class="kp-b"><b>Прозрачная смета до договора</b>Вы видите каждую позицию и её цену до начала работ. После замера стоимость фиксируется — без «сюрпризов» в процессе.</div>
+      <div class="kp-b"><b>Подбор камня под задачу и бюджет</b>От травертина для фасада до медового оникса для лестницы: покажем образцы, реализованные объекты и честно скажем, где можно сэкономить.</div>
+      <div class="kp-b"><b>Сроки — в договоре</b>Этапы и даты прописываем письменно. Монтаж планируем так, чтобы не останавливать другие работы на вашем объекте.</div>
+      <div class="kp-b"><b>Гарантия на изделия и монтаж</b>Если что-то не так — приезжаем и устраняем. Камень служит десятилетиями, и наша работа должна служить столько же.</div>
+    </div>
+
+    <div class="kp-h">Условия</div>
+    <div class="kp-terms">
+      <ul>
+        <li>Предложение действительно 14 дней с даты выставления.</li>
+        <li>Стоимость фиксируется в договоре после выезда на замер.</li>
+        <li>Этапы оплаты и сроки выполнения закрепляются в договоре.</li>
+      </ul>
+    </div>
+
+    <div class="kp-foot">
+      <div class="cell"><div class="l">Телефон</div><input id="kpPhone" type="text" placeholder="+7 ___ ___-__-__"></div>
+      <div class="cell"><div class="l">Сайт / e-mail</div><input id="kpMail" type="text" placeholder="astralium.ru · info@…"></div>
+      <div class="cell" style="text-align:right; flex:none;"><div class="l">Менеджер</div><input id="kpManager" type="text" placeholder="Имя" style="text-align:right;"></div>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast">Скопировано</div>
+
+<script>
+'use strict';
+
+/* ================= ПРАЙС (из таблиц Astralium) =================
+   std — стандартный прайс, min — нижняя граница (если нет — std) */
+
+const STONES = [
+  { id: 'travertin',  name: 'Травертин',            price: 6500 },
+  { id: 'travlight',  name: 'Травертин светлый',    price: 7500 },
+  { id: 'limestone',  name: 'Известняк белый',      price: 4500 },
+  { id: 'dagestan',   name: 'Дагестанский камень',  price: 3200 },
+  { id: 'granite',    name: 'Гранит',               price: 9500 },
+  { id: 'granitebl',  name: 'Гранит чёрный',        price: 12500 },
+  { id: 'marble',     name: 'Мрамор',               price: 12000 },
+  { id: 'onyxhoney',  name: 'Оникс медовый',        price: 26000 },
+  { id: 'onyxgreen',  name: 'Оникс зелёный',        price: 28000 },
+  { id: 'onyxlight',  name: 'Оникс светлый',        price: 24000 },
+  { id: 'quartzite',  name: 'Кварцит',              price: 35000 },
+  { id: 'agate',      name: 'Агат',                 price: 65000 },
+  { id: 'ceramic',    name: 'Керамогранит',         price: 3500 },
+  { id: 'custom',     name: 'Свой камень',          price: 0 },
+];
+
+const PROD = [
+  { id: 'p1',  name: 'Прямой рез',                                      unit: 'м',        std: 1500 },
+  { id: 'p2',  name: 'Рез под 45° (кварц, гранит, мрамор)',             unit: 'м',        std: 3700 },
+  { id: 'p3',  name: 'Лекальный рез',                                   unit: 'м',        std: 5384 },
+  { id: 'p4',  name: 'Внутренний вырез без обработки, прямой',          unit: 'шт',       std: 9840 },
+  { id: 'p5',  name: 'Внутренний вырез без обработки, овал и др. форма',unit: 'шт',       std: 13120 },
+  { id: 'p6',  name: 'Внутренний вырез с обработкой',                   unit: 'шт',       std: 22240 },
+  { id: 'p7',  name: 'Внутренний вырез черновой от 1000 мм',            unit: 'шт',       std: 17680 },
+  { id: 'p8',  name: 'Внутренний вырез под обработку от 1000 мм',       unit: 'шт',       std: 41760 },
+  { id: 'p9',  name: 'Отверстие диаметром до 25 мм',                    unit: 'шт',       std: 884 },
+  { id: 'p10', name: 'Отверстие диаметром 25–50 мм',                    unit: 'шт',       std: 1938 },
+  { id: 'p11', name: 'Отверстие диаметром 50–100 мм',                   unit: 'шт',       std: 3736 },
+  { id: 'p12', name: 'Вырез для розеточной группы',                     unit: 'шт',       std: 6332 },
+  { id: 'p13', name: 'Вырез под накладные конвекторы',                  unit: 'шт',       std: 5876 },
+  { id: 'p14', name: 'Мойка из камня',                                  unit: 'шт',       std: 120800 },
+  { id: 'p15', name: 'Скругление угла',                                 unit: 'шт',       std: 884 },
+  { id: 'p16', name: 'Канелюр',                                         unit: 'м/п',      std: 11120 },
+  { id: 'p17', name: 'Снятие фаски до 2 мм',                            unit: 'м/п',      std: 884 },
+  { id: 'p18', name: 'Снятие фаски 2–7 мм',                             unit: 'м/п',      std: 1968 },
+  { id: 'p19', name: 'Вклейка крепёжного элемента',                     unit: 'шт',       std: 656 },
+  { id: 'p20', name: 'Подклейка до 100 мм',                             unit: 'м/п',      std: 4736 },
+  { id: 'p21', name: 'Армировка (мрамор и гранит)',                     unit: 'м/п',      std: 5648 },
+  { id: 'p22', name: 'Калибровка (уменьшение толщины)',                 unit: 'м/п',      std: 13400 },
+  { id: 'p23', name: 'Полировка поверхности',                           unit: 'м²',       std: 22240 },
+  { id: 'p24', name: 'Отверстие для смесителей/дозаторов D=35 мм',      unit: 'компл.',   std: 5420 },
+  { id: 'p25', name: 'Плинтус 20×12, 40×20, 20×20',                     unit: 'м/п',      std: 6560 },
+  { id: 'p26', name: 'Прорезы 3 мм для конвектора',                     unit: 'шт',       std: 1198 },
+  { id: 'p27', name: 'Прорезы 12–20 мм для конвектора',                 unit: 'шт',       std: 6560 },
+  { id: 'p28', name: 'Столешница по кромке H40 (стандарт Z, A)',        unit: 'м/п',      std: 13260 },
+  { id: 'p29', name: 'Полировка при изготовлении (кроме кварцита)',     unit: 'м/п·м²',   std: 15000 },
+];
+
+const MOUNT = [
+  { id: 'm1',  name: 'Установка прямых подоконников',                   unit: 'п.м.', std: 9120 },
+  { id: 'm2',  name: 'Установка радиусных и эркерных подоконников',     unit: 'п.м.', std: 13680 },
+  { id: 'm3',  name: 'Установка фартука',                               unit: 'п.м.', std: 11400 },
+  { id: 'm4',  name: 'Установка прямых столешниц',                      unit: 'п.м.', std: 11400 },
+  { id: 'm5',  name: 'Установка эркерных и стыковых столешниц',         unit: 'п.м.', std: 15960 },
+  { id: 'm6',  name: 'Установка столешницы с нижней подклейкой раковины', unit: 'шт', std: 11400 },
+  { id: 'm7',  name: 'Установка прямых ступеней',                       unit: 'п.м.', std: 9120 },
+  { id: 'm8',  name: 'Установка радиусных и стыковых ступеней',         unit: 'п.м.', std: 14400 },
+  { id: 'm9',  name: 'Установка калошниц',                              unit: 'п.м.', std: 6840 },
+  { id: 'm10', name: 'Укладка пола 600×600',                            unit: 'м²',   std: 15960 },
+  { id: 'm11', name: 'Слэбная укладка пола',                            unit: 'м²',   std: 20520 },
+  { id: 'm12', name: 'Фриз по контуру',                                 unit: 'п.м.', std: 9120 },
+  { id: 'm13', name: 'Монтаж стен плиткой 600×600',                     unit: 'м²',   std: 15960 },
+  { id: 'm14', name: 'Монтаж стен, слэбная укладка (и панно)',          unit: 'м²',   std: 20520 },
+];
+
+const TILE = [
+  { group: 'Укладка' },
+  { id: 't1',  name: 'Укладка плитки 60×60 см',                          unit: 'м²', std: 6000 },
+  { id: 't2',  name: 'Укладка плитки 120×120 см',                        unit: 'м²', std: 8000 },
+  { id: 't3',  name: 'Укладка плитки 60×120 см',                         unit: 'м²', std: 7000 },
+  { id: 't4',  name: 'Укладка плитки 75×150 см',                         unit: 'м²', std: 8000 },
+  { id: 't5',  name: 'Укладка плитки 80×160 см',                         unit: 'м²', std: 9000 },
+  { id: 't6',  name: 'Укладка плитки 90×180 см',                         unit: 'м²', std: 11000 },
+  { id: 't7',  name: 'Укладка плитки 120×300 см',                        unit: 'м²', std: 14000 },
+  { id: 't8',  name: 'Укладка широкоформатной плитки (нестандарт)',      unit: 'м²', std: 24000, note: 'зависит от проекта' },
+  { id: 't9',  name: 'Укладка мозаики',                                  unit: 'м²', std: 14000 },
+  { id: 't10', name: 'Узкие части менее 100 мм',                         unit: 'шт', std: 6000 },
+  { group: 'Запил и рез' },
+  { id: 't11', name: 'Запил плитки менее 30 см под 45°',                 unit: 'шт', std: 7000 },
+  { id: 't12', name: 'Запил 30–60 см под 45°',                           unit: 'шт', std: 6000 },
+  { id: 't13', name: 'Запил более 60 см под 45°',                        unit: 'шт', std: 7000 },
+  { id: 't14', name: 'Запил более 120 см под 45°',                       unit: 'шт', std: 8000 },
+  { id: 't15', name: 'Запил 160 см под 45°',                             unit: 'шт', std: 10000 },
+  { id: 't16', name: 'Чистовой рез до 60 см',                            unit: 'шт', std: 2400 },
+  { id: 't17', name: 'Чистовой рез 60–120 см',                           unit: 'шт', std: 3400 },
+  { id: 't18', name: 'Чистовой рез свыше 120 см',                        unit: 'шт', std: 4000 },
+  { group: 'Затирка и углы' },
+  { id: 't19', name: 'Затирка эпоксидная, формат 60–160 см',             unit: 'м²', std: 3000 },
+  { id: 't20', name: 'Затирка эпоксидная, формат свыше 160 см',          unit: 'м²', std: 2400 },
+  { id: 't21', name: 'Затирка эпоксидная мозаики',                       unit: 'м²', std: 6000 },
+  { id: 't22', name: 'Затирка цементная, формат 60–160 см',              unit: 'м²', std: 2000 },
+  { id: 't23', name: 'Затирка цементная, формат свыше 160 см',           unit: 'м²', std: 1600 },
+  { id: 't24', name: 'Затирка цементная мозаики',                        unit: 'м²', std: 4000 },
+  { id: 't25', name: 'Формирование внешнего угла',                       unit: 'шт', std: 2800 },
+  { id: 't26', name: 'Устройство внутреннего угла герметиком',           unit: 'шт', std: 1000 },
+  { group: 'Отверстия' },
+  { id: 't27', name: 'Сверление отверстий до 12 мм',                     unit: 'шт', std: 800 },
+  { id: 't28', name: 'Сверление отверстий до 32 мм',                     unit: 'шт', std: 2000 },
+  { id: 't29', name: 'Сверление отверстий до 70 мм',                     unit: 'шт', std: 3400 },
+  { id: 't30', name: 'Сверление отверстий до 120 мм',                    unit: 'шт', std: 4800 },
+  { id: 't31', name: 'Сверление отверстий свыше 120 мм',                 unit: 'шт', std: 6400 },
+];
+
+const OTHER = [
+  { id: 'o1', name: 'Замер',           unit: 'выезд',   std: 26000 },
+  { id: 'o2', name: 'Проектирование',  unit: 'м²/п.м',  std: 2500 },
+  { id: 'o3', name: 'Расходники',      unit: 'м²/п.м',  std: 10000 },
+  { id: 'o4', name: 'Доставка',        unit: 'рейс',    std: 18000 },
+  { id: 'o5', name: 'Переполировка',   unit: 'м²/п.м',  std: 22240 },
+];
+
+/* кромки: цена за м/п. std20/std40/plint — стандарт; min20 — нижняя граница для 20 мм */
+const EDGES = [
+  { t: 'Z',   grp: 'Стандартные', std20: 3360, std40: 9720,  plint: 4560 },
+  { t: 'Z03', grp: 'Стандартные', std20: 3360, std40: 9720,  plint: 4560 },
+  { t: 'A',   grp: 'Стандартные', std20: 4560, std40: 10680, plint: 6000 },
+  { t: 'B',   grp: 'Стандартные', std20: 4800, std40: 10680, plint: null },
+  { t: 'V',   grp: 'Стандартные', std20: 5760, std40: 14040, plint: null },
+  { t: 'T',   grp: 'Стандартные', std20: 5760, std40: 10800, plint: null },
+  { t: 'F',   grp: 'Фигурные',    std20: 6960, std40: 14280, plint: null },
+  { t: 'L',   grp: 'Фигурные',    std20: 6960, std40: 14280, plint: null },
+  { t: 'H',   grp: 'Фигурные',    std20: 7440, std40: 14280, plint: null },
+  { t: 'O',   grp: 'Фигурные',    std20: 9360, std40: 14280, plint: null },
+];
+
+const COEFS = [
+  { id: 'k1', k: 1.15, name: 'Толщина 30–40 мм',        note: 'Увеличенная масса и сложность' },
+  { id: 'k2', k: 1.20, name: 'Оникс, агат, кварцит',    note: 'Повышенный риск и сложность обработки' },
+  { id: 'k3', k: 1.25, name: 'Радиусные элементы',      note: 'Ручная работа' },
+  { id: 'k4', k: 1.30, name: 'Сложная архитектура',     note: 'Много стыков и подгонок' },
+  { id: 'k5', k: 1.20, name: 'Срочность',               note: 'Переработки' },
+];
+
+const ALL_ITEMS = {};
+[...PROD, ...MOUNT, ...TILE.filter(x => x.id), ...OTHER].forEach(x => { ALL_ITEMS[x.id] = x; });
+
+/* ================= СОСТОЯНИЕ ================= */
+
+const LS_KEY = 'astralium_klient_v1';
+
+let S = {
+  mode: 'std',                 // 'std' | 'min'
+  qty: {},                     // id -> количество
+  priceOv: {},                 // id -> { std?, min? } — правки цен
+  matRows: [],                 // [{stone, area, price, waste}]
+  edgeRows: [],                // [{type, thick, len}]  thick: '20'|'40'|'pl'
+  coefs: {},                   // id -> bool
+  kp: {},                      // реквизиты КП: num, client, object, note, phone, mail, manager
+};
+
+function save() { try { localStorage.setItem(LS_KEY, JSON.stringify(S)); } catch (e) {} }
+function load() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (raw) { const p = JSON.parse(raw); if (p && typeof p === 'object') S = Object.assign(S, p); }
+  } catch (e) {}
+  if (!S.matRows.length) S.matRows.push({ stone: 'travertin', area: 0, price: 6500, waste: 10 });
+  if (!S.edgeRows.length) S.edgeRows.push({ type: 'Z', thick: '20', len: 0 });
+}
+
+/* ================= УТИЛИТЫ ================= */
+
+const fmtN = new Intl.NumberFormat('ru-RU');
+const fmt = n => fmtN.format(Math.round(n)) + ' ₽';
+const num = v => { const n = parseFloat(String(v).replace(',', '.')); return isFinite(n) && n > 0 ? n : 0; };
+
+function itemPrice(id) {
+  const it = ALL_ITEMS[id];
+  const ov = S.priceOv[id];
+  if (ov && ov[S.mode] != null) return ov[S.mode];
+  return S.mode === 'min' ? (it.min != null ? it.min : it.std) : it.std;
+}
+function edgePrice(type, thick) {
+  const e = EDGES.find(x => x.t === type);
+  if (!e) return 0;
+  if (thick === '40') return e.std40 || 0;
+  if (thick === 'pl') return e.plint || 0;
+  return (S.mode === 'min' && e.min20 != null) ? e.min20 : e.std20;
+}
+
+function el(tag, cls, text) {
+  const d = document.createElement(tag);
+  if (cls) d.className = cls;
+  if (text != null) d.textContent = text;
+  return d;
+}
+
+/* ================= РЕНДЕР СПИСКОВ РАБОТ ================= */
+
+function buildItemRows(list, containerId) {
+  const box = document.getElementById(containerId);
+  box.innerHTML = '';
+  list.forEach(it => {
+    if (it.group) { box.appendChild(el('div', 'group-label', it.group)); return; }
+    const r = el('div', 'row'); r.dataset.id = it.id; r.dataset.search = it.name.toLowerCase();
+    const nm = el('div', 'nm'); nm.append(it.name + ' ');
+    nm.appendChild(el('span', 'unit', '· ' + it.unit));
+    const pr = el('input', 'price'); pr.type = 'number'; pr.min = '0'; pr.step = '1';
+    const q = el('input', 'qty'); q.type = 'number'; q.min = '0'; q.step = '0.01'; q.placeholder = '0';
+    const sum = el('div', 'sum', '—');
+    r.append(nm, pr, q, sum);
+    if (it.note) { const nt = el('div', 'row-note', it.note); r.appendChild(nt); }
+    box.appendChild(r);
+
+    pr.addEventListener('input', () => {
+      const v = num(pr.value);
+      if (!S.priceOv[it.id]) S.priceOv[it.id] = {};
+      S.priceOv[it.id][S.mode] = v || 0;
+      recalc(); save();
+    });
+    q.addEventListener('input', () => {
+      const v = num(q.value);
+      if (v) S.qty[it.id] = v; else delete S.qty[it.id];
+      recalc(); save();
+    });
+  });
+}
+
+function syncItemRows() {
+  document.querySelectorAll('.row[data-id]').forEach(r => {
+    const id = r.dataset.id;
+    const pr = r.querySelector('.price');
+    const q = r.querySelector('.qty');
+    if (document.activeElement !== pr) pr.value = itemPrice(id);
+    const ov = S.priceOv[id];
+    pr.classList.toggle('edited', !!(ov && ov[S.mode] != null && ov[S.mode] !== (S.mode === 'min' ? (ALL_ITEMS[id].min != null ? ALL_ITEMS[id].min : ALL_ITEMS[id].std) : ALL_ITEMS[id].std)));
+    if (document.activeElement !== q) q.value = S.qty[id] || '';
+  });
+}
+
+/* ================= МАТЕРИАЛ ================= */
+
+function renderMat() {
+  const box = document.getElementById('matRows');
+  box.innerHTML = '';
+  S.matRows.forEach((row, i) => {
+    const r = el('div', 'mrow');
+    const sel = el('select');
+    STONES.forEach(s => {
+      const o = el('option', null, s.name); o.value = s.id;
+      if (s.id === row.stone) o.selected = true;
+      sel.appendChild(o);
+    });
+    const area = el('input'); area.type = 'number'; area.min = '0'; area.step = '0.01'; area.placeholder = '0'; area.value = row.area || '';
+    const price = el('input', 'price'); price.type = 'number'; price.min = '0'; price.step = '1'; price.value = row.price;
+    const waste = el('input'); waste.type = 'number'; waste.min = '0'; waste.step = '1'; waste.value = row.waste;
+    const sum = el('div', 'sum', '—');
+    const del = el('button', 'del', '✕'); del.type = 'button'; del.title = 'Удалить';
+    r.append(sel, area, price, waste, sum, del);
+    box.appendChild(r);
+
+    sel.addEventListener('change', () => {
+      row.stone = sel.value;
+      const st = STONES.find(s => s.id === sel.value);
+      row.price = st ? st.price : 0;
+      price.value = row.price;
+      autoCoefHint();
+      recalc(); save();
+    });
+    area.addEventListener('input', () => { row.area = num(area.value); recalc(); save(); });
+    price.addEventListener('input', () => { row.price = num(price.value); recalc(); save(); });
+    waste.addEventListener('input', () => { row.waste = num(waste.value); recalc(); save(); });
+    del.addEventListener('click', () => { S.matRows.splice(i, 1); renderMat(); recalc(); save(); });
+  });
+}
+
+/* при выборе оникса/агата/кварцита — подсказываем коэффициент 1.2 */
+function autoCoefHint() {
+  const risky = S.matRows.some(r => ['onyxhoney', 'onyxgreen', 'onyxlight', 'quartzite', 'agate'].includes(r.stone));
+  if (risky && !S.coefs.k2 && !S._k2dismissed) {
+    S.coefs.k2 = true;
+    renderCoefs();
+  }
+}
+
+/* ================= КРОМКИ ================= */
+
+function renderEdges() {
+  const box = document.getElementById('edgeRows');
+  box.innerHTML = '';
+  S.edgeRows.forEach((row, i) => {
+    const r = el('div', 'erow');
+    const sel = el('select');
+    let lastGrp = '';
+    EDGES.forEach(e => {
+      if (e.grp !== lastGrp) {
+        lastGrp = e.grp;
+        const og = document.createElement('optgroup'); og.label = e.grp; sel.appendChild(og);
+      }
+      const o = el('option', null, 'Профиль ' + e.t); o.value = e.t;
+      if (e.t === row.type) o.selected = true;
+      sel.lastChild.appendChild(o);
+    });
+    const th = el('select');
+    [['20', '20 мм'], ['40', '40 мм'], ['pl', 'Плинтус']].forEach(([v, l]) => {
+      const o = el('option', null, l); o.value = v;
+      const e = EDGES.find(x => x.t === row.type);
+      if (v === 'pl' && (!e || !e.plint)) o.disabled = true;
+      if (v === row.thick) o.selected = true;
+      th.appendChild(o);
+    });
+    const len = el('input'); len.type = 'number'; len.min = '0'; len.step = '0.01'; len.placeholder = '0'; len.value = row.len || '';
+    const pr = el('input', 'price'); pr.type = 'number'; pr.readOnly = true; pr.tabIndex = -1; pr.value = edgePrice(row.type, row.thick); pr.title = 'Цена из матрицы кромок';
+    const sum = el('div', 'sum', '—');
+    const del = el('button', 'del', '✕'); del.type = 'button'; del.title = 'Удалить';
+    r.append(sel, th, len, pr, sum, del);
+    box.appendChild(r);
+
+    sel.addEventListener('change', () => {
+      row.type = sel.value;
+      const e = EDGES.find(x => x.t === row.type);
+      if (row.thick === 'pl' && (!e || !e.plint)) row.thick = '20';
+      renderEdges(); recalc(); save();
+    });
+    th.addEventListener('change', () => { row.thick = th.value; pr.value = edgePrice(row.type, row.thick); recalc(); save(); });
+    len.addEventListener('input', () => { row.len = num(len.value); recalc(); save(); });
+    del.addEventListener('click', () => { S.edgeRows.splice(i, 1); renderEdges(); recalc(); save(); });
+  });
+}
+
+/* ================= КОЭФФИЦИЕНТЫ ================= */
+
+function renderCoefs() {
+  const box = document.getElementById('coefRows');
+  box.innerHTML = '';
+  COEFS.forEach(c => {
+    const lab = el('label', 'coef' + (S.coefs[c.id] ? ' on' : ''));
+    const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = !!S.coefs[c.id];
+    const txt = el('div');
+    const line1 = el('div', 'cn');
+    line1.appendChild(el('span', 'k', '×' + c.k.toFixed(2) + '  '));
+    line1.append(' ' + c.name);
+    txt.appendChild(line1);
+    txt.appendChild(el('div', 'cd', c.note));
+    lab.append(cb, txt);
+    box.appendChild(lab);
+    cb.addEventListener('change', () => {
+      S.coefs[c.id] = cb.checked;
+      if (c.id === 'k2' && !cb.checked) S._k2dismissed = true;
+      lab.classList.toggle('on', cb.checked);
+      recalc(); save();
+    });
+  });
+}
+
+/* ================= РАСЧЁТ ================= */
+
+function calc() {
+  const mat = S.matRows.map(r => ({
+    ...r,
+    st: STONES.find(s => s.id === r.stone),
+    total: num(r.area) * (1 + num(r.waste) / 100) * num(r.price),
+  })).filter(x => x.total > 0);
+  const matSum = mat.reduce((a, x) => a + x.total, 0);
+
+  const lines = grp => grp
+    .filter(it => it.id && S.qty[it.id] > 0)
+    .map(it => ({ it, q: S.qty[it.id], p: itemPrice(it.id), total: S.qty[it.id] * itemPrice(it.id) }));
+
+  const prodL = lines(PROD), mountL = lines(MOUNT), tileL = lines(TILE), otherL = lines(OTHER);
+  const prodSum = prodL.reduce((a, x) => a + x.total, 0);
+  const mountSum = mountL.reduce((a, x) => a + x.total, 0);
+  const tileSum = tileL.reduce((a, x) => a + x.total, 0);
+  const otherSum = otherL.reduce((a, x) => a + x.total, 0);
+
+  const edges = S.edgeRows.map(r => ({ ...r, p: edgePrice(r.type, r.thick), total: num(r.len) * edgePrice(r.type, r.thick) })).filter(x => x.total > 0);
+  const edgeSum = edges.reduce((a, x) => a + x.total, 0);
+
+  const k = COEFS.reduce((a, c) => a * (S.coefs[c.id] ? c.k : 1), 1);
+  const worksBase = prodSum + edgeSum + mountSum + tileSum;
+  const worksTotal = worksBase * k;
+  const grand = matSum + worksTotal + otherSum;
+
+  return { mat, matSum, prodL, prodSum, edges, edgeSum, mountL, mountSum, tileL, tileSum, otherL, otherSum, k, worksBase, worksTotal, grand };
+}
+
+const THICK_LABEL = { '20': '20 мм', '40': '40 мм', 'pl': 'плинтус' };
+
+function recalc() {
+  syncItemRows();
+  const c = calc();
+
+  // суммы в строках работ
+  document.querySelectorAll('.row[data-id]').forEach(r => {
+    const id = r.dataset.id;
+    const q = S.qty[id] || 0;
+    const t = q * itemPrice(id);
+    r.querySelector('.sum').textContent = t > 0 ? fmt(t) : '—';
+    r.classList.toggle('active', t > 0);
+  });
+  // суммы в строках материала и кромок
+  document.querySelectorAll('#matRows .mrow').forEach((r, i) => {
+    const row = S.matRows[i]; if (!row) return;
+    const t = num(row.area) * (1 + num(row.waste) / 100) * num(row.price);
+    r.querySelector('.sum').textContent = t > 0 ? fmt(t) : '—';
+  });
+  document.querySelectorAll('#edgeRows .erow').forEach((r, i) => {
+    const row = S.edgeRows[i]; if (!row) return;
+    const t = num(row.len) * edgePrice(row.type, row.thick);
+    r.querySelector('.sum').textContent = t > 0 ? fmt(t) : '—';
+  });
+
+  // бейджи
+  setBadge('bMat', c.matSum); setBadge('bProd', c.prodSum); setBadge('bEdge', c.edgeSum);
+  setBadge('bMount', c.mountSum); setBadge('bTile', c.tileSum); setBadge('bOther', c.otherSum);
+  const bC = document.getElementById('bCoef');
+  bC.textContent = '×' + c.k.toFixed(2);
+  bC.classList.toggle('zero', c.k === 1);
+  document.getElementById('bEst').textContent = fmt(c.grand);
+  document.getElementById('dockTotal').textContent = fmt(c.grand);
+
+  renderEstimate(c);
+}
+
+function setBadge(id, v) {
+  const b = document.getElementById(id);
+  b.textContent = fmt(v);
+  b.classList.toggle('zero', v <= 0);
+}
+
+/* ================= СМЕТА ================= */
+
+function renderEstimate(c) {
+  const box = document.getElementById('estBody');
+  box.innerHTML = '';
+  if (c.grand <= 0) {
+    box.appendChild(el('div', 'est-empty', 'Заполни площади и количества — смета соберётся сама.'));
+    return;
+  }
+  const addLine = (name, v, cls) => {
+    const l = el('div', 'est-line' + (cls ? ' ' + cls : ''));
+    l.appendChild(el('div', null, name));
+    l.appendChild(el('div', 'v', typeof v === 'string' ? v : fmt(v)));
+    box.appendChild(l);
+  };
+
+  if (c.matSum > 0) {
+    addLine('Камень / материал', c.matSum);
+    c.mat.forEach(x => addLine(`${x.st ? x.st.name : x.stone} — ${x.area} м² (+${x.waste}% запас)`, x.total, 'sub'));
+  }
+  if (c.prodSum > 0) {
+    addLine('Изготовление на производстве', c.prodSum);
+    c.prodL.forEach(x => addLine(`${x.it.name} — ${x.q} ${x.it.unit}`, x.total, 'sub'));
+  }
+  if (c.edgeSum > 0) {
+    addLine('Обработка торцов (кромка)', c.edgeSum);
+    c.edges.forEach(x => addLine(`Профиль ${x.type}, ${THICK_LABEL[x.thick]} — ${x.len} м/п`, x.total, 'sub'));
+  }
+  if (c.mountSum > 0) {
+    addLine('Монтаж', c.mountSum);
+    c.mountL.forEach(x => addLine(`${x.it.name} — ${x.q} ${x.it.unit}`, x.total, 'sub'));
+  }
+  if (c.tileSum > 0) {
+    addLine('Укладка керамогранита', c.tileSum);
+    c.tileL.forEach(x => addLine(`${x.it.name} — ${x.q} ${x.it.unit}`, x.total, 'sub'));
+  }
+  if (c.k !== 1 && c.worksBase > 0) {
+    const names = COEFS.filter(x => S.coefs[x.id]).map(x => `${x.name} ×${x.k.toFixed(2)}`).join(', ');
+    addLine(`Коэффициенты: ${names}`, '+' + fmt(c.worksTotal - c.worksBase).replace(' ₽', '') + ' ₽', 'koef');
+  }
+  if (c.otherSum > 0) {
+    addLine('Прочие услуги', c.otherSum);
+    c.otherL.forEach(x => addLine(`${x.it.name} — ${x.q} ${x.it.unit}`, x.total, 'sub'));
+  }
+
+  const tot = el('div', 'est-total');
+  tot.appendChild(el('div', 't', 'Итого по смете'));
+  tot.appendChild(el('div', 'v', fmt(c.grand)));
+  box.appendChild(tot);
+  box.appendChild(el('div', 'row-note', 'Прайс: ' + (S.mode === 'min' ? 'нижняя граница' : 'стандарт') + '. Расчёт предварительный, финальная цена — после замера.'));
+}
+
+function estimateText() {
+  const c = calc();
+  const L = [];
+  L.push('ASTRALIUM · Смета на натуральный камень');
+  L.push('Прайс: ' + (S.mode === 'min' ? 'нижняя граница' : 'стандарт'));
+  L.push('');
+  const sec = (title, sum, rows) => {
+    if (sum <= 0) return;
+    L.push(`${title}: ${fmt(sum)}`);
+    rows.forEach(r => L.push('  · ' + r));
+    L.push('');
+  };
+  sec('Камень / материал', c.matSum, c.mat.map(x => `${x.st ? x.st.name : x.stone} — ${x.area} м² (+${x.waste}%) = ${fmt(x.total)}`));
+  sec('Изготовление', c.prodSum, c.prodL.map(x => `${x.it.name} — ${x.q} ${x.it.unit} × ${fmt(x.p)} = ${fmt(x.total)}`));
+  sec('Кромка', c.edgeSum, c.edges.map(x => `Профиль ${x.type}, ${THICK_LABEL[x.thick]} — ${x.len} м/п × ${fmt(x.p)} = ${fmt(x.total)}`));
+  sec('Монтаж', c.mountSum, c.mountL.map(x => `${x.it.name} — ${x.q} ${x.it.unit} × ${fmt(x.p)} = ${fmt(x.total)}`));
+  sec('Укладка керамогранита', c.tileSum, c.tileL.map(x => `${x.it.name} — ${x.q} ${x.it.unit} × ${fmt(x.p)} = ${fmt(x.total)}`));
+  if (c.k !== 1 && c.worksBase > 0) {
+    L.push(`Коэффициенты (${COEFS.filter(x => S.coefs[x.id]).map(x => x.name + ' ×' + x.k.toFixed(2)).join(', ')}): +${fmt(c.worksTotal - c.worksBase)}`);
+    L.push('');
+  }
+  sec('Прочие услуги', c.otherSum, c.otherL.map(x => `${x.it.name} — ${x.q} ${x.it.unit} × ${fmt(x.p)} = ${fmt(x.total)}`));
+  L.push('ИТОГО: ' + fmt(c.grand));
+  L.push('Расчёт предварительный, финальная цена — после замера.');
+  return L.join('\n');
+}
+
+/* ================= КОММЕРЧЕСКОЕ ПРЕДЛОЖЕНИЕ ================= */
+
+const KP_FIELDS = ['num', 'client', 'object', 'note', 'phone', 'mail', 'manager'];
+const kpEl = id => document.getElementById(id);
+const kpInputId = f => 'kp' + f.charAt(0).toUpperCase() + f.slice(1);
+
+function kpDefaultNum() {
+  const d = new Date();
+  const p = n => String(n).padStart(2, '0');
+  return `${String(d.getFullYear()).slice(2)}${p(d.getMonth() + 1)}${p(d.getDate())}-1`;
+}
+const DATE_FMT = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+
+function openKP() {
+  if (!S.kp.num) S.kp.num = kpDefaultNum();
+  KP_FIELDS.forEach(f => { kpEl(kpInputId(f)).value = S.kp[f] || ''; });
+  const now = new Date();
+  const valid = new Date(now.getTime() + 14 * 86400000);
+  kpEl('kpDate').textContent = 'от ' + DATE_FMT.format(now);
+  kpEl('kpValid').textContent = 'действительно до ' + DATE_FMT.format(valid);
+  renderKPTable();
+  document.body.classList.add('kp-open');
+  document.title = 'КП ASTRALIUM № ' + S.kp.num;
+  window.scrollTo(0, 0);
+}
+function closeKP() {
+  document.body.classList.remove('kp-open');
+  document.title = 'ASTRALIUM — калькулятор натурального камня';
+}
+
+function renderKPTable() {
+  const c = calc();
+  const box = kpEl('kpTable');
+  box.innerHTML = '';
+  kpEl('kpTotal').textContent = fmt(c.grand);
+  if (c.grand <= 0) {
+    box.appendChild(el('div', 'kp-empty', 'Смета пуста — вернитесь к расчёту и заполните позиции.'));
+    return;
+  }
+  const table = el('table', 'kp-t');
+  const thead = document.createElement('thead');
+  const hr = document.createElement('tr');
+  [['Наименование', ''], ['Кол-во', 'r'], ['Цена', 'r'], ['Сумма', 'r']].forEach(([t, cls]) => {
+    const th = el('th', cls || null, t); hr.appendChild(th);
+  });
+  thead.appendChild(hr); table.appendChild(thead);
+  const tb = document.createElement('tbody');
+
+  const secRow = (title, sum) => {
+    const tr = el('tr', 'sec');
+    const td = el('td', null, title); td.colSpan = 3;
+    tr.append(td, el('td', 'r', fmt(sum)));
+    tb.appendChild(tr);
+  };
+  const itRowT = (name, qty, price, total) => {
+    const tr = el('tr', 'it');
+    tr.append(el('td', null, name), el('td', 'r', qty), el('td', 'r', fmt(price)), el('td', 'r', fmt(total)));
+    tb.appendChild(tr);
+  };
+
+  if (c.matSum > 0) {
+    secRow('Камень / материал', c.matSum);
+    c.mat.forEach(x => itRowT(`${x.st ? x.st.name : x.stone} (запас +${x.waste}%)`, x.area + ' м²', num(x.price), x.total));
+  }
+  if (c.prodSum > 0) {
+    secRow('Изготовление на производстве', c.prodSum);
+    c.prodL.forEach(x => itRowT(x.it.name, x.q + ' ' + x.it.unit, x.p, x.total));
+  }
+  if (c.edgeSum > 0) {
+    secRow('Обработка торцов (кромка)', c.edgeSum);
+    c.edges.forEach(x => itRowT(`Профиль ${x.type}, ${THICK_LABEL[x.thick]}`, x.len + ' м/п', x.p, x.total));
+  }
+  if (c.mountSum > 0) {
+    secRow('Монтаж', c.mountSum);
+    c.mountL.forEach(x => itRowT(x.it.name, x.q + ' ' + x.it.unit, x.p, x.total));
+  }
+  if (c.tileSum > 0) {
+    secRow('Укладка керамогранита', c.tileSum);
+    c.tileL.forEach(x => itRowT(x.it.name, x.q + ' ' + x.it.unit, x.p, x.total));
+  }
+  if (c.k !== 1 && c.worksBase > 0) {
+    const tr = el('tr', 'koef');
+    const names = COEFS.filter(x => S.coefs[x.id]).map(x => `${x.name} ×${x.k.toFixed(2)}`).join(', ');
+    const td = el('td', null, 'Коэффициент сложности: ' + names); td.colSpan = 3;
+    tr.append(td, el('td', 'r', '+' + fmt(c.worksTotal - c.worksBase)));
+    tb.appendChild(tr);
+  }
+  if (c.otherSum > 0) {
+    secRow('Прочие услуги', c.otherSum);
+    c.otherL.forEach(x => itRowT(x.it.name, x.q + ' ' + x.it.unit, x.p, x.total));
+  }
+
+  table.appendChild(tb);
+  box.appendChild(table);
+}
+
+function kpText() {
+  const L = [];
+  L.push(`Коммерческое предложение ASTRALIUM № ${S.kp.num || kpDefaultNum()}`);
+  if (S.kp.client) L.push('Для: ' + S.kp.client);
+  if (S.kp.object) L.push('Объект: ' + S.kp.object);
+  L.push('');
+  L.push(estimateText());
+  if (S.kp.note) { L.push(''); L.push('Комментарий: ' + S.kp.note); }
+  L.push('');
+  const contacts = [S.kp.phone, S.kp.mail, S.kp.manager].filter(Boolean).join(' · ');
+  if (contacts) L.push('Контакты: ' + contacts);
+  L.push('Предложение действительно 14 дней.');
+  return L.join('\n');
+}
+
+/* ================= СОБЫТИЯ ================= */
+
+function setMode(m) {
+  S.mode = m;
+      renderEdges();
+  recalc(); save();
+}
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toast._tm);
+  toast._tm = setTimeout(() => t.classList.remove('show'), 1800);
+}
+
+function applyFilter(inputId, containerId) {
+  const q = document.getElementById(inputId).value.trim().toLowerCase();
+  const box = document.getElementById(containerId);
+  box.querySelectorAll('.row[data-id]').forEach(r => {
+    r.style.display = (!q || r.dataset.search.includes(q)) ? '' : 'none';
+  });
+  box.querySelectorAll('.group-label').forEach(g => { g.style.display = q ? 'none' : ''; });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  load();
+
+  buildItemRows(PROD, 'prodRows');
+  buildItemRows(MOUNT, 'mountRows');
+  buildItemRows(TILE, 'tileRows');
+  buildItemRows(OTHER, 'otherRows');
+  renderMat();
+  renderEdges();
+  renderCoefs();
+  setMode(S.mode);
+
+    
+  document.getElementById('addMat').addEventListener('click', () => {
+    S.matRows.push({ stone: 'travertin', area: 0, price: 6500, waste: 10 });
+    renderMat(); recalc(); save();
+  });
+  document.getElementById('addEdge').addEventListener('click', () => {
+    S.edgeRows.push({ type: 'Z', thick: '20', len: 0 });
+    renderEdges(); recalc(); save();
+  });
+
+  document.getElementById('fProd').addEventListener('input', () => applyFilter('fProd', 'prodRows'));
+  document.getElementById('fTile').addEventListener('input', () => applyFilter('fTile', 'tileRows'));
+
+  document.getElementById('btnCopy').addEventListener('click', async () => {
+    const txt = estimateText();
+    try { await navigator.clipboard.writeText(txt); toast('Смета скопирована'); }
+    catch (e) {
+      const ta = document.createElement('textarea');
+      ta.value = txt; document.body.appendChild(ta); ta.select();
+      document.execCommand('copy'); ta.remove(); toast('Смета скопирована');
+    }
+  });
+  document.getElementById('btnPrint').addEventListener('click', () => window.print());
+
+  // коммерческое предложение
+  document.getElementById('btnKP').addEventListener('click', openKP);
+  document.getElementById('btnKPdock').addEventListener('click', openKP);
+  document.getElementById('kpBack').addEventListener('click', closeKP);
+  document.getElementById('kpPdf').addEventListener('click', () => window.print());
+  document.getElementById('kpShare').addEventListener('click', async () => {
+    const txt = kpText();
+    if (navigator.share) {
+      try { await navigator.share({ title: 'КП ASTRALIUM', text: txt }); return; } catch (e) { if (e.name === 'AbortError') return; }
+    }
+    try { await navigator.clipboard.writeText(txt); toast('КП скопировано — вставь в сообщение'); }
+    catch (e) {
+      const ta = document.createElement('textarea');
+      ta.value = txt; document.body.appendChild(ta); ta.select();
+      document.execCommand('copy'); ta.remove(); toast('КП скопировано — вставь в сообщение');
+    }
+  });
+  KP_FIELDS.forEach(f => {
+    kpEl(kpInputId(f)).addEventListener('input', e => {
+      S.kp[f] = e.target.value;
+      if (f === 'num') document.title = 'КП ASTRALIUM № ' + (S.kp.num || '');
+      save();
+    });
+  });
+  document.getElementById('btnResetPrices').addEventListener('click', () => {
+    S.priceOv = {};
+    recalc(); save(); toast('Цены возвращены к прайсу');
+  });
+  document.getElementById('btnResetAll').addEventListener('click', () => {
+    if (!confirm('Очистить весь расчёт? Правки цен тоже сбросятся.')) return;
+    localStorage.removeItem(LS_KEY);
+    S = { mode: 'std', qty: {}, priceOv: {}, matRows: [], edgeRows: [], coefs: {} };
+    load();
+    renderMat(); renderEdges(); renderCoefs(); setMode('std');
+    toast('Расчёт очищен');
+  });
+
+  recalc();
+});
+</script>
+</body>
+</html>

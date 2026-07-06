@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" id="metaTheme" content="#14181D">
 <title>Строительный калькулятор — смета, сроки, КП</title>
 <style>
   :root {
@@ -301,10 +302,12 @@
   footer { color: var(--muted); font-size: 12px; margin-top: 24px; text-align: center; }
 
   @media (max-width: 680px) {
+    /* 16px в полях — iPhone перестаёт сам приближать экран при вводе */
+    input, select, textarea { font-size: 16px !important; }
     .proj { grid-template-columns: 1fr; }
-    .thead, .row { grid-template-columns: 1fr 74px 62px 84px; gap: 5px; }
-    input.price, input.qty { padding: 7px 5px; font-size: 12.5px; }
-    .row .nm { font-size: 12.5px; }
+    .thead, .row { grid-template-columns: 1fr 84px 70px 88px; gap: 5px; }
+    input.price, input.qty { padding: 7px 4px; }
+    .row .nm { font-size: 13px; }
     .proj .p4 { grid-template-columns: 1fr 1fr; }
     .stage-line, .time-head { grid-template-columns: 1fr 64px 76px 92px; gap: 5px; }
     .stage-line .crew input { width: 38px; }
@@ -463,6 +466,8 @@
         <button class="btn gold" id="btnKP" type="button">Коммерческое предложение →</button>
         <button class="btn" id="btnSave" type="button">💾 Сохранить смету</button>
         <button class="btn" id="btnCopy" type="button">Копировать смету</button>
+        <button class="btn" id="btnJson" type="button">⬇ JSON (для CRM)</button>
+        <button class="btn" id="btnCsv" type="button">⬇ CSV (Excel)</button>
         <button class="btn ghost" id="btnResetPrices" type="button">Сбросить цены</button>
         <button class="btn ghost" id="btnResetAll" type="button">Очистить расчёт</button>
       </div>
@@ -831,6 +836,8 @@ function applyUI() {
   st.setProperty('--orange-soft', S.ui.theme === 'dark' ? acc.soft : acc.kp);
   st.setProperty('--orange-dim', acc.dim);
   st.setProperty('--kp-acc', acc.kp);
+  const mt = document.getElementById('metaTheme');
+  if (mt) mt.content = { dark: '#14181D', light: '#F1F2F4', warm: '#F5F0E5', blue: '#EBF1F7' }[S.ui.theme] || '#14181D';
 }
 function renderThemePanel() {
   const tb = document.getElementById('tpThemes'); tb.innerHTML = '';
@@ -1636,6 +1643,82 @@ function renderArc() {
   });
 }
 
+/* ================= ЭКСПОРТ ДЛЯ CRM / ERP =================
+   Единый машинный формат сметы. Сегодня — файл, который прикрепляется к карточке
+   клиента в любой CRM; завтра этот же JSON поедет по API / вебхуку. */
+
+function smetaData() {
+  const c = calc();
+  const items = c.lines.map(l => ({
+    stage: l.it.stage,
+    name: l.it.name,
+    unit: l.it.unit,
+    price: l.p,
+    qty: l.qty,
+    total: Math.round(l.total),
+    rooms: Object.entries(S.q[l.it.id] || {}).filter(([, v]) => num(v) > 0)
+      .map(([rid, v]) => ({ room: roomName(rid), qty: num(v) })),
+  }));
+  return {
+    format: 'stroysmeta/v1',
+    num: S.curNum || null,
+    date: new Date().toISOString(),
+    client: { name: S.proj.clientName || '', phone: S.proj.phone || '' },
+    object: S.proj.name || '',
+    address: addressString(),
+    items,
+    stages: [1, 2, 3].filter(s => c.stageSum[s] > 0).map(s => ({
+      stage: s, title: STAGE_NAMES[s], sum: Math.round(c.stageSum[s]), days: c.stageDays[s], crew: S.crew[s],
+    })),
+    otherSum: Math.round(c.stageSum[0]),
+    totals: {
+      works: Math.round(c.works),
+      materialsPct: num(S.pct.mat), materials: Math.round(c.mat),
+      transportPct: num(S.pct.trans), transport: Math.round(c.trans),
+      overheadPct: num(S.pct.over), overhead: Math.round(c.over),
+      discountPct: num(S.pct.disc), discount: Math.round(c.disc),
+      grand: Math.round(c.grand),
+      workDays: c.totalDays,
+      advancePct: num(S.pct.adv),
+    },
+  };
+}
+
+function downloadFile(name, content, mime) {
+  const blob = new Blob([content], { type: mime });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 800);
+}
+
+function smetaCSV() {
+  const d = smetaData();
+  const q = s => '"' + String(s == null ? '' : s).replace(/"/g, '""') + '"';
+  const n = v => String(v).replace('.', ',');
+  const L = [];
+  L.push(['Смета №', d.num || '', 'Дата', new Date().toLocaleDateString('ru-RU')].join(';'));
+  L.push(['Клиент', q(d.client.name), 'Телефон', q(d.client.phone)].join(';'));
+  L.push(['Объект', q(d.object), 'Адрес', q(d.address)].join(';'));
+  L.push('');
+  L.push('Этап;Наименование;Ед.;Кол-во;Цена;Сумма;Помещения');
+  d.items.forEach(i => {
+    const rooms = i.rooms.map(r => (r.room !== 'Весь объект' ? `${r.room}: ${n(r.qty)}` : '')).filter(Boolean).join(', ');
+    L.push([i.stage || 'Прочее', q(i.name), i.unit, n(i.qty), i.price, i.total, q(rooms)].join(';'));
+  });
+  L.push('');
+  L.push(`;Работы;;;;${d.totals.works};`);
+  if (d.totals.materials) L.push(`;Материалы (~${d.totals.materialsPct}%);;;;${d.totals.materials};`);
+  if (d.totals.transport) L.push(`;Транспортные ${d.totals.transportPct}%;;;;${d.totals.transport};`);
+  if (d.totals.overhead) L.push(`;Накладные ${d.totals.overheadPct}%;;;;${d.totals.overhead};`);
+  if (d.totals.discount) L.push(`;Скидка ${d.totals.discountPct}%;;;;-${d.totals.discount};`);
+  L.push(`;ИТОГО;;;;${d.totals.grand};`);
+  if (d.totals.workDays) L.push(`;Срок, раб. дней;;;;${d.totals.workDays};`);
+  return '﻿' + L.join('\r\n');
+}
+
 function bindProjFields() {
   const map = { projName: 'name', pClientName: 'clientName', pPhone: 'phone', pCity: 'city', pStreet: 'street', pHouse: 'house', pFlat: 'flat' };
   Object.entries(map).forEach(([id, key]) => { document.getElementById(id).value = S.proj[key] || ''; });
@@ -1751,6 +1834,16 @@ function init() {
   });
 
   document.getElementById('btnCopy').addEventListener('click', () => copyText(estimateText(), 'Смета скопирована'));
+  document.getElementById('btnJson').addEventListener('click', () => {
+    if (calc().works <= 0) { toast('Смета пустая'); return; }
+    downloadFile(`смета-${S.curNum || 'без-номера'}.json`, JSON.stringify(smetaData(), null, 2), 'application/json');
+    toast('JSON скачан — прикрепи к карточке в CRM');
+  });
+  document.getElementById('btnCsv').addEventListener('click', () => {
+    if (calc().works <= 0) { toast('Смета пустая'); return; }
+    downloadFile(`смета-${S.curNum || 'без-номера'}.csv`, smetaCSV(), 'text/csv;charset=utf-8');
+    toast('CSV скачан — откроется в Excel');
+  });
   document.getElementById('btnResetPrices').addEventListener('click', () => {
     S.priceOv = {}; recalc(); save(); toast('Цены возвращены к прайсу');
   });

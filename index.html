@@ -4,6 +4,10 @@
   if (location.hostname === 'kamen.oporabusiness.ru' && !location.pathname.includes('astralium')) {
     location.replace('/astralium.html');
   }
+  // задел на будущее: поддомен стройки (потребует отдельного Pages-сайта, см. скилл)
+  if (location.hostname === 'stroyka.oporabusiness.ru' && !location.pathname.includes('stroyka')) {
+    location.replace('/stroyka.html');
+  }
 </script>
 <style>
   :root {
