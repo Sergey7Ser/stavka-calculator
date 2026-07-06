@@ -1,4 +1,10 @@
 <title>Калькулятор ставки эксперта</title>
+<script>
+  // поддомен камня: kamen.oporabusiness.ru открывает калькулятор ASTRALIUM с корня
+  if (location.hostname === 'kamen.oporabusiness.ru' && !location.pathname.includes('astralium')) {
+    location.replace('/astralium.html');
+  }
+</script>
 <style>
   :root {
     --paper: #EDF0F1;
