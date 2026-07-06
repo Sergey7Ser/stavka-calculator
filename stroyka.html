@@ -19,8 +19,25 @@
     --orange-soft: #F0A95C;
     --orange-dim: rgba(232,134,46,0.14);
     --green: #6FCF97;
+    --dock: rgba(16,20,24,0.95);
     --mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
     --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  /* светлые темы: серая, тёплая, голубая (тёмная — по умолчанию) */
+  body[data-theme="light"] {
+    --dock: rgba(255,255,255,0.96);
+    --bg: #F1F2F4; --bg-2: #E9EBEE; --card: #FFFFFF; --card-2: #F4F5F7;
+    --line: #DCE0E5; --line-strong: #C2C9D1; --ink: #1C2228; --ink-2: #333B44; --muted: #69737E;
+  }
+  body[data-theme="warm"] {
+    --dock: rgba(255,253,247,0.96);
+    --bg: #F5F0E5; --bg-2: #EFE8D9; --card: #FFFDF7; --card-2: #F6F1E6;
+    --line: #E2DAC7; --line-strong: #CCC1A8; --ink: #26200F; --ink-2: #3E3620; --muted: #7E7460;
+  }
+  body[data-theme="blue"] {
+    --dock: rgba(255,255,255,0.96);
+    --bg: #EBF1F7; --bg-2: #E1E9F1; --card: #FFFFFF; --card-2: #F1F6FB;
+    --line: #D4DFEA; --line-strong: #B8C8D9; --ink: #14212E; --ink-2: #2A3B4C; --muted: #64748B;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; min-height: 100%; background: var(--bg); }
@@ -32,18 +49,75 @@
   }
   .inner { max-width: 980px; margin: 0 auto; }
 
-  header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
+  header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
   .brand { font-weight: 800; font-size: clamp(20px, 3.4vw, 26px); letter-spacing: 0.04em; }
   .brand b { color: var(--orange); }
   .brand-sub { color: var(--muted); font-size: 12.5px; }
+  .curnum { color: var(--orange-soft); font-size: 12px; font-family: var(--mono); font-weight: 700; }
+  .hdr-btns { display: flex; gap: 6px; position: relative; }
+  .hbtn {
+    border: 1px solid var(--line-strong); background: var(--card); color: var(--ink);
+    font: 700 12.5px var(--sans); padding: 8px 12px; border-radius: 10px; cursor: pointer; white-space: nowrap;
+  }
+  .hbtn:hover { border-color: var(--orange); }
 
-  /* объект */
-  .proj { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+  /* панель оформления */
+  .theme-panel {
+    display: none; position: absolute; right: 0; top: calc(100% + 6px); z-index: 65;
+    background: var(--card); border: 1px solid var(--line-strong); border-radius: 12px;
+    padding: 12px 14px; box-shadow: 0 14px 44px rgba(0,0,0,0.4); width: 250px;
+  }
+  .theme-panel.show { display: block; }
+  .tp-l { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); font-weight: 700; margin: 8px 0 6px; }
+  .tp-row { display: flex; gap: 6px; flex-wrap: wrap; }
+  .tp-sw {
+    width: 44px; height: 30px; border-radius: 8px; border: 2px solid var(--line); cursor: pointer;
+    display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800;
+  }
+  .tp-sw.on { border-color: var(--orange); box-shadow: 0 0 0 2px var(--orange-dim); }
+  .tp-acc { width: 30px; height: 30px; border-radius: 50%; border: 2px solid var(--line); cursor: pointer; }
+  .tp-acc.on { border-color: var(--ink); box-shadow: 0 0 0 2px var(--orange-dim); }
+
+  /* объект и клиент */
+  .proj { display: grid; grid-template-columns: 1fr; gap: 8px; margin-bottom: 12px; }
+  .proj .p2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .proj .p4 { display: grid; grid-template-columns: 1.2fr 1.6fr 0.7fr 0.7fr; gap: 8px; }
   .proj input {
     background: var(--card); border: 1px solid var(--line); border-radius: 10px;
     color: var(--ink); font: 500 14px var(--sans); padding: 10px 12px; width: 100%; outline: none;
   }
   .proj input:focus { border-color: var(--orange); }
+
+  /* модальные окна: справочник, мои сметы */
+  .modal { display: none; position: fixed; inset: 0; z-index: 70; background: rgba(8,10,13,0.65); padding: 16px; }
+  .modal.show { display: flex; }
+  .modal-card {
+    margin: auto; width: min(760px, 96vw); max-height: 88vh; display: flex; flex-direction: column;
+    background: var(--card); border: 1px solid var(--line-strong); border-radius: 14px; overflow: hidden;
+  }
+  .modal-head { display: flex; align-items: center; gap: 10px; padding: 13px 16px; border-bottom: 1px solid var(--line); }
+  .modal-head .t { font-weight: 800; font-size: 15.5px; flex: 1; }
+  .modal-head .x { border: 0; background: transparent; color: var(--muted); font-size: 19px; cursor: pointer; padding: 2px 8px; }
+  .modal-head .x:hover { color: #E06060; }
+  .modal-search { padding: 10px 16px; border-bottom: 1px solid var(--line); }
+  .modal-search input {
+    width: 100%; background: var(--bg-2); border: 1px solid var(--line); border-radius: 10px;
+    color: var(--ink); font: 500 14px var(--sans); padding: 10px 12px; outline: none;
+  }
+  .modal-body { overflow-y: auto; padding: 6px 16px 14px; }
+  .ref-row { display: grid; grid-template-columns: 1fr 76px auto; gap: 8px; align-items: center; padding: 9px 0; border-bottom: 1px solid rgba(44,52,61,0.4); }
+  .ref-row .nm { font-size: 13.5px; color: var(--ink-2); }
+  .ref-row .meta { color: var(--muted); font-size: 11.5px; display: block; }
+  .ref-row input { width: 100%; background: var(--bg-2); border: 1px solid var(--line); border-radius: 8px; color: var(--ink); font: 600 13px var(--mono); padding: 8px 6px; text-align: center; outline: none; }
+  .ref-row .btn { padding: 8px 12px; font-size: 12.5px; }
+  .arc-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; padding: 10px 0; border-bottom: 1px solid rgba(44,52,61,0.4); }
+  .arc-row .n { font: 700 13.5px var(--mono); color: var(--orange-soft); }
+  .arc-row .m { color: var(--muted); font-size: 12px; }
+  .arc-row .s { font: 700 13.5px var(--mono); }
+  .arc-row .sent { margin-top: 6px; }
+  .arc-row .sent input { width: 100%; background: var(--bg-2); border: 1px dashed var(--line); border-radius: 8px; color: var(--ink); font: 500 12.5px var(--sans); padding: 7px 9px; outline: none; }
+  .arc-btns { display: flex; flex-direction: column; gap: 6px; align-items: flex-end; }
+  .modal-empty { color: var(--muted); padding: 18px 4px; font-size: 13.5px; }
 
   /* вкладки */
   .tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; margin-bottom: 10px; -webkit-overflow-scrolling: touch; }
@@ -208,7 +282,7 @@
 
   .dock {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;
-    background: rgba(16,20,24,0.95); backdrop-filter: blur(10px);
+    background: var(--dock); backdrop-filter: blur(10px);
     border-top: 1px solid var(--line-strong);
   }
   .dock-in { max-width: 980px; margin: 0 auto; padding: 10px clamp(12px, 2.5vw, 32px); display: flex; align-items: center; justify-content: space-between; gap: 12px; }
@@ -231,6 +305,7 @@
     .thead, .row { grid-template-columns: 1fr 74px 62px 84px; gap: 5px; }
     input.price, input.qty { padding: 7px 5px; font-size: 12.5px; }
     .row .nm { font-size: 12.5px; }
+    .proj .p4 { grid-template-columns: 1fr 1fr; }
     .stage-line, .time-head { grid-template-columns: 1fr 64px 76px 92px; gap: 5px; }
     .stage-line .crew input { width: 38px; }
     .stage-line .ovr input { width: 46px; }
@@ -250,9 +325,9 @@
     border: 0; border-bottom: 1px dashed #C9B7A0; border-radius: 0; background: transparent;
     color: #1C2228; font: inherit; padding: 2px 4px; outline: none; width: 100%;
   }
-  .kp-sheet input:focus, .kp-sheet textarea:focus { border-bottom-color: #C96F1F; border-bottom-style: solid; }
+  .kp-sheet input:focus, .kp-sheet textarea:focus { border-bottom-color: var(--kp-acc, #C96F1F); border-bottom-style: solid; }
   .kp-sheet textarea { resize: vertical; min-height: 40px; }
-  .kp-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; flex-wrap: wrap; border-bottom: 3px solid #C96F1F; padding-bottom: 12px; }
+  .kp-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; flex-wrap: wrap; border-bottom: 3px solid var(--kp-acc, #C96F1F); padding-bottom: 12px; }
   .kp-co input { font-weight: 800; font-size: 22px; letter-spacing: 0.02em; }
   .kp-tag { font-size: 11.5px; color: #6B7280; margin-top: 2px; }
   .kp-meta { text-align: right; font-size: 13px; color: #4B5563; min-width: 170px; }
@@ -261,7 +336,7 @@
   .kp-to { display: grid; grid-template-columns: 105px 1fr; gap: 5px 10px; margin: 16px 0 12px; align-items: baseline; }
   .kp-to .l { color: #6B7280; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.06em; }
   .kp-intro { color: #374151; margin: 0 0 16px; }
-  .kp-h { font-size: 16.5px; font-weight: 800; color: #1C2228; margin: 24px 0 10px; padding-left: 10px; border-left: 4px solid #C96F1F; }
+  .kp-h { font-size: 16.5px; font-weight: 800; color: #1C2228; margin: 24px 0 10px; padding-left: 10px; border-left: 4px solid var(--kp-acc, #C96F1F); }
 
   .kp-stages { width: 100%; border-collapse: collapse; font-size: 13.5px; }
   .kp-stages th { text-align: left; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.07em; color: #6B7280; border-bottom: 1px solid #D9CFC0; padding: 7px 6px; }
@@ -274,10 +349,10 @@
 
   .kp-timeline { display: flex; gap: 3px; margin: 10px 0 4px; height: 26px; border-radius: 6px; overflow: hidden; }
   .kp-timeline div { display: flex; align-items: center; justify-content: center; font-size: 10.5px; font-weight: 800; color: #fff; min-width: 34px; }
-  .kp-tl-1 { background: #C96F1F; } .kp-tl-2 { background: #A15818; } .kp-tl-3 { background: #7C4412; }
+  .kp-tl-1 { background: var(--kp-acc, #C96F1F); } .kp-tl-2 { background: color-mix(in srgb, var(--kp-acc, #C96F1F) 78%, black); } .kp-tl-3 { background: color-mix(in srgb, var(--kp-acc, #C96F1F) 58%, black); }
   .kp-tl-note { color: #6B7280; font-size: 11.5px; margin-bottom: 6px; }
 
-  .kp-total { display: flex; justify-content: space-between; align-items: baseline; margin: 14px 0 2px; padding-top: 10px; border-top: 3px solid #C96F1F; }
+  .kp-total { display: flex; justify-content: space-between; align-items: baseline; margin: 14px 0 2px; padding-top: 10px; border-top: 3px solid var(--kp-acc, #C96F1F); }
   .kp-total .t { font-size: 17px; font-weight: 800; }
   .kp-total .v { font: 800 25px var(--mono); font-variant-numeric: tabular-nums; }
   .kp-small { font-size: 12px; color: #6B7280; }
@@ -316,12 +391,33 @@
     <div>
       <div class="brand">СТРОЙ<b>СМЕТА</b></div>
       <div class="brand-sub">стройка · отделка · демонтаж — смета, сроки и КП за 10 минут</div>
+      <div class="curnum" id="curNum"></div>
+    </div>
+    <div class="hdr-btns">
+      <button class="hbtn" id="btnRef" type="button">📚 Справочник</button>
+      <button class="hbtn" id="btnArc" type="button">🗂 Мои сметы</button>
+      <button class="hbtn" id="btnTheme" type="button">🎨</button>
+      <div class="theme-panel" id="themePanel">
+        <div class="tp-l">Тема оформления</div>
+        <div class="tp-row" id="tpThemes"></div>
+        <div class="tp-l">Цвет кнопок</div>
+        <div class="tp-row" id="tpAccents"></div>
+      </div>
     </div>
   </header>
 
   <div class="proj">
-    <input id="projName" type="text" placeholder="Объект: дом / квартира / адрес (попадёт в КП)">
-    <input id="projClient" type="text" placeholder="Клиент: имя, телефон">
+    <input id="projName" type="text" placeholder="Название объекта: дом / квартира / ЖК (попадёт в КП)">
+    <div class="p2">
+      <input id="pClientName" type="text" placeholder="Имя клиента">
+      <input id="pPhone" type="tel" inputmode="tel" placeholder="+7 (___) ___-__-__">
+    </div>
+    <div class="p4">
+      <input id="pCity" type="text" placeholder="Город">
+      <input id="pStreet" type="text" placeholder="Улица">
+      <input id="pHouse" type="text" placeholder="Дом">
+      <input id="pFlat" type="text" placeholder="Кв.">
+    </div>
   </div>
 
   <div class="tabs" id="tabs"></div>
@@ -365,6 +461,7 @@
       <div id="estBody"></div>
       <div class="est-actions">
         <button class="btn gold" id="btnKP" type="button">Коммерческое предложение →</button>
+        <button class="btn" id="btnSave" type="button">💾 Сохранить смету</button>
         <button class="btn" id="btnCopy" type="button">Копировать смету</button>
         <button class="btn ghost" id="btnResetPrices" type="button">Сбросить цены</button>
         <button class="btn ghost" id="btnResetAll" type="button">Очистить расчёт</button>
@@ -460,6 +557,30 @@
     </div>
   </div>
 </div>
+<!-- СПРАВОЧНИК РАБОТ -->
+<div class="modal" id="refModal">
+  <div class="modal-card">
+    <div class="modal-head">
+      <div class="t">📚 Справочник работ компании</div>
+      <button class="x" id="refClose" type="button">✕</button>
+    </div>
+    <div class="modal-search"><input id="refSearch" type="text" placeholder="Поиск: штукатурка, точка, плитка…" autocomplete="off"></div>
+    <div class="modal-body" id="refBody"></div>
+  </div>
+</div>
+
+<!-- МОИ СМЕТЫ -->
+<div class="modal" id="arcModal">
+  <div class="modal-card">
+    <div class="modal-head">
+      <div class="t">🗂 Мои сметы</div>
+      <button class="x" id="arcClose" type="button">✕</button>
+    </div>
+    <div class="modal-search"><input id="arcSearch" type="text" placeholder="Поиск: номер, клиент, адрес…" autocomplete="off"></div>
+    <div class="modal-body" id="arcBody"></div>
+  </div>
+</div>
+
 <div class="toast" id="toast">Занесено в смету ✓</div>
 
 <script>
@@ -553,6 +674,104 @@ const CATALOG = [
 
 const UNITS = ['м²', 'м³', 'п.м.', 'шт', 'компл', 'т', 'рейс'];
 
+/* СПРАВОЧНИК: реальные расценки компании из сметы «Гранд Парк» (работы, ₽ за ед.) */
+const REF = [
+  { name: 'Демонтаж перегородок (колонна)', unit: 'шт', price: 1500, stage: 1 },
+  { name: 'Демонтаж утепления на балконе (каркас, утеплитель)', unit: 'компл', price: 7000, stage: 1 },
+  { name: 'Устройство временного электроснабжения и водоснабжения', unit: 'компл', price: 15000, stage: 1 },
+  { name: 'Защитное укрытие МОП на этаже', unit: 'компл', price: 10000, stage: 1 },
+  { name: 'Монтаж кладки из блока', unit: 'м²', price: 2500, stage: 1 },
+  { name: 'Монтаж перемычек надо возводимыми проемами', unit: 'шт', price: 2200, stage: 1 },
+  { name: 'Устройство системы звукоизоляции (панель, гипсокартон в 2 слоя)', unit: 'м²', price: 2800, stage: 1 },
+  { name: 'Монтаж короба из ГКЛ для инсталляции', unit: 'шт', price: 15000, stage: 1 },
+  { name: 'Монтаж утеплителя на балконе 150мм', unit: 'м²', price: 3050, stage: 1 },
+  { name: 'Грунтовка 1 раз', unit: 'м²', price: 100, stage: 1 },
+  { name: 'Грунтовка откосов 1 раз', unit: 'п.м.', price: 100, stage: 1 },
+  { name: 'Грунтование бетоконтактом под штукатурку', unit: 'м²', price: 250, stage: 1 },
+  { name: 'Грунтование откосов бетоконтактом под штукатурку', unit: 'п.м.', price: 150, stage: 1 },
+  { name: 'Установка маяков под штукатурку', unit: 'м²', price: 180, stage: 1 },
+  { name: 'Штукатурка стен гипсовой штукатуркой', unit: 'м²', price: 850, stage: 1 },
+  { name: 'Штукатурка откосов гипсовой штукатуркой', unit: 'п.м.', price: 800, stage: 1 },
+  { name: 'Восстановление несущих колонн', unit: 'шт', price: 7500, stage: 1 },
+  { name: 'Укрытие пола пленкой проклейкой', unit: 'м²', price: 100, stage: 1 },
+  { name: 'Установка армирующей стальной сетки', unit: 'м²', price: 250, stage: 1 },
+  { name: 'Установка маяков', unit: 'м²', price: 200, stage: 1 },
+  { name: 'Заливка стяжки до 70мм', unit: 'м²', price: 900, stage: 1 },
+  { name: 'Штробление стен под электромагистрали', unit: 'п.м.', price: 700, stage: 1 },
+  { name: 'Заделка штроб после монтажа электромагистралей', unit: 'п.м.', price: 250, stage: 1 },
+  { name: 'Прокладка в гофре силовых магистралей к точке подключения', unit: 'п.м.', price: 190, stage: 1 },
+  { name: 'Прокладка в гофре слаботочных магистралей к точке подключения (Видеонаблюдение, Интернет, телевидение)', unit: 'п.м.', price: 190, stage: 1 },
+  { name: 'Монтаж посадочного отверстия под розетки и выключатели', unit: 'шт', price: 600, stage: 1 },
+  { name: 'Монтаж подразетников (стандарт)', unit: 'шт', price: 250, stage: 1 },
+  { name: 'Монтаж электрощита', unit: 'шт', price: 5000, stage: 1 },
+  { name: 'Монтаж труб ГВС,ХВС и канализации по ситеме Рехау', unit: 'точка', price: 3200, stage: 1 },
+  { name: 'Монтаж строительных лесов и подмостей', unit: 'м²', price: 250, stage: 1 },
+  { name: 'Установка углозащитных профилей по технологии Knauf.', unit: 'п.м.', price: 200, stage: 2 },
+  { name: 'Монтаж малярной сетки', unit: 'м²', price: 300, stage: 2 },
+  { name: 'Монтаж малярной сетки на откосы', unit: 'п.м.', price: 300, stage: 2 },
+  { name: 'Шпатлевка стартовая', unit: 'м²', price: 650, stage: 2 },
+  { name: 'Шпатлевка откосов стартовая', unit: 'п.м.', price: 550, stage: 2 },
+  { name: 'Оклейка стеклохолстом', unit: 'м²', price: 300, stage: 2 },
+  { name: 'Оклейка откосов стеклохолстом', unit: 'п.м.', price: 300, stage: 2 },
+  { name: 'Шпатлёвка финишная', unit: 'м²', price: 650, stage: 2 },
+  { name: 'Шпатлёвка откосов финишная', unit: 'п.м.', price: 550, stage: 2 },
+  { name: 'Шлифовка', unit: 'м²', price: 350, stage: 2 },
+  { name: 'Шлифовка откосов', unit: 'п.м.', price: 250, stage: 2 },
+  { name: 'Двухкомпонентная гидроизоляция стен в санузлах', unit: 'м²', price: 1200, stage: 2 },
+  { name: 'Устройство откосов под скрытые двери', unit: 'п.м.', price: 900, stage: 2 },
+  { name: 'Оклейка стен обоями', unit: 'м²', price: 550, stage: 2 },
+  { name: 'Монтаж керамогранита размером 1200х1200', unit: 'м²', price: 7500, stage: 2 },
+  { name: 'Подрезка керамогранита под угол 45гр', unit: 'п.м.', price: 850, stage: 2 },
+  { name: 'Монтаж отверстий в керамограните', unit: 'шт', price: 750, stage: 2 },
+  { name: 'Монтаж перегородки из стеклоблока 770х2660', unit: 'шт', price: 16500, stage: 2 },
+  { name: 'Монтаж люка под плитку', unit: 'шт', price: 8000, stage: 2 },
+  { name: 'Шлифовка стяжки', unit: 'м²', price: 450, stage: 2 },
+  { name: 'Устройство душевого поддона в строительном исполнении', unit: 'шт', price: 19000, stage: 2 },
+  { name: 'Устройство подиума в санузле', unit: 'шт', price: 9500, stage: 2 },
+  { name: 'Двухкомпонентная гидроизоляция пола в санузлах и постир.', unit: 'м²', price: 1200, stage: 2 },
+  { name: 'Монтаж каркаса под гипсокартон в 1 уровень', unit: 'м²', price: 1700, stage: 2 },
+  { name: 'Усиление потолка', unit: 'шт', price: 2000, stage: 2 },
+  { name: 'Зашивка гипсокартоном в 2 слой с проклеиваим слоев (без зашивки торцов)', unit: 'м²', price: 1000, stage: 2 },
+  { name: 'Монтаж дополнительных электровыводов', unit: 'шт', price: 650, stage: 2 },
+  { name: 'Монтаж автоматических выключателей', unit: 'шт', price: 800, stage: 2 },
+  { name: 'Монтаж теплого пола с протяжкой клеем', unit: 'м²', price: 1500, stage: 2 },
+  { name: 'Монтаж эл, тв, инт, тел.розеток и выключателей (механизмы)', unit: 'шт', price: 550, stage: 2 },
+  { name: 'Сборка и монтаж коллектора водоснабжения и отопления', unit: 'шт', price: 50000, stage: 2 },
+  { name: 'Устройство трассы кухонной вытяжки', unit: 'шт', price: 13000, stage: 2 },
+  { name: 'Монтаж и подключение инсталляции', unit: 'шт', price: 14000, stage: 2 },
+  { name: 'Монтаж смесителя скрытого монтажа', unit: 'шт', price: 8500, stage: 2 },
+  { name: 'Монтаж гигиенического душа скрытого монтажа', unit: 'шт', price: 8500, stage: 2 },
+  { name: 'Монтаж душевого комплекта скрытого монтажа', unit: 'шт', price: 15000, stage: 2 },
+  { name: 'Монтаж душевого трапа', unit: 'шт', price: 7000, stage: 2 },
+  { name: 'Монтаж водонагревателя', unit: 'шт', price: 8500, stage: 2 },
+  { name: 'Монтаж системы зищиты от протечек', unit: 'шт', price: 9500, stage: 2 },
+  { name: 'Покраска стен в 2 слоя', unit: 'м²', price: 600, stage: 3 },
+  { name: 'Покраска откосов в 2 слоя', unit: 'п.м.', price: 550, stage: 3 },
+  { name: 'Грунтовка дверей 1 раз', unit: 'м²', price: 100, stage: 3 },
+  { name: 'Покраска дверей в 2 слоя', unit: 'м²', price: 600, stage: 3 },
+  { name: 'Монтаж двухкомпонентной затирки в т.ч. перегородка', unit: 'м²', price: 1200, stage: 3 },
+  { name: 'Монтаж двухкомпонентной затирки', unit: 'м²', price: 1200, stage: 3 },
+  { name: 'Укладка кварцвинила на подложку', unit: 'м²', price: 1100, stage: 3 },
+  { name: 'Укрытие пола ветошью', unit: 'м²', price: 150, stage: 3 },
+  { name: 'Укрытие пола оргалитом', unit: 'м²', price: 200, stage: 3 },
+  { name: 'Герметизация примыканий', unit: 'п.м.', price: 200, stage: 3 },
+  { name: 'Монтаж плинтуса', unit: 'п.м.', price: 650, stage: 3 },
+  { name: 'Монтаж теневого профиля про керамогранит', unit: 'п.м.', price: 950, stage: 3 },
+  { name: 'Покраска потолка в 2 слоя', unit: 'м²', price: 700, stage: 3 },
+  { name: 'Монтаж регуляторов теплого пола', unit: 'шт', price: 1800, stage: 3 },
+  { name: 'Монтаж электрического полотенцесушителя', unit: 'шт', price: 5000, stage: 3 },
+  { name: 'Монтаж эл, тв, инт, тел.розеток и выключателей (рамки)', unit: 'шт', price: 400, stage: 3 },
+  { name: 'Монтаж радиаторов', unit: 'шт', price: 8000, stage: 3 },
+  { name: 'Монтаж унитаза с сиденьем и крышкой', unit: 'шт', price: 8000, stage: 3 },
+  { name: 'Монтаж смесителя открытого монтажа', unit: 'шт', price: 4500, stage: 3 },
+  { name: 'Монтаж раковины напольной', unit: 'шт', price: 5000, stage: 3 },
+  { name: 'Монтаж раковины накладной', unit: 'шт', price: 5000, stage: 3 },
+  { name: 'Монтаж ванны', unit: 'шт', price: 8000, stage: 3 },
+  { name: 'Демонтаж строительных лесов и подмостей', unit: 'м²', price: 100, stage: 3 },
+];
+
+
+
 /* ================= СОСТОЯНИЕ ================= */
 
 const LS_KEY = 'stroysmeta_calc_v1';
@@ -567,9 +786,15 @@ let S = {
   crew: { 1: 2, 2: 2, 3: 2 },   // человек на этапе
   daysOv: { 1: 0, 2: 0, 3: 0 }, // дни, заложенные сметчиком (0 = взять расчёт системы)
   pct: { mat: 50, trans: 3, over: 6, disc: 0, adv: 70 },
-  proj: { name: '', client: '' },
+  proj: { name: '', clientName: '', phone: '', city: '', street: '', house: '', flat: '' },
   kp: {},                       // company, num, client, object, note, phone, mail, manager
+  ui: { theme: 'dark', accent: 'orange' },
+  curNum: '',                   // номер открытой/сохранённой сметы
 };
+
+const ARC_KEY = 'stroysmeta_archive_v1';
+function loadArc() { try { return JSON.parse(localStorage.getItem(ARC_KEY)) || []; } catch (e) { return []; } }
+function saveArc(a) { try { localStorage.setItem(ARC_KEY, JSON.stringify(a)); } catch (e) {} }
 
 function save() { try { localStorage.setItem(LS_KEY, JSON.stringify(S)); } catch (e) {} }
 function load() {
@@ -580,6 +805,78 @@ function load() {
   S.pct = Object.assign({ mat: 50, trans: 3, over: 6, disc: 0, adv: 70 }, S.pct);
   S.crew = Object.assign({ 1: 2, 2: 2, 3: 2 }, S.crew);
   S.daysOv = Object.assign({ 1: 0, 2: 0, 3: 0 }, S.daysOv);
+  S.proj = Object.assign({ name: '', clientName: '', phone: '', city: '', street: '', house: '', flat: '' }, S.proj);
+  S.ui = Object.assign({ theme: 'dark', accent: 'orange' }, S.ui);
+}
+
+/* ===== темы и цвет кнопок ===== */
+const THEMES = [
+  { id: 'dark',  name: 'Тёмная',  sw: '#14181D' },
+  { id: 'light', name: 'Светлая', sw: '#F1F2F4' },
+  { id: 'warm',  name: 'Тёплая',  sw: '#F5F0E5' },
+  { id: 'blue',  name: 'Голубая', sw: '#EBF1F7' },
+];
+const ACCENTS = {
+  orange: { a: '#E8862E', soft: '#F0A95C', dim: 'rgba(232,134,46,0.14)', kp: 'var(--kp-acc, #C96F1F)' },
+  blue:   { a: '#3B82E0', soft: '#7FAEEC', dim: 'rgba(59,130,224,0.15)', kp: '#2563B0' },
+  green:  { a: '#2FA36B', soft: '#6CC79A', dim: 'rgba(47,163,107,0.15)', kp: '#1F7A4D' },
+  terra:  { a: '#C9603A', soft: '#DE8E6E', dim: 'rgba(201,96,58,0.15)', kp: '#A84E2E' },
+  gold:   { a: '#C9A96E', soft: '#E3C88F', dim: 'rgba(201,169,110,0.16)', kp: '#8a6d3b' },
+};
+function applyUI() {
+  document.body.dataset.theme = S.ui.theme === 'dark' ? '' : S.ui.theme;
+  const acc = ACCENTS[S.ui.accent] || ACCENTS.orange;
+  const st = document.documentElement.style;
+  st.setProperty('--orange', acc.a);
+  st.setProperty('--orange-soft', S.ui.theme === 'dark' ? acc.soft : acc.kp);
+  st.setProperty('--orange-dim', acc.dim);
+  st.setProperty('--kp-acc', acc.kp);
+}
+function renderThemePanel() {
+  const tb = document.getElementById('tpThemes'); tb.innerHTML = '';
+  THEMES.forEach(t => {
+    const d = el('div', 'tp-sw' + (S.ui.theme === t.id ? ' on' : ''), t.name.slice(0, 4));
+    d.style.background = t.sw;
+    d.style.color = t.id === 'dark' ? '#EDEDE8' : '#333';
+    d.title = t.name;
+    d.addEventListener('click', () => { S.ui.theme = t.id; applyUI(); renderThemePanel(); save(); });
+    tb.appendChild(d);
+  });
+  const ab = document.getElementById('tpAccents'); ab.innerHTML = '';
+  Object.entries(ACCENTS).forEach(([id, acc]) => {
+    const d = el('div', 'tp-acc' + (S.ui.accent === id ? ' on' : ''));
+    d.style.background = acc.a;
+    d.addEventListener('click', () => { S.ui.accent = id; applyUI(); renderThemePanel(); save(); });
+    ab.appendChild(d);
+  });
+}
+
+/* ===== маска телефона: +7 (999) 123-45-67 ===== */
+function maskPhone(inp) {
+  inp.addEventListener('input', () => {
+    let d = inp.value.replace(/\D/g, '');
+    if (d.startsWith('8')) d = '7' + d.slice(1);
+    if (d && !d.startsWith('7')) d = '7' + d;
+    d = d.slice(0, 11);
+    let out = '';
+    if (d.length) out = '+7';
+    if (d.length > 1) out += ' (' + d.slice(1, 4);
+    if (d.length >= 4) out += ') ' + d.slice(4, 7);
+    if (d.length >= 7) out += '-' + d.slice(7, 9);
+    if (d.length >= 9) out += '-' + d.slice(9, 11);
+    inp.value = out;
+    inp.dispatchEvent(new Event('masked'));
+  });
+}
+
+/* адрес одной строкой для КП и архива */
+function addressString() {
+  const p = S.proj, parts = [];
+  if (p.city) parts.push('г. ' + p.city);
+  if (p.street) parts.push('ул. ' + p.street);
+  if (p.house) parts.push('д. ' + p.house);
+  if (p.flat) parts.push('кв. ' + p.flat);
+  return parts.join(', ');
 }
 
 /* двойное нажатие вместо системных окон подтверждения (prompt/confirm в превью заблокированы) */
@@ -997,8 +1294,11 @@ function renderEstimate(c) {
 function estimateText() {
   const c = calc();
   const L = [];
-  L.push('СМЕТА' + (S.proj.name ? ' — ' + S.proj.name : ''));
-  if (S.proj.client) L.push('Клиент: ' + S.proj.client);
+  L.push('СМЕТА' + (S.curNum ? ' № ' + S.curNum : '') + (S.proj.name ? ' — ' + S.proj.name : ''));
+  const cl = [S.proj.clientName, S.proj.phone].filter(Boolean).join(', ');
+  if (cl) L.push('Клиент: ' + cl);
+  const ad = addressString();
+  if (ad) L.push('Адрес: ' + ad);
   L.push('');
   [1, 2, 3, 0].forEach(s => {
     if (c.stageSum[s] <= 0) return;
@@ -1078,9 +1378,11 @@ function kpDefaultNum() {
 }
 
 function openKP() {
-  if (!S.kp.num) S.kp.num = kpDefaultNum();
-  if (!S.kp.client && S.proj.client) S.kp.client = S.proj.client;
-  if (!S.kp.object && S.proj.name) S.kp.object = S.proj.name;
+  if (!S.kp.num) S.kp.num = S.curNum || kpDefaultNum();
+  const cl = [S.proj.clientName, S.proj.phone].filter(Boolean).join(', ');
+  if (!S.kp.client && cl) S.kp.client = cl;
+  const obj = [S.proj.name, addressString()].filter(Boolean).join(', ');
+  if (!S.kp.object && obj) S.kp.object = obj;
   KP_FIELDS.forEach(f => { kpEl(kpInputId(f)).value = S.kp[f] || ''; });
   const now = new Date(), valid = new Date(now.getTime() + 14 * 86400000);
   kpEl('kpDate').textContent = 'от ' + DATE_FMT.format(now);
@@ -1200,6 +1502,145 @@ function kpText() {
   return L.join('\n');
 }
 
+/* ================= СПРАВОЧНИК РАБОТ ================= */
+
+const REF_TAB = { 1: 'cher', 2: 'fin', 3: 'fin' };
+
+function renderRef() {
+  const q = document.getElementById('refSearch').value.trim().toLowerCase();
+  const box = document.getElementById('refBody'); box.innerHTML = '';
+  const hits = REF.filter(x => !q || searchMatch(x.name.toLowerCase(), q));
+  if (!hits.length) {
+    box.appendChild(el('div', 'modal-empty', 'Не нашлось. Попробуй другое слово — или добавь позицию как «свою работу» в нужной вкладке.'));
+    return;
+  }
+  hits.slice(0, 80).forEach(x => {
+    const r = el('div', 'ref-row');
+    const nm = el('div', 'nm', x.name);
+    nm.appendChild(el('span', 'meta', `${fmt(x.price)} за ${x.unit} · ${STAGE_NAMES[x.stage]}`));
+    const qi = document.createElement('input');
+    qi.type = 'number'; qi.placeholder = 'кол-во'; qi.setAttribute('inputmode', 'decimal');
+    const b = el('button', 'btn gold', 'В смету'); b.type = 'button';
+    b.addEventListener('click', () => {
+      const id = 'c' + Date.now() + Math.floor(Math.random() * 1000);
+      S.custom.push({ id, custom: true, tab: REF_TAB[x.stage] || 'pro', stage: x.stage, name: x.name, unit: x.unit, price: x.price, rate: 0 });
+      const v = num(qi.value);
+      if (v) S.q[id] = { [S.room]: v };
+      save();
+      document.getElementById('refModal').classList.remove('show');
+      renderSections();
+      if (v) toast('Занесено в смету ✓');
+      const it = getItem(id);
+      if (it) jumpTo(it);
+    });
+    r.append(nm, qi, b);
+    box.appendChild(r);
+  });
+  if (hits.length > 80) box.appendChild(el('div', 'modal-empty', `Показаны первые 80 из ${hits.length} — уточни запрос.`));
+}
+
+/* ================= АРХИВ СМЕТ И НУМЕРАЦИЯ ================= */
+
+function genNum() {
+  const d = new Date(); const p = n => String(n).padStart(2, '0');
+  const base = `${String(d.getFullYear()).slice(2)}${p(d.getMonth() + 1)}${p(d.getDate())}`;
+  const arc = loadArc();
+  const esc = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  if (S.curNum) {
+    // пересохранение открытой сметы → дубль: -Д2, -Д3…
+    const root = S.curNum.replace(/-Д\d+$/, '');
+    let k = 1;
+    arc.forEach(e => { const m = String(e.num).match(new RegExp('^' + esc(root) + '-Д(\\d+)$')); if (m) k = Math.max(k, parseInt(m[1], 10)); });
+    return `${root}-Д${k + 1}`;
+  }
+  let n = 0;
+  arc.forEach(e => { const m = String(e.num).match(new RegExp('^' + base + '-(\\d+)')); if (m) n = Math.max(n, parseInt(m[1], 10)); });
+  return `${base}-${n + 1}`;
+}
+
+function updateCurNum() {
+  document.getElementById('curNum').textContent = S.curNum ? 'Смета № ' + S.curNum : '';
+}
+
+function saveSmeta() {
+  const c = calc();
+  if (c.works <= 0) { toast('Смета пустая — нечего сохранять'); return; }
+  const num = genNum();
+  const arc = loadArc();
+  arc.unshift({
+    num, ts: Date.now(),
+    client: S.proj.clientName, phone: S.proj.phone,
+    object: S.proj.name, address: addressString(),
+    total: Math.round(c.grand), days: c.totalDays, sentTo: '',
+    data: JSON.parse(JSON.stringify({ q: S.q, priceOv: S.priceOv, custom: S.custom, rooms: S.rooms, crew: S.crew, daysOv: S.daysOv, pct: S.pct, proj: S.proj })),
+  });
+  saveArc(arc);
+  S.curNum = num; S.kp.num = num;
+  save(); updateCurNum();
+  toast('Сохранено: смета № ' + num);
+}
+
+function openSmeta(entry) {
+  Object.assign(S, JSON.parse(JSON.stringify(entry.data)));
+  S.curNum = entry.num; S.kp.num = entry.num;
+  save();
+  bindProjFields();
+  ['pMat:mat', 'pTrans:trans', 'pOver:over', 'pDisc:disc', 'pAdv:adv'].forEach(pair => {
+    const [id, key] = pair.split(':');
+    document.getElementById(id).value = S.pct[key];
+  });
+  renderTabs(); renderRooms(); renderSections();
+  updateCurNum();
+  document.getElementById('arcModal').classList.remove('show');
+  toast('Открыта смета № ' + entry.num);
+}
+
+function renderArc() {
+  const q = document.getElementById('arcSearch').value.trim().toLowerCase();
+  const box = document.getElementById('arcBody'); box.innerHTML = '';
+  const all = loadArc();
+  const arc = all.filter(e => !q || (e.num + ' ' + (e.client || '') + ' ' + (e.phone || '') + ' ' + (e.address || '') + ' ' + (e.object || '') + ' ' + (e.sentTo || '')).toLowerCase().includes(q));
+  if (!arc.length) {
+    box.appendChild(el('div', 'modal-empty', all.length ? 'Ничего не найдено.' : 'Пока нет сохранённых смет. Посчитай и нажми «💾 Сохранить смету».'));
+    return;
+  }
+  arc.forEach(e => {
+    const r = el('div', 'arc-row');
+    const left = el('div');
+    left.appendChild(el('div', 'n', '№ ' + e.num + ' · ' + new Date(e.ts).toLocaleDateString('ru-RU') + (e.days ? ` · ~${e.days} дн.` : '')));
+    const meta = [e.client, e.phone, e.object, e.address].filter(Boolean).join(' · ');
+    if (meta) left.appendChild(el('div', 'm', meta));
+    const sent = el('div', 'sent');
+    const si = document.createElement('input');
+    si.placeholder = 'Кому отправили: например, WhatsApp Ивану 6 июля';
+    si.value = e.sentTo || '';
+    si.addEventListener('input', () => {
+      const a = loadArc(); const t = a.find(x => x.num === e.num && x.ts === e.ts);
+      if (t) { t.sentTo = si.value; saveArc(a); }
+    });
+    sent.appendChild(si); left.appendChild(sent);
+    const btns = el('div', 'arc-btns');
+    btns.appendChild(el('div', 's', fmt(e.total)));
+    const row2 = el('div'); row2.style.cssText = 'display:flex;gap:6px;align-items:center;';
+    const ob = el('button', 'btn', 'Открыть'); ob.type = 'button';
+    ob.addEventListener('click', () => armConfirm(ob, 'Заменит текущую?', () => openSmeta(e)));
+    const db = el('button', 'del', '✕'); db.type = 'button'; db.title = 'Удалить смету';
+    db.addEventListener('click', () => armConfirm(db, '?', () => {
+      saveArc(loadArc().filter(x => !(x.num === e.num && x.ts === e.ts)));
+      renderArc();
+    }));
+    row2.append(ob, db);
+    btns.appendChild(row2);
+    r.append(left, btns);
+    box.appendChild(r);
+  });
+}
+
+function bindProjFields() {
+  const map = { projName: 'name', pClientName: 'clientName', pPhone: 'phone', pCity: 'city', pStreet: 'street', pHouse: 'house', pFlat: 'flat' };
+  Object.entries(map).forEach(([id, key]) => { document.getElementById(id).value = S.proj[key] || ''; });
+}
+
 /* ================= ОБЩЕЕ ================= */
 
 function toast(msg) {
@@ -1221,10 +1662,41 @@ async function copyText(txt, msg) {
 function init() {
   load();
 
-  document.getElementById('projName').value = S.proj.name || '';
-  document.getElementById('projClient').value = S.proj.client || '';
-  document.getElementById('projName').addEventListener('input', e => { S.proj.name = e.target.value; save(); });
-  document.getElementById('projClient').addEventListener('input', e => { S.proj.client = e.target.value; save(); });
+  bindProjFields();
+  const projMap = { projName: 'name', pClientName: 'clientName', pPhone: 'phone', pCity: 'city', pStreet: 'street', pHouse: 'house', pFlat: 'flat' };
+  Object.entries(projMap).forEach(([id, key]) => {
+    document.getElementById(id).addEventListener('input', e => { S.proj[key] = e.target.value; save(); });
+  });
+  maskPhone(document.getElementById('pPhone'));
+  maskPhone(document.getElementById('kpPhone'));
+
+  // оформление
+  applyUI(); renderThemePanel(); updateCurNum();
+  const tp = document.getElementById('themePanel');
+  document.getElementById('btnTheme').addEventListener('click', ev => { ev.stopPropagation(); tp.classList.toggle('show'); });
+  tp.addEventListener('click', ev => ev.stopPropagation());
+  document.addEventListener('click', () => tp.classList.remove('show'));
+
+  // справочник
+  document.getElementById('btnRef').addEventListener('click', () => {
+    document.getElementById('refModal').classList.add('show');
+    renderRef();
+    setTimeout(() => document.getElementById('refSearch').focus(), 100);
+  });
+  document.getElementById('refClose').addEventListener('click', () => document.getElementById('refModal').classList.remove('show'));
+  document.getElementById('refSearch').addEventListener('input', renderRef);
+
+  // мои сметы
+  document.getElementById('btnArc').addEventListener('click', () => {
+    document.getElementById('arcModal').classList.add('show');
+    renderArc();
+  });
+  document.getElementById('arcClose').addEventListener('click', () => document.getElementById('arcModal').classList.remove('show'));
+  document.getElementById('arcSearch').addEventListener('input', renderArc);
+  document.getElementById('btnSave').addEventListener('click', saveSmeta);
+  [document.getElementById('refModal'), document.getElementById('arcModal')].forEach(m => {
+    m.addEventListener('click', ev => { if (ev.target === m) m.classList.remove('show'); });
+  });
 
   ['pMat:mat', 'pTrans:trans', 'pOver:over', 'pDisc:disc', 'pAdv:adv'].forEach(pair => {
     const [id, key] = pair.split(':');
@@ -1284,11 +1756,11 @@ function init() {
   });
   document.getElementById('btnResetAll').addEventListener('click', ev => {
     armConfirm(ev.currentTarget, 'Точно очистить всё?', () => {
-    const keepKp = S.kp;
+    const keepKp = S.kp, keepUi = S.ui;
     localStorage.removeItem(LS_KEY);
-    S = { tab: 'dem', room: 'all', rooms: [], q: {}, priceOv: {}, custom: [], crew: { 1: 2, 2: 2, 3: 2 }, daysOv: { 1: 0, 2: 0, 3: 0 }, pct: { mat: 50, trans: 3, over: 6, disc: 0, adv: 70 }, proj: { name: '', client: '' }, kp: keepKp };
+    S = { tab: 'dem', room: 'all', rooms: [], q: {}, priceOv: {}, custom: [], crew: { 1: 2, 2: 2, 3: 2 }, daysOv: { 1: 0, 2: 0, 3: 0 }, pct: { mat: 50, trans: 3, over: 6, disc: 0, adv: 70 }, proj: { name: '', clientName: '', phone: '', city: '', street: '', house: '', flat: '' }, kp: keepKp, ui: keepUi, curNum: '' };
     save();
-    document.getElementById('projName').value = ''; document.getElementById('projClient').value = '';
+    bindProjFields(); updateCurNum();
     ['pMat', 'pTrans', 'pOver', 'pDisc', 'pAdv'].forEach((id, i) => { document.getElementById(id).value = [50, 3, 6, 0, 70][i]; });
     renderTabs(); renderRooms(); renderSections();
     toast('Расчёт очищен');
