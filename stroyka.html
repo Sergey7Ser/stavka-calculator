@@ -146,8 +146,17 @@
   select { font-family: var(--sans) !important; appearance: none; }
 
   /* своя работа */
-  .custform { display: grid; grid-template-columns: 1.6fr 0.8fr 0.9fr 0.9fr 1fr auto; gap: 6px; margin-top: 10px; }
-  .custform input, .custform select { font-family: var(--sans); font-weight: 500; font-size: 13px; }
+  .custwrap { margin-top: 10px; background: var(--bg-2); border: 1px dashed var(--line-strong); border-radius: 10px; padding: 10px 12px 12px; }
+  .custwrap .cf-title { font-weight: 700; font-size: 13px; color: var(--ink-2); }
+  .cf-l { font-size: 10px; color: var(--muted); margin: 8px 0 3px; text-transform: uppercase; letter-spacing: 0.07em; font-weight: 700; }
+  .cf-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+  .custwrap input, .custwrap select {
+    width: 100%; background: var(--card); color: var(--ink); border: 1px solid var(--line);
+    border-radius: 8px; padding: 9px 8px; font: 500 13.5px var(--sans); outline: none;
+  }
+  .cf-sum { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; gap: 10px; }
+  .cf-sum .v { font: 700 15px var(--mono); color: var(--orange-soft); white-space: nowrap; }
+  .btn.danger, .del.danger { color: #E06060 !important; border-color: #E06060 !important; }
   .btn {
     display: inline-flex; align-items: center; justify-content: center; gap: 8px;
     border: 1px solid var(--line-strong); background: var(--card-2); color: var(--ink);
@@ -161,12 +170,19 @@
   .del:hover { color: #E06060; background: rgba(224,96,96,0.12); }
 
   /* сроки */
-  .stage-line { display: grid; grid-template-columns: 1fr 120px 130px; gap: 8px; align-items: center; padding: 9px 0; border-top: 1px solid rgba(44,52,61,0.6); font-size: 13.5px; }
+  .stage-line { display: grid; grid-template-columns: 1fr 86px 96px 108px; gap: 8px; align-items: center; padding: 9px 0; border-top: 1px solid rgba(44,52,61,0.6); font-size: 13px; }
   .stage-line:first-of-type { border-top: 0; }
-  .stage-line .crew { display: flex; align-items: center; gap: 6px; }
-  .stage-line .crew input { width: 52px; text-align: center; }
-  .stage-line .days { text-align: right; font: 700 14px var(--mono); color: var(--orange-soft); }
+  .stage-line .crew { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--muted); }
+  .stage-line .crew input { width: 46px; text-align: center; }
+  .stage-line .auto { text-align: right; font: 700 13.5px var(--mono); color: var(--muted); }
+  .stage-line .ovr { display: flex; align-items: center; gap: 5px; justify-content: flex-end; font-size: 12px; color: var(--muted); }
+  .stage-line .ovr input { width: 54px; text-align: center; font-weight: 700; color: var(--orange-soft); }
+  .stage-line .days { text-align: right; font: 800 14px var(--mono); color: var(--orange-soft); }
   .stage-line .ld { color: var(--muted); font-size: 11px; display: block; font-family: var(--sans); font-weight: 400; }
+  .time-head { display: grid; grid-template-columns: 1fr 86px 96px 108px; gap: 8px; font: 700 10px var(--sans); text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); padding: 10px 0 2px; }
+  .time-head div:nth-child(3) { text-align: right; }
+  .time-head div:nth-child(4) { text-align: right; }
+  .time-note { color: var(--muted); font-size: 12px; margin-top: 8px; }
 
   /* надбавки */
   .pct-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; padding-top: 10px; }
@@ -215,9 +231,9 @@
     .thead, .row { grid-template-columns: 1fr 74px 62px 84px; gap: 5px; }
     input.price, input.qty { padding: 7px 5px; font-size: 12.5px; }
     .row .nm { font-size: 12.5px; }
-    .custform { grid-template-columns: 1fr 1fr; }
-    .custform input:first-child { grid-column: 1 / -1; }
-    .stage-line { grid-template-columns: 1fr 96px 106px; }
+    .stage-line, .time-head { grid-template-columns: 1fr 64px 76px 92px; gap: 5px; }
+    .stage-line .crew input { width: 38px; }
+    .stage-line .ovr input { width: 46px; }
   }
 
   /* ===== КП ===== */
@@ -549,6 +565,7 @@ let S = {
   priceOv: {},                  // itemId -> цена (правка)
   custom: [],                   // [{id, tab, stage, name, unit, price, rate}]
   crew: { 1: 2, 2: 2, 3: 2 },   // человек на этапе
+  daysOv: { 1: 0, 2: 0, 3: 0 }, // дни, заложенные сметчиком (0 = взять расчёт системы)
   pct: { mat: 50, trans: 3, over: 6, disc: 0, adv: 70 },
   proj: { name: '', client: '' },
   kp: {},                       // company, num, client, object, note, phone, mail, manager
@@ -562,6 +579,17 @@ function load() {
   } catch (e) {}
   S.pct = Object.assign({ mat: 50, trans: 3, over: 6, disc: 0, adv: 70 }, S.pct);
   S.crew = Object.assign({ 1: 2, 2: 2, 3: 2 }, S.crew);
+  S.daysOv = Object.assign({ 1: 0, 2: 0, 3: 0 }, S.daysOv);
+}
+
+/* двойное нажатие вместо системных окон подтверждения (prompt/confirm в превью заблокированы) */
+function armConfirm(btn, label, fn) {
+  if (btn.dataset.armed) { delete btn.dataset.armed; fn(); return; }
+  btn.dataset.armed = '1';
+  const old = btn.textContent;
+  btn.textContent = label;
+  btn.classList.add('danger');
+  setTimeout(() => { if (!btn.isConnected) return; delete btn.dataset.armed; btn.textContent = old; btn.classList.remove('danger'); }, 2600);
 }
 
 /* ================= УТИЛИТЫ ================= */
@@ -601,11 +629,12 @@ function renderRooms() {
       const x = el('span', 'x', '✕');
       x.addEventListener('click', ev => {
         ev.stopPropagation();
-        if (!confirm(`Удалить «${name}»? Его объёмы уйдут из сметы.`)) return;
-        S.rooms = S.rooms.filter(r => r.id !== id);
-        Object.values(S.q).forEach(m => delete m[id]);
-        if (S.room === id) S.room = 'all';
-        renderRooms(); renderSections(); recalc(); save();
+        armConfirm(x, 'точно?', () => {
+          S.rooms = S.rooms.filter(r => r.id !== id);
+          Object.values(S.q).forEach(m => delete m[id]);
+          if (S.room === id) S.room = 'all';
+          renderRooms(); renderSections(); recalc(); save();
+        });
       });
       c.appendChild(x);
     }
@@ -616,13 +645,31 @@ function renderRooms() {
   S.rooms.forEach(r => mk(r.id, r.name, true));
   const add = el('span', 'rchip add', '+ Помещение');
   add.addEventListener('click', () => {
-    const name = prompt('Название помещения или части объекта:\n(например: Кухня, Санузел, Фасад, Дом №2)');
-    if (!name || !name.trim()) return;
-    const id = 'rm' + Date.now();
-    S.rooms.push({ id, name: name.trim() });
-    S.room = id;
-    renderRooms(); renderSections(); save();
-  });
+    // прямо в чипе появляется поле ввода — без системных окон
+    add.textContent = '';
+    const inp = document.createElement('input');
+    inp.placeholder = 'Кухня / Фасад / Дом №2';
+    inp.style.cssText = 'background:transparent;border:0;outline:none;color:var(--ink);font:600 13px var(--sans);width:150px;';
+    let done = false;   // Enter и потеря фокуса не должны сработать дважды
+    const commit = () => {
+      if (done) return; done = true;
+      const name = inp.value.trim();
+      if (name) {
+        const id = 'rm' + Date.now();
+        S.rooms.push({ id, name });
+        S.room = id;
+        renderRooms(); renderSections(); save();
+        toast('Помещение добавлено — вводи его объёмы');
+      } else renderRooms();
+    };
+    inp.addEventListener('keydown', ev => {
+      if (ev.key === 'Enter') { ev.preventDefault(); commit(); }
+      if (ev.key === 'Escape') { done = true; renderRooms(); }
+    });
+    inp.addEventListener('blur', commit);
+    add.appendChild(inp);
+    inp.focus();
+  }, { once: true });
   box.appendChild(add);
 }
 
@@ -681,12 +728,12 @@ function buildRow(it, deletable) {
   if (deletable) {
     const d = el('button', 'del', '✕'); d.type = 'button'; d.title = 'Удалить свою работу';
     d.addEventListener('click', () => {
-      if (!confirm('Удалить эту работу из списка?')) return;
-      S.custom = S.custom.filter(c => c.id !== it.id);
-      delete S.q[it.id];
-      renderSections(); save();
+      armConfirm(d, '?', () => {
+        S.custom = S.custom.filter(c => c.id !== it.id);
+        delete S.q[it.id];
+        renderSections(); save();
+      });
     });
-    sum.style.position = 'relative';
     r.appendChild(d);
     r.style.gridTemplateColumns = '1fr 92px 76px 100px 26px';
   }
@@ -709,30 +756,55 @@ function buildRow(it, deletable) {
 }
 
 function buildCustomForm() {
-  const f = el('div', 'custform');
-  const name = el('input'); name.placeholder = 'Название работы';
+  const f = el('div', 'custwrap');
+  f.appendChild(el('div', 'cf-title', '➕ Добавить свою работу'));
+
+  f.appendChild(el('div', 'cf-l', 'Название работы'));
+  const name = el('input'); name.placeholder = 'Например: фундамент плитный';
+  f.appendChild(name);
+
+  const grid = el('div', 'cf-grid');
+  const c1 = el('div'), c2 = el('div'), c3 = el('div');
+  c1.appendChild(el('div', 'cf-l', 'Ед. измерения'));
   const unit = el('select'); UNITS.forEach(u => { const o = el('option', null, u); o.value = u; unit.appendChild(o); });
-  const pr = el('input'); pr.type = 'number'; pr.placeholder = 'Цена ₽';
-  const rate = el('input'); rate.type = 'number'; rate.placeholder = 'ед/чел·день';
-  rate.title = 'Сколько единиц делает один человек за день (для расчёта сроков). Можно оставить пустым.';
-  const stage = el('select', 'stage');
-  [[1, 'Этап 1'], [2, 'Этап 2'], [3, 'Этап 3'], [0, 'Вне этапов']].forEach(([v, l]) => {
-    const o = el('option', null, l); o.value = v;
-    if (v === CUSTOM_STAGE_DEFAULT[S.tab]) o.selected = true;
-    stage.appendChild(o);
-  });
-  const btn = el('button', 'btn', '+'); btn.type = 'button'; btn.title = 'Добавить работу';
+  c1.appendChild(unit);
+  c2.appendChild(el('div', 'cf-l', 'Цена за ед., ₽'));
+  const pr = el('input'); pr.type = 'number'; pr.placeholder = '0'; pr.setAttribute('inputmode', 'decimal');
+  c2.appendChild(pr);
+  c3.appendChild(el('div', 'cf-l', 'Кол-во'));
+  const qty = el('input'); qty.type = 'number'; qty.placeholder = '0'; qty.setAttribute('inputmode', 'decimal');
+  c3.appendChild(qty);
+  grid.append(c1, c2, c3);
+  f.appendChild(grid);
+
+  const sumline = el('div', 'cf-sum');
+  const sumv = el('div', 'v', 'Сумма: —');
+  const btn = el('button', 'btn gold', 'Занести в смету ✓'); btn.type = 'button';
+  sumline.append(sumv, btn);
+  f.appendChild(sumline);
+
+  const upd = () => {
+    const t = num(pr.value) * num(qty.value);
+    sumv.textContent = t > 0 ? 'Сумма: ' + fmt(t) : 'Сумма: —';
+  };
+  pr.addEventListener('input', upd);
+  qty.addEventListener('input', upd);
+
   btn.addEventListener('click', () => {
-    if (!name.value.trim() || !num(pr.value)) { toast('Заполни название и цену'); return; }
+    if (!name.value.trim()) { toast('Напиши название работы'); name.focus(); return; }
+    if (!num(pr.value)) { toast('Укажи цену за единицу'); pr.focus(); return; }
+    if (!num(qty.value)) { toast('Укажи количество'); qty.focus(); return; }
+    const id = 'c' + Date.now();
     S.custom.push({
-      id: 'c' + Date.now(), custom: true, tab: S.tab,
-      stage: parseInt(stage.value, 10),
+      id, custom: true, tab: S.tab,
+      stage: CUSTOM_STAGE_DEFAULT[S.tab],
       name: name.value.trim(), unit: unit.value,
-      price: num(pr.value), rate: num(rate.value),
+      price: num(pr.value), rate: 0,
     });
-    renderSections(); save(); toast('Работа добавлена — введи количество');
+    S.q[id] = { [S.room]: num(qty.value) };
+    renderSections(); save();
+    toast('Занесено в смету ✓');
   });
-  f.append(name, unit, pr, rate, stage, btn);
   return f;
 }
 
@@ -765,14 +837,17 @@ function calc() {
 
   const byStage = { 1: [], 2: [], 3: [], 0: [] };
   lines.forEach(l => byStage[l.it.stage].push(l));
-  const stageSum = {}, stageLabor = {}, stageDays = {};
+  const stageSum = {}, stageLabor = {}, stageDaysAuto = {}, stageDays = {};
   [1, 2, 3, 0].forEach(s => {
     stageSum[s] = byStage[s].reduce((a, x) => a + x.total, 0);
     stageLabor[s] = byStage[s].reduce((a, x) => a + x.labor, 0);
   });
   [1, 2, 3].forEach(s => {
     const crew = Math.max(1, num(S.crew[s]) || 1);
-    stageDays[s] = stageLabor[s] > 0 ? Math.ceil(stageLabor[s] / crew) : 0;
+    stageDaysAuto[s] = stageLabor[s] > 0 ? Math.ceil(stageLabor[s] / crew) : 0;
+    // сметчик главнее системы: если заложил свои дни — берём их
+    const ov = num(S.daysOv[s]);
+    stageDays[s] = ov > 0 ? Math.round(ov) : stageDaysAuto[s];
   });
   const totalDays = stageDays[1] + stageDays[2] + stageDays[3];
 
@@ -794,7 +869,7 @@ function calc() {
     });
   });
 
-  return { lines, byStage, stageSum, stageLabor, stageDays, totalDays, works, mat, trans, over, disc, grand, roomSums };
+  return { lines, byStage, stageSum, stageLabor, stageDaysAuto, stageDays, totalDays, works, mat, trans, over, disc, grand, roomSums };
 }
 
 function recalc() {
@@ -835,24 +910,53 @@ function recalc() {
 
 function renderTime(c) {
   const box = document.getElementById('timeBody');
+  // если сметчик сейчас печатает в этом блоке — обновляем цифры, не пересоздавая поля
+  if (box.contains(document.activeElement)) {
+    box.querySelectorAll('[data-auto]').forEach(d => {
+      const s = d.dataset.auto;
+      d.textContent = c.stageDaysAuto[s] > 0 ? `~${c.stageDaysAuto[s]} дн.` : '—';
+    });
+    box.querySelectorAll('[data-labor]').forEach(d => {
+      const s = d.dataset.labor;
+      d.textContent = c.stageLabor[s] > 0 ? `объём: ${Math.round(c.stageLabor[s] * 10) / 10} чел.-дн.` : 'нет работ';
+    });
+    const t = box.querySelector('[data-totaldays]');
+    if (t) t.textContent = c.totalDays > 0 ? `~${c.totalDays} дн.` : '—';
+    return;
+  }
   box.innerHTML = '';
+  const head = el('div', 'time-head');
+  head.append(el('div', null, 'Этап'), el('div', null, 'Бригада'), el('div', null, 'По расчёту'), el('div', null, 'Закладываю'));
+  box.appendChild(head);
   [1, 2, 3].forEach(s => {
     const line = el('div', 'stage-line');
     const nm = el('div');
     nm.append(STAGE_NAMES[s]);
     const ld = el('span', 'ld', c.stageLabor[s] > 0 ? `объём: ${Math.round(c.stageLabor[s] * 10) / 10} чел.-дн.` : 'нет работ');
+    ld.dataset.labor = s;
     nm.appendChild(ld);
     const crew = el('div', 'crew');
     const inp = el('input'); inp.type = 'number'; inp.min = '1'; inp.step = '1'; inp.value = S.crew[s];
     inp.addEventListener('input', () => { S.crew[s] = Math.max(1, num(inp.value) || 1); recalc(); save(); });
     crew.append(inp, el('span', null, 'чел.'));
-    const days = el('div', 'days', c.stageDays[s] > 0 ? `~${c.stageDays[s]} дн.` : '—');
-    line.append(nm, crew, days);
+    const auto = el('div', 'auto', c.stageDaysAuto[s] > 0 ? `~${c.stageDaysAuto[s]} дн.` : '—');
+    auto.dataset.auto = s;
+    const ovr = el('div', 'ovr');
+    const ovInp = el('input'); ovInp.type = 'number'; ovInp.min = '0'; ovInp.step = '1';
+    ovInp.placeholder = c.stageDaysAuto[s] > 0 ? String(c.stageDaysAuto[s]) : '—';
+    if (num(S.daysOv[s]) > 0) ovInp.value = S.daysOv[s];
+    ovInp.title = 'Твои дни с запасом: выходные, болезни, сушка. Пусто — берётся расчёт системы.';
+    ovInp.addEventListener('input', () => { S.daysOv[s] = num(ovInp.value); recalc(); save(); });
+    ovr.append(ovInp, el('span', null, 'дн.'));
+    line.append(nm, crew, auto, ovr);
     box.appendChild(line);
   });
   const total = el('div', 'stage-line');
-  total.append(el('div', null, 'Общий срок (этапы подряд)'), el('div'), el('div', 'days', c.totalDays > 0 ? `~${c.totalDays} дн.` : '—'));
+  const td = el('div', 'days', c.totalDays > 0 ? `~${c.totalDays} дн.` : '—');
+  td.dataset.totaldays = '1';
+  total.append(el('div', null, 'Общий срок (этапы подряд)'), el('div'), el('div'), td);
   box.appendChild(total);
+  box.appendChild(el('div', 'time-note', '«По расчёту» — прикидка системы из объёмов и бригады, впритык. В «Закладываю» ставь свои дни с запасом на выходные, сушку и форс-мажор — в смету и КП пойдут именно они.'));
 }
 
 /* ================= СМЕТА ================= */
@@ -1005,7 +1109,7 @@ function renderKPBody() {
       seg.style.flex = String(c.stageDays[s]);
       tl.appendChild(seg);
     });
-    tln.textContent = `Общий срок: ~${c.totalDays} рабочих дней при работе этапов последовательно. Сроки рассчитаны из объёмов и состава бригады.`;
+    tln.textContent = `Общий срок: ~${c.totalDays} рабочих дней при работе этапов последовательно. Сроки учитывают объёмы работ, состав бригады и запас на непредвиденное.`;
   } else { tln.textContent = 'Сроки будут рассчитаны после уточнения объёмов.'; }
 
   // краткая таблица этапов
@@ -1178,16 +1282,17 @@ function init() {
   document.getElementById('btnResetPrices').addEventListener('click', () => {
     S.priceOv = {}; recalc(); save(); toast('Цены возвращены к прайсу');
   });
-  document.getElementById('btnResetAll').addEventListener('click', () => {
-    if (!confirm('Очистить весь расчёт? Объёмы, помещения и свои работы будут удалены.')) return;
+  document.getElementById('btnResetAll').addEventListener('click', ev => {
+    armConfirm(ev.currentTarget, 'Точно очистить всё?', () => {
     const keepKp = S.kp;
     localStorage.removeItem(LS_KEY);
-    S = { tab: 'dem', room: 'all', rooms: [], q: {}, priceOv: {}, custom: [], crew: { 1: 2, 2: 2, 3: 2 }, pct: { mat: 50, trans: 3, over: 6, disc: 0, adv: 70 }, proj: { name: '', client: '' }, kp: keepKp };
+    S = { tab: 'dem', room: 'all', rooms: [], q: {}, priceOv: {}, custom: [], crew: { 1: 2, 2: 2, 3: 2 }, daysOv: { 1: 0, 2: 0, 3: 0 }, pct: { mat: 50, trans: 3, over: 6, disc: 0, adv: 70 }, proj: { name: '', client: '' }, kp: keepKp };
     save();
     document.getElementById('projName').value = ''; document.getElementById('projClient').value = '';
     ['pMat', 'pTrans', 'pOver', 'pDisc', 'pAdv'].forEach((id, i) => { document.getElementById(id).value = [50, 3, 6, 0, 70][i]; });
     renderTabs(); renderRooms(); renderSections();
     toast('Расчёт очищен');
+    });
   });
 
   recalc();
