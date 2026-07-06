@@ -419,6 +419,7 @@
     <div class="hdr-btns">
       <button class="hbtn" id="btnRef" type="button">📚 Справочник</button>
       <button class="hbtn" id="btnArc" type="button">🗂 Мои сметы</button>
+      <button class="hbtn" id="btnHelp" type="button" title="Как пользоваться">❓</button>
       <button class="hbtn" id="btnTheme" type="button">🎨</button>
       <div class="theme-panel" id="themePanel">
         <div class="tp-l">Тема оформления</div>
@@ -2110,6 +2111,12 @@ function init() {
   });
   maskPhone(document.getElementById('pPhone'));
   maskPhone(document.getElementById('kpPhone'));
+
+  // инструкция: рядом с калькулятором на том же хостинге, иначе — постоянная ссылка
+  document.getElementById('btnHelp').addEventListener('click', () => {
+    const local = location.protocol.startsWith('http') && !/claude/.test(location.hostname);
+    window.open(local ? 'instrukciya.html' : 'https://kamen.oporabusiness.ru/instrukciya.html', '_blank');
+  });
 
   // оформление
   applyUI(); renderThemePanel(); updateCurNum();
