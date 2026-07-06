@@ -108,6 +108,24 @@
   .modal-body { overflow-y: auto; padding: 6px 16px 14px; }
   .ref-tools { display: flex; gap: 6px; flex-wrap: wrap; padding: 10px 16px 0; }
   .ref-tools .btn { padding: 8px 12px; font-size: 12.5px; }
+
+  /* сравнение смет */
+  .cmp-sum { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 12px 0; }
+  .cmp-box { background: var(--bg-2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; text-align: center; }
+  .cmp-box .l { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .cmp-box .v { font: 800 17px var(--mono); color: var(--ink); }
+  .cmp-box.win { border-color: rgba(111,207,151,0.5); }
+  .cmp-box.win .v { color: var(--green); }
+  .cmp-h { font-weight: 800; font-size: 13.5px; margin: 16px 0 6px; }
+  .cmp-h.good { color: var(--green); }
+  .cmp-h.bad { color: #E06060; }
+  .cmp-h.trump { color: var(--orange-soft); }
+  .cmp-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; padding: 7px 0; border-bottom: 1px solid rgba(44,52,61,0.4); font-size: 13px; align-items: center; }
+  .cmp-row .m { color: var(--muted); font-size: 11.5px; display: block; }
+  .cmp-row .d { font: 700 13px var(--mono); white-space: nowrap; text-align: right; }
+  .cmp-row .d.good { color: var(--green); }
+  .cmp-row .d.bad { color: #E06060; }
+  .cmp-row .btn { padding: 6px 10px; font-size: 12px; }
   .ref-row { display: grid; grid-template-columns: 1fr 76px auto; gap: 8px; align-items: center; padding: 9px 0; border-bottom: 1px solid rgba(44,52,61,0.4); }
   .ref-row .nm { font-size: 13.5px; color: var(--ink-2); }
   .ref-row .meta { color: var(--muted); font-size: 11.5px; display: block; }
@@ -468,6 +486,7 @@
         <button class="btn gold" id="btnKP" type="button">Коммерческое предложение →</button>
         <button class="btn" id="btnSave" type="button">💾 Сохранить смету</button>
         <button class="btn" id="btnCopy" type="button">Копировать смету</button>
+        <button class="btn" id="btnCmp" type="button">⚖ Сравнить с конкурентом</button>
         <button class="btn" id="btnJson" type="button">⬇ JSON (для CRM)</button>
         <button class="btn" id="btnCsv" type="button">⬇ CSV (Excel)</button>
         <button class="btn ghost" id="btnResetPrices" type="button">Сбросить цены</button>
@@ -579,6 +598,27 @@
       <input type="file" id="refFile" accept=".xlsx,.csv" hidden>
     </div>
     <div class="modal-body" id="refBody"></div>
+  </div>
+</div>
+
+<!-- СРАВНЕНИЕ СО СМЕТОЙ КОНКУРЕНТА -->
+<div class="modal" id="cmpModal">
+  <div class="modal-card">
+    <div class="modal-head">
+      <div class="t">⚖ Сравнение со сметой конкурента</div>
+      <button class="x" id="cmpClose" type="button">✕</button>
+    </div>
+    <div class="ref-tools">
+      <button class="btn gold" id="cmpUpload" type="button">⬆ Загрузить смету конкурента</button>
+      <button class="btn" id="cmpTpl" type="button">⬇ Шаблон</button>
+      <button class="btn" id="cmpCopy" type="button" hidden>Копировать сравнение</button>
+      <input type="file" id="cmpFile" accept=".xlsx,.csv" hidden>
+    </div>
+    <div class="modal-body" id="cmpBody">
+      <div class="modal-empty">Загрузи смету конкурента файлом Excel (.xlsx) или CSV.
+        Колонки: <b>Название; Ед.; Кол-во; Цена за ед.</b> — лишние строки (шапки, итоги) отсеются сами.
+        Сравнение пойдёт с твоей текущей сметой, так что сначала набери свою.</div>
+    </div>
   </div>
 </div>
 
@@ -1690,6 +1730,180 @@ function refTemplateCSV() {
   return '﻿' + L.join('\r\n');
 }
 
+/* ================= СРАВНЕНИЕ СО СМЕТОЙ КОНКУРЕНТА ================= */
+
+let CMP = null;   // последний результат сравнения (для копирования)
+
+/* слова-стемы названия: для нечёткого сопоставления позиций */
+function nameTokens(s) {
+  return s.toLowerCase().replace(/[«»"().,:;/\\-]/g, ' ').split(/\s+/)
+    .filter(w => w.length >= 3)
+    .map(w => w.length > 5 ? w.slice(0, -2) : (w.length > 4 ? w.slice(0, -1) : w));
+}
+function namesSimilar(a, b) {
+  const ta = nameTokens(a), tb = nameTokens(b);
+  if (!ta.length || !tb.length) return false;
+  const setB = new Set(tb);
+  const hit = ta.filter(w => setB.has(w)).length;
+  return hit / Math.min(ta.length, tb.length) >= 0.6;
+}
+
+/* разбор строк файла конкурента: Название; Ед.; Кол-во; Цена */
+function parseCompetitorRows(rows) {
+  const items = [];
+  rows.forEach(r => {
+    if (!r) return;
+    const cells = r.map(x => String(x ?? '').trim());
+    const name = cells.find(x => x && isNaN(parseFloat(x.replace(',', '.'))) && x.length >= 4);
+    if (!name) return;
+    if (/^итог|^всего|^смета|^наименование|^название|^№/i.test(name)) return;
+    const nums = cells.map(x => num(x.replace(/\s/g, ''))).filter(v => v > 0);
+    if (!nums.length) return;
+    let qty = null, price;
+    if (nums.length >= 2) { qty = nums[0]; price = nums[1]; }
+    else price = nums[0];
+    // если «цена» подозрительно похожа на сумму (есть третье число = qty*price) — оставляем как есть
+    const unit = cells.find(x => /^(м²|м2|м³|м3|шт|п\.?м\.?|мп|компл|т|точка|рейс|м\/п)\.?$/i.test(x)) || '';
+    items.push({ name, unit, qty, price });
+  });
+  return items;
+}
+
+async function importCompetitor(file) {
+  const box = document.getElementById('cmpBody');
+  try {
+    const buf = await file.arrayBuffer();
+    const rows = /\.xlsx$/i.test(file.name) ? await readXlsxRows(buf) : parseCsvRows(buf);
+    const theirs = parseCompetitorRows(rows);
+    if (!theirs.length) {
+      box.innerHTML = '';
+      box.appendChild(el('div', 'modal-empty', 'Не нашёл позиций в файле. Нужны строки «название + число». Скачай шаблон и перенеси смету конкурента в него.'));
+      return;
+    }
+    renderCompare(theirs, file.name);
+  } catch (e) {
+    box.innerHTML = '';
+    box.appendChild(el('div', 'modal-empty', 'Не смог прочитать файл — сохрани его как .xlsx или .csv и попробуй ещё раз.'));
+  }
+}
+
+function renderCompare(theirs, fileName) {
+  const c = calc();
+  const ours = c.lines.map(l => ({ name: l.it.name, unit: l.it.unit, qty: l.qty, price: l.p, total: l.total, stage: l.it.stage }));
+  const box = document.getElementById('cmpBody');
+  box.innerHTML = '';
+
+  const usedTheir = new Set();
+  const both = [], onlyOurs = [];
+  ours.forEach(o => {
+    const idx = theirs.findIndex((t, i) => !usedTheir.has(i) && namesSimilar(o.name, t.name));
+    if (idx >= 0) { usedTheir.add(idx); both.push({ o, t: theirs[idx] }); }
+    else onlyOurs.push(o);
+  });
+  const onlyTheirs = theirs.filter((t, i) => !usedTheir.has(i));
+
+  // сравниваем сопоставимое: наши РАБОТЫ против сумм из файла (там обычно тоже работы)
+  const ourTotal = Math.round(c.works);
+  const theirTotal = theirs.every(t => t.qty) ? Math.round(theirs.reduce((a, t) => a + t.qty * t.price, 0)) : null;
+
+  // сводка
+  const sum = el('div', 'cmp-sum');
+  const b1 = el('div', 'cmp-box'); b1.append(el('div', 'l', 'Наши работы'), el('div', 'v', fmt(ourTotal)));
+  const b2 = el('div', 'cmp-box'); b2.append(el('div', 'l', 'Конкурент' + (theirTotal == null ? ' (по ценам)' : '')),
+    el('div', 'v', theirTotal == null ? '— нет кол-ва' : fmt(theirTotal)));
+  if (theirTotal != null) { (ourTotal <= theirTotal ? b1 : b2).classList.add('win'); }
+  sum.append(b1, b2);
+  box.appendChild(sum);
+  const note = el('div', 'cmp-row');
+  note.style.border = '0';
+  note.appendChild(el('span', 'm', 'Сравниваются работы без материалов и надбавок — как обычно составлены сметы конкурентов.'));
+  box.appendChild(note);
+
+  const cheaper = both.filter(x => x.o.price < x.t.price);
+  const pricier = both.filter(x => x.o.price > x.t.price);
+
+  const section = (title, cls, rows, rowFn) => {
+    if (!rows.length) return;
+    box.appendChild(el('div', 'cmp-h ' + cls, title));
+    rows.forEach(rowFn);
+  };
+
+  const pairRow = (x, good) => {
+    const r = el('div', 'cmp-row');
+    const nm = el('div', null, x.o.name);
+    nm.appendChild(el('span', 'm', `у нас ${fmt(x.o.price)} / у них ${fmt(x.t.price)} за ${x.o.unit}` + (x.t.name !== x.o.name ? ` · у них: «${x.t.name}»` : '')));
+    const diff = Math.round((x.o.price - x.t.price) / x.t.price * 100);
+    r.append(nm, el('div', 'd ' + (good ? 'good' : 'bad'), (diff > 0 ? '+' : '') + diff + '%'));
+    box.appendChild(r);
+  };
+
+  section(`✅ Мы дешевле (${cheaper.length})`, 'good', cheaper, x => pairRow(x, true));
+  section(`⚠ У них дешевле (${pricier.length})`, 'bad', pricier, x => pairRow(x, false));
+
+  section(`🃏 У конкурента этого НЕТ — наши козыри (${onlyOurs.length})`, 'trump', onlyOurs, o => {
+    const r = el('div', 'cmp-row');
+    const nm = el('div', null, o.name);
+    nm.appendChild(el('span', 'm', `${o.qty} ${o.unit} × ${fmt(o.price)} = ${fmt(o.total)} — у них не посчитано, у клиента вылезет доплатой`));
+    r.append(nm, el('div', 'd', fmt(o.total)));
+    box.appendChild(r);
+  });
+
+  section(`➕ У них есть, у нас не посчитано (${onlyTheirs.length})`, '', onlyTheirs, t => {
+    const r = el('div', 'cmp-row');
+    r.style.gridTemplateColumns = '1fr auto auto';
+    const nm = el('div', null, t.name);
+    nm.appendChild(el('span', 'm', `у них ${fmt(t.price)}${t.unit ? ' за ' + t.unit : ''}${t.qty ? ' × ' + t.qty : ''}`));
+    const add = el('button', 'btn', 'В смету +'); add.type = 'button';
+    add.addEventListener('click', () => {
+      const id = 'c' + Date.now() + Math.floor(Math.random() * 1000);
+      S.custom.push({ id, custom: true, tab: 'pro', stage: 0, name: t.name, unit: t.unit || 'шт', price: t.price, rate: 0 });
+      if (t.qty) S.q[id] = { [S.room]: t.qty };
+      save(); renderSections();
+      add.textContent = 'Добавлено ✓'; add.disabled = true;
+      toast('Позиция конкурента добавлена — проверь цену');
+    });
+    r.append(nm, el('div', 'd', t.qty ? fmt(t.qty * t.price) : fmt(t.price)), add);
+    box.appendChild(r);
+  });
+
+  if (!both.length && !onlyOurs.length) {
+    box.appendChild(el('div', 'modal-empty', 'Твоя текущая смета пуста — сравнивать не с чем. Сначала набери свою смету.'));
+  }
+
+  CMP = { fileName, ourTotal, theirTotal, cheaper, pricier, onlyOurs, onlyTheirs };
+  document.getElementById('cmpCopy').hidden = false;
+}
+
+function compareText() {
+  if (!CMP) return '';
+  const L = ['СРАВНЕНИЕ СМЕТ' + (S.proj.name ? ' — ' + S.proj.name : '')];
+  L.push(`Наша смета: ${fmt(CMP.ourTotal)}`);
+  if (CMP.theirTotal != null) L.push(`Смета конкурента: ${fmt(CMP.theirTotal)}`);
+  L.push('');
+  if (CMP.cheaper.length) {
+    L.push('МЫ ДЕШЕВЛЕ:');
+    CMP.cheaper.forEach(x => L.push(`  · ${x.o.name}: у нас ${fmt(x.o.price)}, у них ${fmt(x.t.price)}`));
+    L.push('');
+  }
+  if (CMP.onlyOurs.length) {
+    L.push('У КОНКУРЕНТА НЕ ПОСЧИТАНО (у клиента вылезет доплатой):');
+    CMP.onlyOurs.forEach(o => L.push(`  · ${o.name} — ${o.qty} ${o.unit} (${fmt(o.total)})`));
+    L.push('');
+  }
+  if (CMP.pricier.length) {
+    L.push('У них дешевле:');
+    CMP.pricier.forEach(x => L.push(`  · ${x.o.name}: у нас ${fmt(x.o.price)}, у них ${fmt(x.t.price)}`));
+  }
+  return L.join('\n');
+}
+
+function cmpTemplateCSV() {
+  return '﻿' + ['Название работы;Ед.;Кол-во;Цена за ед.',
+    'Штукатурка стен;м2;120;700',
+    'Стяжка пола;м2;45;650',
+    'Электрика: точка;шт;40;800'].join('\r\n');
+}
+
 /* ================= АРХИВ СМЕТ И НУМЕРАЦИЯ ================= */
 
 function genNum() {
@@ -1937,9 +2151,24 @@ function init() {
   document.getElementById('arcClose').addEventListener('click', () => document.getElementById('arcModal').classList.remove('show'));
   document.getElementById('arcSearch').addEventListener('input', renderArc);
   document.getElementById('btnSave').addEventListener('click', saveSmeta);
-  [document.getElementById('refModal'), document.getElementById('arcModal')].forEach(m => {
+  [document.getElementById('refModal'), document.getElementById('arcModal'), document.getElementById('cmpModal')].forEach(m => {
     m.addEventListener('click', ev => { if (ev.target === m) m.classList.remove('show'); });
   });
+
+  // сравнение со сметой конкурента
+  document.getElementById('btnCmp').addEventListener('click', () => document.getElementById('cmpModal').classList.add('show'));
+  document.getElementById('cmpClose').addEventListener('click', () => document.getElementById('cmpModal').classList.remove('show'));
+  document.getElementById('cmpUpload').addEventListener('click', () => document.getElementById('cmpFile').click());
+  document.getElementById('cmpFile').addEventListener('change', ev => {
+    const f = ev.target.files && ev.target.files[0];
+    if (f) importCompetitor(f);
+    ev.target.value = '';
+  });
+  document.getElementById('cmpTpl').addEventListener('click', () => {
+    downloadFile('смета-конкурента-шаблон.csv', cmpTemplateCSV(), 'text/csv;charset=utf-8');
+    toast('Шаблон скачан — перенеси в него смету конкурента');
+  });
+  document.getElementById('cmpCopy').addEventListener('click', () => copyText(compareText(), 'Сравнение скопировано'));
 
   ['pMat:mat', 'pTrans:trans', 'pOver:over', 'pDisc:disc', 'pAdv:adv'].forEach(pair => {
     const [id, key] = pair.split(':');
