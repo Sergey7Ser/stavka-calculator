@@ -106,6 +106,8 @@
     color: var(--ink); font: 500 14px var(--sans); padding: 10px 12px; outline: none;
   }
   .modal-body { overflow-y: auto; padding: 6px 16px 14px; }
+  .ref-tools { display: flex; gap: 6px; flex-wrap: wrap; padding: 10px 16px 0; }
+  .ref-tools .btn { padding: 8px 12px; font-size: 12.5px; }
   .ref-row { display: grid; grid-template-columns: 1fr 76px auto; gap: 8px; align-items: center; padding: 9px 0; border-bottom: 1px solid rgba(44,52,61,0.4); }
   .ref-row .nm { font-size: 13.5px; color: var(--ink-2); }
   .ref-row .meta { color: var(--muted); font-size: 11.5px; display: block; }
@@ -570,6 +572,12 @@
       <button class="x" id="refClose" type="button">✕</button>
     </div>
     <div class="modal-search"><input id="refSearch" type="text" placeholder="Поиск: штукатурка, точка, плитка…" autocomplete="off"></div>
+    <div class="ref-tools">
+      <button class="btn" id="refTpl" type="button">⬇ Скачать шаблон</button>
+      <button class="btn gold" id="refUpload" type="button">⬆ Загрузить свой (Excel)</button>
+      <button class="btn ghost" id="refReset" type="button">↺ Стартовый</button>
+      <input type="file" id="refFile" accept=".xlsx,.csv" hidden>
+    </div>
     <div class="modal-body" id="refBody"></div>
   </div>
 </div>
@@ -1511,12 +1519,17 @@ function kpText() {
 
 /* ================= СПРАВОЧНИК РАБОТ ================= */
 
-const REF_TAB = { 1: 'cher', 2: 'fin', 3: 'fin' };
+const REF_TAB = { 0: 'pro', 1: 'cher', 2: 'fin', 3: 'fin' };
+
+/* действующий справочник: свой (загруженный из Excel) или стартовый */
+function refList() { return (S.refUser && S.refUser.length) ? S.refUser : REF; }
 
 function renderRef() {
+  document.querySelector('#refModal .modal-head .t').textContent =
+    `📚 Справочник (${S.refUser && S.refUser.length ? 'свой' : 'стартовый'} · ${refList().length} поз.)`;
   const q = document.getElementById('refSearch').value.trim().toLowerCase();
   const box = document.getElementById('refBody'); box.innerHTML = '';
-  const hits = REF.filter(x => !q || searchMatch(x.name.toLowerCase(), q));
+  const hits = refList().filter(x => !q || searchMatch(x.name.toLowerCase(), q));
   if (!hits.length) {
     box.appendChild(el('div', 'modal-empty', 'Не нашлось. Попробуй другое слово — или добавь позицию как «свою работу» в нужной вкладке.'));
     return;
@@ -1544,6 +1557,137 @@ function renderRef() {
     box.appendChild(r);
   });
   if (hits.length > 80) box.appendChild(el('div', 'modal-empty', `Показаны первые 80 из ${hits.length} — уточни запрос.`));
+}
+
+/* ===== свой справочник из Excel (.xlsx / .csv), читается прямо в браузере ===== */
+
+async function unzip(buf) {
+  const dv = new DataView(buf); const u8 = new Uint8Array(buf);
+  let e = buf.byteLength - 22;
+  while (e >= 0 && dv.getUint32(e, true) !== 0x06054b50) e--;
+  if (e < 0) throw new Error('not zip');
+  const cnt = dv.getUint16(e + 10, true); let off = dv.getUint32(e + 16, true);
+  const out = {}; const td = new TextDecoder();
+  for (let i = 0; i < cnt; i++) {
+    if (dv.getUint32(off, true) !== 0x02014b50) break;
+    const method = dv.getUint16(off + 10, true), csize = dv.getUint32(off + 20, true),
+      fnlen = dv.getUint16(off + 28, true), extralen = dv.getUint16(off + 30, true),
+      cmtlen = dv.getUint16(off + 32, true), lho = dv.getUint32(off + 42, true);
+    const name = td.decode(u8.subarray(off + 46, off + 46 + fnlen));
+    if (name === 'xl/sharedStrings.xml' || /^xl\/worksheets\/sheet\d+\.xml$/.test(name)) {
+      const lfn = dv.getUint16(lho + 26, true), lex = dv.getUint16(lho + 28, true);
+      const start = lho + 30 + lfn + lex;
+      const data = u8.subarray(start, start + csize);
+      let bytes;
+      if (method === 0) bytes = data;
+      else {
+        const stream = new Blob([data]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+        bytes = new Uint8Array(await new Response(stream).arrayBuffer());
+      }
+      out[name] = new TextDecoder().decode(bytes);
+    }
+    off += 46 + fnlen + extralen + cmtlen;
+  }
+  return out;
+}
+
+async function readXlsxRows(buf) {
+  const files = await unzip(buf);
+  const shared = [];
+  if (files['xl/sharedStrings.xml']) {
+    const doc = new DOMParser().parseFromString(files['xl/sharedStrings.xml'], 'application/xml');
+    doc.querySelectorAll('si').forEach(si => {
+      let t = '';
+      si.querySelectorAll('t').forEach(x => { t += x.textContent; });
+      shared.push(t);
+    });
+  }
+  const sheetName = files['xl/worksheets/sheet1.xml'] ? 'xl/worksheets/sheet1.xml'
+    : Object.keys(files).find(n => /^xl\/worksheets\/sheet\d+\.xml$/.test(n));
+  if (!sheetName) throw new Error('no sheet');
+  const doc = new DOMParser().parseFromString(files[sheetName], 'application/xml');
+  const rows = [];
+  doc.querySelectorAll('row').forEach(row => {
+    const arr = [];
+    row.querySelectorAll('c').forEach(c => {
+      const letters = (c.getAttribute('r') || '').replace(/\d+/g, '');
+      let col = 0;
+      for (const ch of letters) col = col * 26 + (ch.charCodeAt(0) - 64);
+      col = Math.max(0, col - 1);
+      const t = c.getAttribute('t');
+      let v;
+      if (t === 'inlineStr') v = c.textContent;
+      else {
+        const vEl = c.querySelector('v');
+        v = vEl ? vEl.textContent : '';
+        if (t === 's') v = shared[parseInt(v, 10)] ?? '';
+      }
+      arr[col] = v;
+    });
+    rows.push(arr);
+  });
+  return rows;
+}
+
+function parseCsvRows(buf) {
+  let text;
+  try { text = new TextDecoder('utf-8', { fatal: true }).decode(buf); }
+  catch (e) { text = new TextDecoder('windows-1251').decode(buf); }
+  text = text.replace(/^﻿/, '');
+  const delim = (text.split(';').length >= text.split(',').length) ? ';' : ',';
+  const rows = []; let cur = [], field = '', inQ = false;
+  const endRow = () => { cur.push(field); rows.push(cur); cur = []; field = ''; };
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (inQ) {
+      if (ch === '"') { if (text[i + 1] === '"') { field += '"'; i++; } else inQ = false; }
+      else field += ch;
+    }
+    else if (ch === '"') inQ = true;
+    else if (ch === delim) { cur.push(field); field = ''; }
+    else if (ch === '\n') endRow();
+    else if (ch !== '\r') field += ch;
+  }
+  if (field || cur.length) endRow();
+  return rows;
+}
+
+async function importRefFile(file) {
+  try {
+    const buf = await file.arrayBuffer();
+    const rows = /\.xlsx$/i.test(file.name) ? await readXlsxRows(buf) : parseCsvRows(buf);
+    const items = [];
+    rows.forEach(r => {
+      const name = String(r[0] ?? '').trim();
+      const price = num(String(r[2] ?? '').replace(/\s/g, ''));
+      if (!name || !price) return;                       // шапка и пустые строки отсеются сами
+      const unit = String(r[1] ?? '').trim() || 'шт';
+      let stage = parseInt(r[3], 10);
+      if (![0, 1, 2, 3].includes(stage)) stage = 0;
+      items.push({ name, unit, price, stage });
+    });
+    if (!items.length) { toast('В файле нет строк «название + цена». Скачай шаблон и заполни по нему.'); return; }
+    // совпадающим по названию базовым работам в разделах — обновить цены
+    const norm = s => s.toLowerCase().replace(/[«»"]/g, '').replace(/\s+/g, ' ').trim();
+    const map = new Map(items.map(i => [norm(i.name), i]));
+    let updated = 0;
+    CATALOG.filter(x => x.id).forEach(it => {
+      const hit = map.get(norm(it.name));
+      if (hit) { S.priceOv[it.id] = hit.price; updated++; }
+    });
+    S.refUser = items;
+    save(); renderRef(); recalc();
+    toast(`Справочник заменён: ${items.length} позиций` + (updated ? `, цены обновлены у ${updated} базовых работ` : ''));
+  } catch (e) {
+    toast('Не смог прочитать файл — сохрани его как .xlsx или .csv и попробуй ещё раз');
+  }
+}
+
+function refTemplateCSV() {
+  const q = s => '"' + String(s).replace(/"/g, '""') + '"';
+  const L = ['Название работы;Ед. изм.;Цена за ед.;Этап (1 черновые / 2 подготовка / 3 финиш / 0 прочее)'];
+  refList().forEach(x => L.push([q(x.name), x.unit, x.price, x.stage].join(';')));
+  return '﻿' + L.join('\r\n');
 }
 
 /* ================= АРХИВ СМЕТ И НУМЕРАЦИЯ ================= */
@@ -1768,6 +1912,22 @@ function init() {
   });
   document.getElementById('refClose').addEventListener('click', () => document.getElementById('refModal').classList.remove('show'));
   document.getElementById('refSearch').addEventListener('input', renderRef);
+  document.getElementById('refTpl').addEventListener('click', () => {
+    downloadFile('справочник-шаблон.csv', refTemplateCSV(), 'text/csv;charset=utf-8');
+    toast('Шаблон скачан — открой в Excel, поменяй цены и загрузи обратно');
+  });
+  document.getElementById('refUpload').addEventListener('click', () => document.getElementById('refFile').click());
+  document.getElementById('refFile').addEventListener('change', ev => {
+    const f = ev.target.files && ev.target.files[0];
+    if (f) importRefFile(f);
+    ev.target.value = '';
+  });
+  document.getElementById('refReset').addEventListener('click', ev => {
+    armConfirm(ev.currentTarget, 'Точно вернуть?', () => {
+      S.refUser = null; save(); renderRef();
+      toast('Вернул стартовый справочник');
+    });
+  });
 
   // мои сметы
   document.getElementById('btnArc').addEventListener('click', () => {
@@ -1849,9 +2009,9 @@ function init() {
   });
   document.getElementById('btnResetAll').addEventListener('click', ev => {
     armConfirm(ev.currentTarget, 'Точно очистить всё?', () => {
-    const keepKp = S.kp, keepUi = S.ui;
+    const keepKp = S.kp, keepUi = S.ui, keepRef = S.refUser;
     localStorage.removeItem(LS_KEY);
-    S = { tab: 'dem', room: 'all', rooms: [], q: {}, priceOv: {}, custom: [], crew: { 1: 2, 2: 2, 3: 2 }, daysOv: { 1: 0, 2: 0, 3: 0 }, pct: { mat: 50, trans: 3, over: 6, disc: 0, adv: 70 }, proj: { name: '', clientName: '', phone: '', city: '', street: '', house: '', flat: '' }, kp: keepKp, ui: keepUi, curNum: '' };
+    S = { tab: 'dem', room: 'all', rooms: [], q: {}, priceOv: {}, custom: [], crew: { 1: 2, 2: 2, 3: 2 }, daysOv: { 1: 0, 2: 0, 3: 0 }, pct: { mat: 50, trans: 3, over: 6, disc: 0, adv: 70 }, proj: { name: '', clientName: '', phone: '', city: '', street: '', house: '', flat: '' }, kp: keepKp, ui: keepUi, curNum: '', refUser: keepRef };
     save();
     bindProjFields(); updateCurNum();
     ['pMat', 'pTrans', 'pOver', 'pDisc', 'pAdv'].forEach((id, i) => { document.getElementById(id).value = [50, 3, 6, 0, 70][i]; });
