@@ -2025,10 +2025,10 @@ function init() {
   maskPhone(document.getElementById('pPhone'));
   maskPhone(document.getElementById('kpPhone'));
 
-  // инструкция: рядом с калькулятором на том же хостинге, иначе — постоянная ссылка
+  // инструкция дизайнера: рядом с калькулятором на хостинге, иначе — постоянная ссылка
   document.getElementById('btnHelp').addEventListener('click', () => {
     const local = location.protocol.startsWith('http') && !/claude/.test(location.hostname);
-    window.open(local ? 'instrukciya.html' : 'https://kamen.oporabusiness.ru/instrukciya.html', '_blank');
+    window.open(local ? 'dizainer-instrukciya.html' : 'https://sergey7ser.github.io/stavka-calculator/dizainer-instrukciya.html', '_blank');
   });
 
   // оформление
