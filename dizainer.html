@@ -60,10 +60,10 @@
   .curnum { color: var(--orange-soft); font-size: 12px; font-family: var(--mono); font-weight: 700; margin-top: 6px; width: 100%; }
   /* засечки в заголовках разделов и смет */
   .sec-title, .card h3, .kp-h, .sec, .est-total .t, .kp-total .t, .kp-co input, .modal-head .t { font-family: var(--serif); }
-  .hdr-btns { display: flex; gap: 6px; position: relative; }
+  .hdr-btns { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 5px; position: relative; }
   .hbtn {
     border: 1px solid var(--line-strong); background: var(--card); color: var(--ink);
-    font: 700 12.5px var(--sans); padding: 8px 12px; border-radius: 10px; cursor: pointer; white-space: nowrap;
+    font: 700 11.5px var(--sans); padding: 6px 9px; border-radius: 8px; cursor: pointer; white-space: nowrap;
   }
   .hbtn:hover { border-color: var(--orange); }
 
@@ -156,11 +156,11 @@
   .hp-tip { background: var(--bg-2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 13px; margin: 16px 0 4px; font-size: 13px; color: var(--muted); }
 
   /* вкладки */
-  .tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; margin-bottom: 10px; -webkit-overflow-scrolling: touch; }
+  .tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
   .tab {
-    flex: 1 0 auto; text-align: center; padding: 10px 14px; border-radius: 10px;
+    flex: 1 1 auto; text-align: center; padding: 8px 11px; border-radius: 9px;
     background: var(--card); border: 1px solid var(--line); color: var(--muted);
-    font-weight: 700; font-size: 13.5px; cursor: pointer; white-space: nowrap; user-select: none;
+    font-weight: 700; font-size: 12.5px; cursor: pointer; white-space: nowrap; user-select: none;
   }
   .tab.on { background: var(--orange); color: #FBF9F5; border-color: var(--orange); }
 
