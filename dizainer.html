@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" id="metaTheme" content="#14181D">
+<meta name="theme-color" id="metaTheme" content="#F4F0EA">
 <title>Калькулятор дизайнера — смета проекта и КП</title>
 <style>
   :root {
@@ -23,6 +23,7 @@
     --dock: rgba(16,20,24,0.95);
     --mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
     --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --serif: Georgia, "Times New Roman", "Noto Serif", serif;
   }
   /* светлые темы: серая, тёплая, голубая (тёмная — по умолчанию) */
   body[data-theme="light"] {
@@ -31,9 +32,9 @@
     --line: #DCE0E5; --line-strong: #C2C9D1; --ink: #1C2228; --ink-2: #333B44; --muted: #69737E;
   }
   body[data-theme="warm"] {
-    --dock: rgba(255,253,247,0.96);
-    --bg: #F5F0E5; --bg-2: #EFE8D9; --card: #FFFDF7; --card-2: #F6F1E6;
-    --line: #E2DAC7; --line-strong: #CCC1A8; --ink: #26200F; --ink-2: #3E3620; --muted: #7E7460;
+    --dock: rgba(244,240,234,0.96);
+    --bg: #F4F0EA; --bg-2: #FBF9F5; --card: #FBF9F5; --card-2: #F1ECE4;
+    --line: #E7DFD2; --line-strong: #D9CFBE; --ink: #2B2723; --ink-2: #4A443C; --muted: #9A9084;
   }
   body[data-theme="blue"] {
     --dock: rgba(255,255,255,0.96);
@@ -50,11 +51,15 @@
   }
   .inner { max-width: 980px; margin: 0 auto; }
 
-  header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
-  .brand { font-weight: 800; font-size: clamp(20px, 3.4vw, 26px); letter-spacing: 0.04em; }
-  .brand b { color: var(--orange); }
-  .brand-sub { color: var(--muted); font-size: 12.5px; }
-  .curnum { color: var(--orange-soft); font-size: 12px; font-family: var(--mono); font-weight: 700; }
+  header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
+  /* логотип AZ — Alena Zubareva */
+  .az { display: flex; align-items: center; gap: 12px; color: var(--ink); }
+  .az-mark { width: 52px; height: auto; flex: none; }
+  .az-word { font-family: var(--serif); font-size: 13px; letter-spacing: 0.34em; padding-left: 0.34em; line-height: 1.15; }
+  .az-word span { display: block; font-size: 8px; letter-spacing: 0.26em; color: var(--muted); margin-top: 3px; padding-left: 0.26em; }
+  .curnum { color: var(--orange-soft); font-size: 12px; font-family: var(--mono); font-weight: 700; margin-top: 6px; width: 100%; }
+  /* засечки в заголовках разделов и смет */
+  .sec-title, .card h3, .kp-h, .sec, .est-total .t, .kp-total .t, .kp-co input, .modal-head .t { font-family: var(--serif); }
   .hdr-btns { display: flex; gap: 6px; position: relative; }
   .hbtn {
     border: 1px solid var(--line-strong); background: var(--card); color: var(--ink);
@@ -147,7 +152,7 @@
     background: var(--card); border: 1px solid var(--line); color: var(--muted);
     font-weight: 700; font-size: 13.5px; cursor: pointer; white-space: nowrap; user-select: none;
   }
-  .tab.on { background: var(--orange); color: #14181D; border-color: var(--orange); }
+  .tab.on { background: var(--orange); color: #FBF9F5; border-color: var(--orange); }
 
   /* поиск и помещения — липкая панель */
   .toolbar {
@@ -411,9 +416,13 @@
 <div class="inner">
 
   <header>
-    <div>
-      <div class="brand">ДИЗАЙН<b>·СМЕТА</b></div>
-      <div class="brand-sub">дизайн интерьера · проект · надзор — смета и КП за 10 минут</div>
+    <div class="az">
+      <svg class="az-mark" viewBox="0 0 120 84" aria-label="AZ">
+        <rect x="30" y="4" width="76" height="60" fill="none" stroke="currentColor" stroke-width="2"></rect>
+        <text x="34" y="60" font-family="Georgia, serif" font-size="66" font-weight="700" fill="currentColor" opacity="0.95">A</text>
+        <text x="60" y="60" font-family="Georgia, serif" font-size="66" font-weight="700" fill="currentColor" opacity="0.5">Z</text>
+      </svg>
+      <div class="az-word">ALENA&nbsp;ZUBAREVA<span>INTERIOR&nbsp;DESIGNER</span></div>
       <div class="curnum" id="curNum"></div>
     </div>
     <div class="hdr-btns">
@@ -758,8 +767,8 @@ let S = {
   daysOv: { 1: 0, 2: 0, 3: 0 }, // дни, заложенные сметчиком (0 = взять расчёт системы)
   pct: { mat: 0, trans: 0, over: 0, disc: 0, adv: 50 },
   proj: { name: '', clientName: '', phone: '', city: '', street: '', house: '', flat: '' },
-  kp: {},                       // company, num, client, object, note, phone, mail, manager
-  ui: { theme: 'dark', accent: 'orange' },
+  kp: { company: 'ALENA ZUBAREVA', manager: 'Алёна Зубарева', phone: '+7 (916) 588-02-73' },
+  ui: { theme: 'warm', accent: 'gold' },
   curNum: '',                   // номер открытой/сохранённой сметы
 };
 
@@ -777,7 +786,7 @@ function load() {
   S.crew = Object.assign({ 1: 2, 2: 2, 3: 2 }, S.crew);
   S.daysOv = Object.assign({ 1: 0, 2: 0, 3: 0 }, S.daysOv);
   S.proj = Object.assign({ name: '', clientName: '', phone: '', city: '', street: '', house: '', flat: '' }, S.proj);
-  S.ui = Object.assign({ theme: 'dark', accent: 'orange' }, S.ui);
+  S.ui = Object.assign({ theme: 'warm', accent: 'gold' }, S.ui);
 }
 
 /* ===== темы и цвет кнопок ===== */
@@ -792,7 +801,7 @@ const ACCENTS = {
   blue:   { a: '#3B82E0', soft: '#7FAEEC', dim: 'rgba(59,130,224,0.15)', kp: '#2563B0' },
   green:  { a: '#2FA36B', soft: '#6CC79A', dim: 'rgba(47,163,107,0.15)', kp: '#1F7A4D' },
   terra:  { a: '#C9603A', soft: '#DE8E6E', dim: 'rgba(201,96,58,0.15)', kp: '#A84E2E' },
-  gold:   { a: '#C9A96E', soft: '#E3C88F', dim: 'rgba(201,169,110,0.16)', kp: '#8a6d3b' },
+  gold:   { a: '#B99A6B', soft: '#8A6D4B', dim: 'rgba(185,154,107,0.18)', kp: '#8A6D4B' },
 };
 function applyUI() {
   document.body.dataset.theme = S.ui.theme === 'dark' ? '' : S.ui.theme;
@@ -1349,7 +1358,7 @@ function openKP() {
   kpEl('kpValid').textContent = 'действительно до ' + DATE_FMT.format(valid);
   renderKPBody();
   document.body.classList.add('kp-open');
-  document.title = 'КП ' + (S.kp.company || 'ДИЗАЙН-СМЕТА') + ' № ' + S.kp.num;
+  document.title = 'КП ' + (S.kp.company || 'ALENA ZUBAREVA') + ' № ' + S.kp.num;
   window.scrollTo(0, 0);
 }
 function closeKP() {
@@ -2128,7 +2137,7 @@ function init() {
   KP_FIELDS.forEach(f => {
     kpEl(kpInputId(f)).addEventListener('input', e => {
       S.kp[f] = e.target.value;
-      if (f === 'num' || f === 'company') document.title = 'КП ' + (S.kp.company || 'ДИЗАЙН-СМЕТА') + ' № ' + (S.kp.num || '');
+      if (f === 'num' || f === 'company') document.title = 'КП ' + (S.kp.company || 'ALENA ZUBAREVA') + ' № ' + (S.kp.num || '');
       save();
     });
   });
