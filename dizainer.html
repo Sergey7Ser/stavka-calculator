@@ -144,6 +144,16 @@
   .arc-row .sent input { width: 100%; background: var(--bg-2); border: 1px dashed var(--line); border-radius: 8px; color: var(--ink); font: 500 12.5px var(--sans); padding: 7px 9px; outline: none; }
   .arc-btns { display: flex; flex-direction: column; gap: 6px; align-items: flex-end; }
   .modal-empty { color: var(--muted); padding: 18px 4px; font-size: 13.5px; }
+  /* встроенная инструкция */
+  .help-body { line-height: 1.6; }
+  .help-body .hp-sub { color: var(--muted); font-size: 13.5px; margin: 4px 0 14px; }
+  .help-body h3 { font-family: var(--serif); font-size: 16px; color: var(--ink); margin: 18px 0 6px; padding-left: 10px; border-left: 3px solid var(--orange); }
+  .help-body p { font-size: 14px; color: var(--ink-2); margin: 6px 0; }
+  .help-body ol { padding-left: 20px; margin: 6px 0; }
+  .help-body li { font-size: 14px; margin: 5px 0; color: var(--ink-2); }
+  .help-body b { color: var(--ink); }
+  .hp-b { display: inline-block; background: var(--orange-dim); border: 1px solid var(--line-strong); color: var(--orange-soft); border-radius: 6px; padding: 0 7px; font-weight: 700; font-size: 13px; white-space: nowrap; }
+  .hp-tip { background: var(--bg-2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 13px; margin: 16px 0 4px; font-size: 13px; color: var(--muted); }
 
   /* вкладки */
   .tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; margin-bottom: 10px; -webkit-overflow-scrolling: touch; }
@@ -591,6 +601,60 @@
     </div>
   </div>
 </div>
+<!-- ИНСТРУКЦИЯ (встроена, без отдельного файла) -->
+<div class="modal" id="helpModal">
+  <div class="modal-card">
+    <div class="modal-head">
+      <div class="t">Как пользоваться калькулятором</div>
+      <button class="x" id="helpClose" type="button">✕</button>
+    </div>
+    <div class="modal-body help-body">
+      <p class="hp-sub">Смета проекта → сроки → коммерческое предложение в PDF. Всё с телефона, за 10 минут.</p>
+
+      <h3>1. Быстрый старт</h3>
+      <ol>
+        <li>Вверху впиши <b>объект</b> (ЖК, площадь) и <b>заказчика</b> (имя, телефон, адрес).</li>
+        <li>Выбери вкладку: <b>Проектирование · Визуализация · Рабочая документация · Авторский надзор · Комплектация · Доп. услуги</b>.</li>
+        <li>Введи <b>количество</b>: для услуг за м² — площадь квартиры, для визуализации — число помещений, для надзора — месяцы или выезды. Сумма считается сама.</li>
+        <li>Внизу виден <b>итог по проекту</b> и <b>срок в неделях</b>.</li>
+        <li>Жми <span class="hp-b">Создать КП →</span> и <span class="hp-b">Скачать PDF</span> — файл можно отправить заказчику.</li>
+      </ol>
+
+      <h3>2. Помещения</h3>
+      <p>Строка <b>«Считаем:»</b> — нажми <span class="hp-b">+ Помещение</span> («Кухня-гостиная», «Спальня», «Санузел») и вводи объёмы отдельно для каждого. Смета и КП покажут разбивку по помещениям.</p>
+
+      <h3>3. Услуги и поиск</h3>
+      <p>Цену в любой строке можно править прямо на месте — правка запомнится. Не хочешь листать — строка <b>🔍 Поиск</b> сверху: введи «визуализация», «надзор», «чертежи» → тап по подсказке → перескочит на нужную строку. Три пакета проекта — <b>Базовый / Стандарт / Премиум</b> — во вкладке «Проектирование».</p>
+
+      <h3>4. Свой прайс из Excel</h3>
+      <p>Кнопка <span class="hp-b">📚 Справочник</span> → <span class="hp-b">⬇ Скачать шаблон</span> → впиши в Excel свои услуги и цены → <span class="hp-b">⬆ Загрузить свой (Excel)</span>. Файл читается прямо в телефоне и никуда не отправляется. Вернуть исходный — <span class="hp-b">↺ Стартовый</span>.</p>
+
+      <h3>5. Свои услуги</h3>
+      <p>В конце каждой вкладки блок <b>«➕ Добавить свою услугу»</b>: название → единица (м², помещение, выезд, мес…) → цена → количество → <span class="hp-b">Занести в смету ✓</span>.</p>
+
+      <h3>6. Авторский надзор</h3>
+      <p>Вкладка <b>👁 Авторский надзор</b> — три формата на выбор: разовый выезд · пакет 4 выезда/мес · помесячно (полное сопровождение) · контроль ключевых этапов. Выбираешь удобный и вводишь количество.</p>
+
+      <h3>7. Сроки проекта</h3>
+      <p>Блок <b>🗓 Сроки проекта</b> — впиши, сколько <b>недель</b> займёт каждый этап (проектирование · реализация и надзор · комплектация и декор). Общий срок соберётся сам и попадёт в КП.</p>
+
+      <h3>8. Скидка и предоплата</h3>
+      <p>Блок <b>％ Скидка и оплата</b>: скидка заказчику показывается в смете отдельной строкой, предоплата попадает в условия оплаты КП.</p>
+
+      <h3>9. Сохранение смет</h3>
+      <p><span class="hp-b">💾 Сохранить смету</span> — номер присвоится сам (260709-1). <span class="hp-b">🗂 Мои сметы</span> — весь архив с поиском и пометкой «кому отправила». Открыл старую, поправил, сохранил — создастся дубль, прежняя версия останется.</p>
+
+      <h3>10. Коммерческое предложение и PDF</h3>
+      <p><span class="hp-b">Создать КП →</span> — готовый документ с твоим логотипом и реквизитами (они уже подставлены). <span class="hp-b">Скачать PDF</span> → «Сохранить как PDF» → отправь заказчику. <span class="hp-b">← К расчёту</span> — вернуться и поправить.</p>
+
+      <h3>11. Ещё</h3>
+      <p><b>Выгрузка:</b> CSV для Excel, JSON для CRM, «Копировать смету» текстом. <b>Сравнение:</b> кнопка «⚖ Сравнить с конкурентом» — загрузи чужую смету и увидишь, где ты дешевле и чего у другого не хватает. <b>Оформление:</b> кнопка 🎨 — тема и цвет акцента.</p>
+
+      <div class="hp-tip">Данные хранятся только в этом браузере — на другом устройстве их не будет. Важные сметы дополнительно сохраняй в PDF.</div>
+    </div>
+  </div>
+</div>
+
 <!-- СПРАВОЧНИК РАБОТ -->
 <div class="modal" id="refModal">
   <div class="modal-card">
@@ -2025,11 +2089,10 @@ function init() {
   maskPhone(document.getElementById('pPhone'));
   maskPhone(document.getElementById('kpPhone'));
 
-  // инструкция дизайнера: рядом с калькулятором на хостинге, иначе — постоянная ссылка
-  document.getElementById('btnHelp').addEventListener('click', () => {
-    const local = location.protocol.startsWith('http') && !/claude/.test(location.hostname);
-    window.open(local ? 'dizainer-instrukciya.html' : 'https://sergey7ser.github.io/stavka-calculator/dizainer-instrukciya.html', '_blank');
-  });
+  // инструкция встроена в калькулятор — открывается всегда, без отдельного файла и 404
+  document.getElementById('btnHelp').addEventListener('click', () => document.getElementById('helpModal').classList.add('show'));
+  document.getElementById('helpClose').addEventListener('click', () => document.getElementById('helpModal').classList.remove('show'));
+  document.getElementById('helpModal').addEventListener('click', ev => { if (ev.target.id === 'helpModal') ev.currentTarget.classList.remove('show'); });
 
   // оформление
   applyUI(); renderThemePanel(); updateCurNum();
