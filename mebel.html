@@ -150,6 +150,57 @@
   .hp-b { display: inline-block; background: var(--orange-dim); border: 1px solid var(--line-strong); color: var(--orange-soft); border-radius: 6px; padding: 0 7px; font-weight: 700; font-size: 13px; white-space: nowrap; }
   .hp-tip { background: var(--bg-2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 13px; margin: 16px 0 4px; font-size: 13px; color: var(--muted); }
 
+  /* комплектации Эконом/Стандарт/Премиум */
+  .pkg-cat { border-top: 1px solid var(--line); padding: 12px 0 6px; }
+  .pkg-cat:first-of-type { border-top: 0; }
+  .pkg-hd { display: grid; grid-template-columns: 1fr 92px; gap: 8px; align-items: center; margin-bottom: 8px; }
+  .pkg-hd .nm { font-weight: 700; font-size: 14px; }
+  .pkg-hd .qtywrap { display: flex; align-items: center; gap: 5px; justify-content: flex-end; }
+  .pkg-hd .qtywrap span { color: var(--muted); font-size: 11px; }
+  .pkg-hd input.qty { width: 58px; text-align: center; }
+  .pkg-lvls { display: grid; gap: 6px; }
+  .pkg-lvl { display: grid; grid-template-columns: 26px 1fr 92px 82px; gap: 6px; align-items: center; }
+  .pkg-lvl .tag { font-size: 15px; text-align: center; }
+  .pkg-lvl .eco { color: var(--green); } .pkg-lvl .std { color: var(--orange-soft); } .pkg-lvl .prem { color: #E3C88F; }
+  .pkg-lvl input.br { background: var(--bg-2); border: 1px solid var(--line); border-radius: 8px; color: var(--ink); padding: 7px 8px; font: 500 13px var(--sans); outline: none; }
+  .pkg-lvl input.pr { background: var(--bg-2); border: 1px solid var(--line); border-radius: 8px; color: var(--ink-2); padding: 7px 6px; font: 600 13px var(--mono); text-align: center; outline: none; }
+  .pkg-lvl input:focus { border-color: var(--orange); }
+  .pkg-lvl .rs { text-align: right; font: 600 12.5px var(--mono); color: var(--muted); white-space: nowrap; }
+  .pkg-totals { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 14px; }
+  .pkg-tot { background: var(--bg-2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 8px; text-align: center; }
+  .pkg-tot.eco { border-color: rgba(111,207,151,0.4); }
+  .pkg-tot.std { border-color: rgba(232,134,46,0.4); }
+  .pkg-tot.prem { border-color: rgba(201,169,110,0.5); }
+  .pkg-tot .l { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+  .pkg-tot .v { font: 800 15px var(--mono); margin-top: 3px; }
+  .pkg-tot.eco .v { color: var(--green); } .pkg-tot.std .v { color: var(--orange-soft); } .pkg-tot.prem .v { color: #E3C88F; }
+  @media (max-width: 560px) {
+    .pkg-lvl { grid-template-columns: 22px 1fr 72px 66px; gap: 4px; }
+    .pkg-lvl input.br, .pkg-lvl input.pr { padding: 7px 4px; font-size: 12px; }
+  }
+
+  /* КП с тремя пакетами */
+  .kppkg-block { border: 1px solid #E4DBCB; border-radius: 8px; padding: 14px 16px; margin: 12px 0; }
+  .kppkg-block.eco { border-left: 4px solid #2E7D4F; }
+  .kppkg-block.std { border-left: 4px solid #C96F1F; }
+  .kppkg-block.prem { border-left: 4px solid #B08D57; background: #FBF7EF; }
+  .kppkg-block h4 { display: flex; justify-content: space-between; align-items: baseline; margin: 0 0 8px; font-size: 16px; }
+  .kppkg-block h4 .lvl { font-family: var(--serif); }
+  .kppkg-block h4 .sum { font: 800 18px var(--mono); font-variant-numeric: tabular-nums; }
+  .kppkg-block.eco .sum { color: #2E7D4F; } .kppkg-block.std .sum { color: #C96F1F; } .kppkg-block.prem .sum { color: #8A6D3B; }
+  .kppkg-line { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; padding: 5px 0; border-top: 1px dashed #EDE6D8; font-size: 13px; }
+  .kppkg-line:first-of-type { border-top: 0; }
+  .kppkg-line .b { color: #6B7280; font-size: 12px; }
+  .kppkg-line .qty { color: #6B7280; font-variant-numeric: tabular-nums; }
+  .kppkg-line .s { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; }
+  .kppkg-cmp { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 8px; }
+  .kppkg-cmp th { text-align: left; padding: 7px 6px; border-bottom: 2px solid #C96F1F; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .kppkg-cmp th.r, .kppkg-cmp td.r { text-align: right; font-variant-numeric: tabular-nums; }
+  .kppkg-cmp td { padding: 6px 6px; border-bottom: 1px solid #EEE8DC; vertical-align: top; }
+  .kppkg-cmp td .b { color: #6B7280; font-size: 11px; display: block; }
+  .kppkg-cmp tr.tot td { font-weight: 800; border-top: 2px solid #C96F1F; border-bottom: 0; padding-top: 9px; }
+  .kppkg-cmp tr.tot .eco { color: #2E7D4F; } .kppkg-cmp tr.tot .std { color: #C96F1F; } .kppkg-cmp tr.tot .prem { color: #8A6D3B; }
+
   /* вкладки */
   .tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
   .tab {
@@ -348,6 +399,9 @@
   #kpView { display: none; }
   body.kp-open #kpView { display: block; }
   body.kp-open .inner, body.kp-open .dock { display: none; }
+  #kpPkgView { display: none; }
+  body.kppkg-open #kpPkgView { display: block; }
+  body.kppkg-open .inner, body.kppkg-open .dock { display: none; }
   .kp-bar { max-width: 860px; margin: 0 auto 12px; display: flex; gap: 8px; flex-wrap: wrap; }
   .kp-sheet {
     max-width: 860px; margin: 0 auto; background: #fff; color: #1C2228;
@@ -406,13 +460,13 @@
 
   @media print {
     body { background: #fff; padding: 0; }
-    body:not(.kp-open) .inner, .dock, .toast { display: none !important; }
-    body.kp-open .kp-bar { display: none !important; }
-    body.kp-open .kp-sheet { box-shadow: none; border-radius: 0; max-width: none; padding: 0; font-size: 12.5px; }
-    body.kp-open .kp-sheet input, body.kp-open .kp-sheet textarea { border-bottom-color: transparent; }
-    body.kp-open .kp-sheet input::placeholder, body.kp-open .kp-sheet textarea::placeholder { color: transparent; }
+    body:not(.kp-open):not(.kppkg-open) .inner, .dock, .toast { display: none !important; }
+    .kp-bar { display: none !important; }
+    .kp-sheet { box-shadow: none; border-radius: 0; max-width: none; padding: 0; font-size: 12.5px; }
+    .kp-sheet input, .kp-sheet textarea { border-bottom-color: transparent; }
+    .kp-sheet input::placeholder, .kp-sheet textarea::placeholder { color: transparent; }
     .kp-comment:has(textarea:placeholder-shown) { display: none; }
-    .kp-ben, .kp-stages tr, .kp-terms li, .kp-line { break-inside: avoid; }
+    .kp-ben, .kp-stages tr, .kp-terms li, .kp-line, .kppkg-block, .kppkg-cmp tr { break-inside: avoid; }
     .kp-h { break-after: avoid; }
   }
 </style>
@@ -466,6 +520,20 @@
   </div>
 
   <div id="sections"></div>
+
+  <!-- КОМПЛЕКТАЦИИ ЭКОНОМ / СТАНДАРТ / ПРЕМИУМ -->
+  <details class="card" id="secPkg">
+    <summary><span class="chev">▶</span><span class="sec-title">💎 Комплектации: Эконом / Стандарт / Премиум</span><span class="sec-badge zero" id="bPkg">три цены</span></summary>
+    <div class="card-body">
+      <div class="est-line sub" style="margin:2px 0 8px">Введи количество один раз — калькулятор посчитает три цены. Бренды и цены в каждом уровне правь под себя. Готовое КП покажет клиенту все три варианта.</div>
+      <div id="pkgBody"></div>
+      <div class="pkg-totals" id="pkgTotals"></div>
+      <div class="est-actions" style="margin-top:12px">
+        <button class="btn gold" id="btnKPPkg" type="button">КП с 3 вариантами →</button>
+        <button class="btn ghost" id="btnPkgReset" type="button">Сбросить комплектации</button>
+      </div>
+    </div>
+  </details>
 
   <!-- СРОК ИЗГОТОВЛЕНИЯ -->
   <details class="card" open id="secTime">
@@ -592,6 +660,69 @@
     </div>
   </div>
 </div>
+
+<!-- ===== КП С ТРЕМЯ КОМПЛЕКТАЦИЯМИ ===== -->
+<div id="kpPkgView">
+  <div class="kp-bar">
+    <button class="btn" id="kppBack" type="button">← К расчёту</button>
+    <button class="btn gold" id="kppPdf" type="button">Скачать PDF</button>
+    <button class="btn" id="kppShare" type="button">Поделиться</button>
+  </div>
+  <div class="kp-sheet">
+    <div class="kp-head">
+      <div class="kp-co" style="flex:1; min-width: 220px;">
+        <input id="kppCompany" type="text" placeholder="НАЗВАНИЕ ВАШЕЙ КОМПАНИИ">
+        <div class="kp-tag">мебель на заказ · кухни · шкафы · гардеробные</div>
+      </div>
+      <div class="kp-meta">
+        <div class="kp-num"><span>КП №</span><input id="kppNum" type="text"></div>
+        <div id="kppDate"></div>
+        <div id="kppValid" class="kp-small"></div>
+      </div>
+    </div>
+
+    <div class="kp-to">
+      <div class="l">Кому</div><input id="kppClient" type="text" placeholder="Имя клиента">
+      <div class="l">Объект</div><input id="kppObject" type="text" placeholder="Адрес / название объекта">
+    </div>
+
+    <p class="kp-intro">Благодарим за обращение. Предлагаем вашу мебель в трёх вариантах комплектации —
+      от бюджетного до премиального. Выбираете тот, что по душе и бюджету; всё остальное берём на себя.</p>
+
+    <div class="kp-h">Почему заказать у нас</div>
+    <div class="kp-ben" id="kppBenTop"></div>
+
+    <div class="kp-h">Варианты комплектации</div>
+    <div id="kppBlocks"></div>
+
+    <div class="kp-h">Сравнение вариантов</div>
+    <div id="kppCmp"></div>
+
+    <div class="kp-comment">
+      <div class="kp-h">Комментарий</div>
+      <textarea id="kppNote" rows="2" placeholder="Например: цены указаны при замере от __; срок изготовления __ дней…"></textarea>
+    </div>
+
+    <div class="kp-h">И ещё о нас</div>
+    <div class="kp-ben" id="kppBenBot"></div>
+
+    <div class="kp-h">Условия</div>
+    <div class="kp-terms">
+      <ul>
+        <li>Предложение действительно 14 дней с даты выставления.</li>
+        <li>Точная стоимость и состав фиксируются в договоре после замера.</li>
+        <li id="kppPayTerm">Оплата: предоплата, остаток при доставке и монтаже.</li>
+      </ul>
+    </div>
+
+    <div class="kp-foot">
+      <div class="cell"><div class="l">Телефон</div><input id="kppPhone" type="text" placeholder="+7 ___ ___-__-__"></div>
+      <div class="cell"><div class="l">Сайт / e-mail</div><input id="kppMail" type="text" placeholder="сайт · почта"></div>
+      <div class="cell" style="text-align:right; flex:none;"><div class="l">Контактное лицо</div><input id="kppManager" type="text" placeholder="Имя" style="text-align:right;"></div>
+    </div>
+  </div>
+</div>
+
 <!-- ИНСТРУКЦИЯ (встроена, без отдельного файла) -->
 <div class="modal" id="helpModal">
   <div class="modal-card">
@@ -855,7 +986,22 @@ let S = {
   kp: {},                       // company, num, client, object, note, phone, mail, manager
   ui: { theme: 'dark', accent: 'orange' },
   curNum: '',                   // номер открытой/сохранённой сметы
+  pkg: null,                    // комплектации Эконом/Стандарт/Премиум
 };
+
+/* дефолтные комплектации (бренды/цены — заглушки, владелец правит сам) */
+function defaultPkg() {
+  return { cats: [
+    { name: 'Корпус',        unit: 'м²',    qty: 0, eco: { b: 'ЛДСП Lamarty 16', p: 3160 }, std: { b: 'ЛДСП Egger 16', p: 4200 },  prem: { b: 'ЛДСП Egger 18', p: 5160 } },
+    { name: 'Фасад',         unit: 'м²',    qty: 0, eco: { b: 'ЛДСП', p: 4500 },            std: { b: 'МДФ плёнка', p: 6940 },     prem: { b: 'МДФ эмаль', p: 21000 } },
+    { name: 'Столешница',    unit: 'п.м.',  qty: 0, eco: { b: 'Пластик', p: 4500 },          std: { b: 'Компакт (Италия)', p: 12000 }, prem: { b: 'Искусств. камень', p: 22000 } },
+    { name: 'Петли',         unit: 'шт',    qty: 0, eco: { b: 'Boyard', p: 200 },            std: { b: 'GTV', p: 350 },             prem: { b: 'Blum', p: 450 } },
+    { name: 'Направляющие',  unit: 'компл', qty: 0, eco: { b: 'Boyard роликовые', p: 900 },  std: { b: 'GTV метабокс', p: 1400 },   prem: { b: 'Blum Tandembox', p: 2500 } },
+    { name: 'Подсветка',     unit: 'компл', qty: 0, eco: { b: '—', p: 0 },                   std: { b: 'LED накладная', p: 1200 },  prem: { b: 'LED в профиле', p: 2000 } },
+    { name: 'Ручки',         unit: 'шт',    qty: 0, eco: { b: 'эконом', p: 200 },            std: { b: 'стандарт', p: 400 },        prem: { b: 'премиум / Tip-on', p: 900 } },
+    { name: 'Наполнение',    unit: 'компл', qty: 0, eco: { b: 'полки', p: 800 },             std: { b: 'сетки, органайзеры', p: 3000 }, prem: { b: 'пантограф, брючница', p: 8000 } },
+  ] };
+}
 
 const ARC_KEY = 'mebelsmeta_archive_v1';
 function loadArc() { try { return JSON.parse(localStorage.getItem(ARC_KEY)) || []; } catch (e) { return []; } }
@@ -872,6 +1018,7 @@ function load() {
   S.daysOv = Object.assign({ 1: 0, 2: 0, 3: 0 }, S.daysOv);
   S.proj = Object.assign({ name: '', clientName: '', phone: '', city: '', street: '', house: '', flat: '' }, S.proj);
   S.ui = Object.assign({ theme: 'dark', accent: 'orange' }, S.ui);
+  if (!S.pkg || !Array.isArray(S.pkg.cats) || !S.pkg.cats.length) S.pkg = defaultPkg();
 }
 
 /* ===== темы и цвет кнопок ===== */
@@ -2080,6 +2227,198 @@ function bindProjFields() {
   Object.entries(map).forEach(([id, key]) => { document.getElementById(id).value = S.proj[key] || ''; });
 }
 
+/* ================= КОМПЛЕКТАЦИИ ЭКОНОМ/СТАНДАРТ/ПРЕМИУМ ================= */
+
+const PKG_LEVELS = [
+  { k: 'eco',  name: 'Эконом',   cls: 'eco',  tag: '🟢' },
+  { k: 'std',  name: 'Стандарт', cls: 'std',  tag: '🔵' },
+  { k: 'prem', name: 'Премиум',  cls: 'prem', tag: '🟡' },
+];
+
+const BENEFITS = [
+  { t: 'Точный замер', d: 'Замеряем сами и отвечаем за размеры — мебель встанет идеально, без щелей и перекосов.' },
+  { t: 'Фиксированная цена в договоре', d: 'Стоимость выбранного варианта закрепляется в договоре, без «доплат по ходу».' },
+  { t: 'Своё производство', d: 'Делаем на собственном оборудовании, а не перепродаём — отсюда сроки и контроль качества.' },
+  { t: 'Проверенные материалы и фурнитура', d: 'ЛДСП и МДФ надёжных поставщиков, фурнитура с плавным ходом и доводчиками.' },
+  { t: 'Аккуратный монтаж', d: 'Привозим, собираем и подключаем сами, убираем за собой — вам остаётся только пользоваться.' },
+  { t: 'Гарантия на изделие и фурнитуру', d: 'Разболталось или заедает — приезжаем и настраиваем по гарантии.' },
+  { t: '3D-проект до старта', d: 'Показываем, как будет выглядеть мебель, — вы утверждаете каждую деталь заранее.' },
+];
+
+function pkgTotals() {
+  const t = { eco: 0, std: 0, prem: 0 };
+  (S.pkg.cats || []).forEach(c => {
+    const q = num(c.qty);
+    if (!q) return;
+    PKG_LEVELS.forEach(l => { t[l.k] += q * num(c[l.k].p); });
+  });
+  const d = num(S.pct.disc) / 100;
+  return { raw: t, eco: Math.round(t.eco * (1 - d)), std: Math.round(t.std * (1 - d)), prem: Math.round(t.prem * (1 - d)), disc: num(S.pct.disc) };
+}
+
+function renderPkg() {
+  const box = document.getElementById('pkgBody');
+  if (box.contains(document.activeElement)) { renderPkgTotals(); return; }  // не сбивать ввод
+  box.innerHTML = '';
+  S.pkg.cats.forEach((c, i) => {
+    const cat = el('div', 'pkg-cat');
+    const hd = el('div', 'pkg-hd');
+    hd.appendChild(el('div', 'nm', c.name + '  ·  ' + c.unit));
+    const qw = el('div', 'qtywrap');
+    const qi = el('input', 'qty'); qi.type = 'number'; qi.min = '0'; qi.step = '0.01'; qi.placeholder = 'кол-во';
+    qi.value = c.qty || '';
+    qi.addEventListener('input', () => { c.qty = num(qi.value); renderPkgTotals(); save(); });
+    qw.append(el('span', null, c.unit), qi);
+    hd.appendChild(qw);
+    cat.appendChild(hd);
+
+    const lvls = el('div', 'pkg-lvls');
+    PKG_LEVELS.forEach(l => {
+      const row = el('div', 'pkg-lvl');
+      row.appendChild(el('div', 'tag ' + l.cls, l.tag));
+      const br = el('input', 'br'); br.value = c[l.k].b; br.placeholder = l.name + ': бренд/материал';
+      br.addEventListener('input', () => { c[l.k].b = br.value; save(); });
+      const pr = el('input', 'pr'); pr.type = 'number'; pr.min = '0'; pr.value = c[l.k].p;
+      pr.addEventListener('input', () => { c[l.k].p = num(pr.value); renderPkgTotals(); save(); });
+      const rs = el('div', 'rs'); rs.dataset.rs = i + '-' + l.k;
+      row.append(br, pr, rs);
+      lvls.appendChild(row);
+    });
+    cat.appendChild(lvls);
+    box.appendChild(cat);
+  });
+  renderPkgTotals();
+}
+
+function renderPkgTotals() {
+  // суммы по строкам
+  S.pkg.cats.forEach((c, i) => {
+    const q = num(c.qty);
+    PKG_LEVELS.forEach(l => {
+      const cell = document.querySelector(`[data-rs="${i}-${l.k}"]`);
+      if (cell) cell.textContent = q > 0 ? fmt(q * num(c[l.k].p)) : '—';
+    });
+  });
+  const t = pkgTotals();
+  const box = document.getElementById('pkgTotals');
+  box.innerHTML = '';
+  PKG_LEVELS.forEach(l => {
+    const d = el('div', 'pkg-tot ' + l.cls);
+    d.append(el('div', 'l', l.name), el('div', 'v', fmt(t[l.k])));
+    box.appendChild(d);
+  });
+  const anyQty = S.pkg.cats.some(c => num(c.qty) > 0);
+  const b = document.getElementById('bPkg');
+  if (b) {
+    b.textContent = anyQty ? `${fmt(t.eco)} – ${fmt(t.prem)}` : 'три цены';
+    b.classList.toggle('zero', !anyQty);
+  }
+}
+
+/* ---- КП с тремя пакетами ---- */
+const KPP_FIELDS = ['company', 'num', 'client', 'object', 'note', 'phone', 'mail', 'manager'];
+const kppId = f => 'kpp' + f.charAt(0).toUpperCase() + f.slice(1);
+
+function renderBenefits() {
+  const top = document.getElementById('kppBenTop'), bot = document.getElementById('kppBenBot');
+  top.innerHTML = ''; bot.innerHTML = '';
+  BENEFITS.forEach((x, i) => {
+    const d = el('div', 'kp-b');
+    d.appendChild(el('b', null, x.t));
+    d.append(x.d);
+    (i < 3 ? top : bot).appendChild(d);
+  });
+}
+
+function openKPPkg() {
+  const t = pkgTotals();
+  if (t.raw.prem <= 0) { toast('Заполни хотя бы одно количество в комплектациях'); return; }
+  if (!S.kp.num) S.kp.num = S.curNum || kpDefaultNum();
+  const cl = [S.proj.clientName, S.proj.phone].filter(Boolean).join(', ');
+  if (!S.kp.client && cl) S.kp.client = cl;
+  const obj = [S.proj.name, addressString()].filter(Boolean).join(', ');
+  if (!S.kp.object && obj) S.kp.object = obj;
+  KPP_FIELDS.forEach(f => { kpEl(kppId(f)).value = S.kp[f] || ''; });
+  const now = new Date(), valid = new Date(now.getTime() + 14 * 86400000);
+  kpEl('kppDate').textContent = 'от ' + DATE_FMT.format(now);
+  kpEl('kppValid').textContent = 'действительно до ' + DATE_FMT.format(valid);
+  kpEl('kppPayTerm').textContent = `Оплата: предоплата ${num(S.pct.adv)}%, остаток ${100 - num(S.pct.adv)}% — при доставке и монтаже.`;
+  renderBenefits();
+  renderKPPkg();
+  document.body.classList.add('kppkg-open');
+  document.title = 'КП ' + (S.kp.company || 'МЕБЕЛЬНАЯ СМЕТА') + ' № ' + S.kp.num;
+  window.scrollTo(0, 0);
+}
+function closeKPPkg() {
+  document.body.classList.remove('kppkg-open');
+  document.title = 'Мебельная смета — расчёт по изделиям и КП';
+}
+
+function renderKPPkg() {
+  const t = pkgTotals();
+  const rows = S.pkg.cats.filter(c => num(c.qty) > 0);
+  // три блока
+  const blocks = document.getElementById('kppBlocks'); blocks.innerHTML = '';
+  PKG_LEVELS.forEach(l => {
+    const bl = el('div', 'kppkg-block ' + l.cls);
+    const h = el('div'); h.className = '';
+    const h4 = document.createElement('h4');
+    h4.innerHTML = `<span class="lvl">${l.tag} ${l.name}</span><span class="sum">${fmt(t[l.k])}</span>`;
+    bl.appendChild(h4);
+    rows.forEach(c => {
+      const line = el('div', 'kppkg-line');
+      const nm = el('div');
+      nm.append(c.name);
+      nm.appendChild(el('span', 'b', ' — ' + (c[l.k].b || '')));
+      line.append(nm, el('div', 'qty', num(c.qty) + ' ' + c.unit), el('div', 's', fmt(num(c.qty) * num(c[l.k].p))));
+      bl.appendChild(line);
+    });
+    blocks.appendChild(bl);
+  });
+  // таблица сравнения
+  const cmp = document.getElementById('kppCmp'); cmp.innerHTML = '';
+  const tbl = el('table', 'kppkg-cmp');
+  tbl.innerHTML = '<thead><tr><th>Что входит</th><th class="r">Эконом</th><th class="r">Стандарт</th><th class="r">Премиум</th></tr></thead>';
+  const tb = document.createElement('tbody');
+  rows.forEach(c => {
+    const tr = document.createElement('tr');
+    const td0 = el('td', null, c.name + ' · ' + num(c.qty) + ' ' + c.unit);
+    tr.appendChild(td0);
+    PKG_LEVELS.forEach(l => {
+      const td = el('td', 'r');
+      td.appendChild(el('span', 'b', c[l.k].b || '—'));
+      td.append(fmt(num(c.qty) * num(c[l.k].p)));
+      tr.appendChild(td);
+    });
+    tb.appendChild(tr);
+  });
+  const trt = document.createElement('tr'); trt.className = 'tot';
+  trt.appendChild(el('td', null, 'ИТОГО' + (t.disc ? ` (со скидкой ${t.disc}%)` : '')));
+  trt.append(el('td', 'r eco', fmt(t.eco)), el('td', 'r std', fmt(t.std)), el('td', 'r prem', fmt(t.prem)));
+  tb.appendChild(trt);
+  tbl.appendChild(tb);
+  cmp.appendChild(tbl);
+}
+
+function pkgText() {
+  const t = pkgTotals();
+  const rows = S.pkg.cats.filter(c => num(c.qty) > 0);
+  const L = [];
+  L.push(`Коммерческое предложение${S.kp.company ? ' — ' + S.kp.company : ''} № ${S.kp.num || kpDefaultNum()}`);
+  if (S.kp.client) L.push('Для: ' + S.kp.client);
+  if (S.kp.object) L.push('Объект: ' + S.kp.object);
+  L.push('');
+  PKG_LEVELS.forEach(l => {
+    L.push(`${l.name.toUpperCase()}: ${fmt(t[l.k])}`);
+    rows.forEach(c => L.push(`  · ${c.name} (${c[l.k].b}) — ${num(c.qty)} ${c.unit} = ${fmt(num(c.qty) * num(c[l.k].p))}`));
+    L.push('');
+  });
+  const contacts = [S.kp.phone, S.kp.mail, S.kp.manager].filter(Boolean).join(' · ');
+  if (contacts) L.push('Контакты: ' + contacts);
+  L.push('Предложение действительно 14 дней.');
+  return L.join('\n');
+}
+
 /* ================= ОБЩЕЕ ================= */
 
 function toast(msg) {
@@ -2108,6 +2447,28 @@ function init() {
   });
   maskPhone(document.getElementById('pPhone'));
   maskPhone(document.getElementById('kpPhone'));
+  maskPhone(document.getElementById('kppPhone'));
+
+  // комплектации Эконом/Стандарт/Премиум
+  renderPkg();
+  document.getElementById('btnKPPkg').addEventListener('click', openKPPkg);
+  document.getElementById('kppBack').addEventListener('click', closeKPPkg);
+  document.getElementById('kppPdf').addEventListener('click', () => window.print());
+  document.getElementById('kppShare').addEventListener('click', () => {
+    const txt = pkgText();
+    if (navigator.share) { navigator.share({ title: 'КП', text: txt }).catch(() => {}); }
+    else copyText(txt, 'КП скопировано — вставь в сообщение');
+  });
+  KPP_FIELDS.forEach(f => {
+    kpEl(kppId(f)).addEventListener('input', e => {
+      S.kp[f] = e.target.value;
+      if (f === 'num' || f === 'company') document.title = 'КП ' + (S.kp.company || 'МЕБЕЛЬНАЯ СМЕТА') + ' № ' + (S.kp.num || '');
+      save();
+    });
+  });
+  document.getElementById('btnPkgReset').addEventListener('click', ev => {
+    armConfirm(ev.currentTarget, 'Сбросить к дефолту?', () => { S.pkg = defaultPkg(); save(); renderPkg(); toast('Комплектации сброшены'); });
+  });
 
   // инструкция встроена в калькулятор — открывается всегда, без отдельного файла и 404
   document.getElementById('btnHelp').addEventListener('click', () => document.getElementById('helpModal').classList.add('show'));
@@ -2177,7 +2538,7 @@ function init() {
     const [id, key] = pair.split(':');
     const inp = document.getElementById(id);
     inp.value = S.pct[key];
-    inp.addEventListener('input', () => { S.pct[key] = num(inp.value); recalc(); save(); });
+    inp.addEventListener('input', () => { S.pct[key] = num(inp.value); recalc(); renderPkgTotals(); save(); });
   });
 
   renderTabs();
@@ -2241,13 +2602,13 @@ function init() {
   });
   document.getElementById('btnResetAll').addEventListener('click', ev => {
     armConfirm(ev.currentTarget, 'Точно очистить всё?', () => {
-    const keepKp = S.kp, keepUi = S.ui, keepRef = S.refUser;
+    const keepKp = S.kp, keepUi = S.ui, keepRef = S.refUser, keepPkg = S.pkg;
     localStorage.removeItem(LS_KEY);
-    S = { tab: 'mod', room: 'all', rooms: [], q: {}, priceOv: {}, custom: [], crew: { 1: 1, 2: 1, 3: 1 }, daysOv: { 1: 0, 2: 0, 3: 0 }, pct: { mat: 0, trans: 0, over: 0, disc: 0, adv: 70 }, proj: { name: '', clientName: '', phone: '', city: '', street: '', house: '', flat: '' }, kp: keepKp, ui: keepUi, curNum: '', refUser: keepRef };
+    S = { tab: 'mod', room: 'all', rooms: [], q: {}, priceOv: {}, custom: [], crew: { 1: 1, 2: 1, 3: 1 }, daysOv: { 1: 0, 2: 0, 3: 0 }, pct: { mat: 0, trans: 0, over: 0, disc: 0, adv: 70 }, proj: { name: '', clientName: '', phone: '', city: '', street: '', house: '', flat: '' }, kp: keepKp, ui: keepUi, curNum: '', refUser: keepRef, pkg: keepPkg };
     save();
     bindProjFields(); updateCurNum();
     ['pMat', 'pTrans', 'pOver', 'pDisc', 'pAdv'].forEach((id, i) => { document.getElementById(id).value = [0, 0, 0, 0, 70][i]; });
-    renderTabs(); renderRooms(); renderSections();
+    renderTabs(); renderRooms(); renderSections(); renderPkg();
     toast('Расчёт очищен');
     });
   });
