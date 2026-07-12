@@ -1,0 +1,2258 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" id="metaTheme" content="#14181D">
+<title>Мебельная смета — расчёт по изделиям и КП</title>
+<style>
+  :root {
+    --bg: #14181D;
+    --bg-2: #12161B;
+    --card: #1B2026;
+    --card-2: #222932;
+    --line: #2C343D;
+    --line-strong: #3A434E;
+    --ink: #EDEDE8;
+    --ink-2: #C9D1D9;
+    --muted: #8B949E;
+    --orange: #E8862E;
+    --orange-soft: #F0A95C;
+    --orange-dim: rgba(232,134,46,0.14);
+    --green: #6FCF97;
+    --dock: rgba(16,20,24,0.95);
+    --mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  /* светлые темы: серая, тёплая, голубая (тёмная — по умолчанию) */
+  body[data-theme="light"] {
+    --dock: rgba(255,255,255,0.96);
+    --bg: #F1F2F4; --bg-2: #E9EBEE; --card: #FFFFFF; --card-2: #F4F5F7;
+    --line: #DCE0E5; --line-strong: #C2C9D1; --ink: #1C2228; --ink-2: #333B44; --muted: #69737E;
+  }
+  body[data-theme="warm"] {
+    --dock: rgba(255,253,247,0.96);
+    --bg: #F5F0E5; --bg-2: #EFE8D9; --card: #FFFDF7; --card-2: #F6F1E6;
+    --line: #E2DAC7; --line-strong: #CCC1A8; --ink: #26200F; --ink-2: #3E3620; --muted: #7E7460;
+  }
+  body[data-theme="blue"] {
+    --dock: rgba(255,255,255,0.96);
+    --bg: #EBF1F7; --bg-2: #E1E9F1; --card: #FFFFFF; --card-2: #F1F6FB;
+    --line: #D4DFEA; --line-strong: #B8C8D9; --ink: #14212E; --ink-2: #2A3B4C; --muted: #64748B;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; min-height: 100%; background: var(--bg); }
+  body {
+    font-family: var(--sans); color: var(--ink); line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    padding: clamp(12px, 2.5vw, 32px);
+    padding-bottom: 96px;
+  }
+  .inner { max-width: 980px; margin: 0 auto; }
+
+  header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
+  .brand { font-weight: 800; font-size: clamp(20px, 3.4vw, 26px); letter-spacing: 0.04em; }
+  .brand b { color: var(--orange); }
+  .brand-sub { color: var(--muted); font-size: 12.5px; }
+  .curnum { color: var(--orange-soft); font-size: 12px; font-family: var(--mono); font-weight: 700; }
+  .hdr-btns { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 5px; position: relative; }
+  .hbtn {
+    border: 1px solid var(--line-strong); background: var(--card); color: var(--ink);
+    font: 700 11.5px var(--sans); padding: 6px 9px; border-radius: 8px; cursor: pointer; white-space: nowrap;
+  }
+  .hbtn:hover { border-color: var(--orange); }
+
+  /* панель оформления */
+  .theme-panel {
+    display: none; position: absolute; right: 0; top: calc(100% + 6px); z-index: 65;
+    background: var(--card); border: 1px solid var(--line-strong); border-radius: 12px;
+    padding: 12px 14px; box-shadow: 0 14px 44px rgba(0,0,0,0.4); width: 250px;
+  }
+  .theme-panel.show { display: block; }
+  .tp-l { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); font-weight: 700; margin: 8px 0 6px; }
+  .tp-row { display: flex; gap: 6px; flex-wrap: wrap; }
+  .tp-sw {
+    width: 44px; height: 30px; border-radius: 8px; border: 2px solid var(--line); cursor: pointer;
+    display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800;
+  }
+  .tp-sw.on { border-color: var(--orange); box-shadow: 0 0 0 2px var(--orange-dim); }
+  .tp-acc { width: 30px; height: 30px; border-radius: 50%; border: 2px solid var(--line); cursor: pointer; }
+  .tp-acc.on { border-color: var(--ink); box-shadow: 0 0 0 2px var(--orange-dim); }
+
+  /* объект и клиент */
+  .proj { display: grid; grid-template-columns: 1fr; gap: 8px; margin-bottom: 12px; }
+  .proj .p2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .proj .p4 { display: grid; grid-template-columns: 1.2fr 1.6fr 0.7fr 0.7fr; gap: 8px; }
+  .proj input {
+    background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+    color: var(--ink); font: 500 14px var(--sans); padding: 10px 12px; width: 100%; outline: none;
+  }
+  .proj input:focus { border-color: var(--orange); }
+
+  /* модальные окна: справочник, мои сметы */
+  .modal { display: none; position: fixed; inset: 0; z-index: 70; background: rgba(8,10,13,0.65); padding: 16px; }
+  .modal.show { display: flex; }
+  .modal-card {
+    margin: auto; width: min(760px, 96vw); max-height: 88vh; display: flex; flex-direction: column;
+    background: var(--card); border: 1px solid var(--line-strong); border-radius: 14px; overflow: hidden;
+  }
+  .modal-head { display: flex; align-items: center; gap: 10px; padding: 13px 16px; border-bottom: 1px solid var(--line); }
+  .modal-head .t { font-weight: 800; font-size: 15.5px; flex: 1; }
+  .modal-head .x { border: 0; background: transparent; color: var(--muted); font-size: 19px; cursor: pointer; padding: 2px 8px; }
+  .modal-head .x:hover { color: #E06060; }
+  .modal-search { padding: 10px 16px; border-bottom: 1px solid var(--line); }
+  .modal-search input {
+    width: 100%; background: var(--bg-2); border: 1px solid var(--line); border-radius: 10px;
+    color: var(--ink); font: 500 14px var(--sans); padding: 10px 12px; outline: none;
+  }
+  .modal-body { overflow-y: auto; padding: 6px 16px 14px; }
+  .ref-tools { display: flex; gap: 6px; flex-wrap: wrap; padding: 10px 16px 0; }
+  .ref-tools .btn { padding: 8px 12px; font-size: 12.5px; }
+
+  /* сравнение смет */
+  .cmp-sum { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 12px 0; }
+  .cmp-box { background: var(--bg-2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; text-align: center; }
+  .cmp-box .l { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .cmp-box .v { font: 800 17px var(--mono); color: var(--ink); }
+  .cmp-box.win { border-color: rgba(111,207,151,0.5); }
+  .cmp-box.win .v { color: var(--green); }
+  .cmp-h { font-weight: 800; font-size: 13.5px; margin: 16px 0 6px; }
+  .cmp-h.good { color: var(--green); }
+  .cmp-h.bad { color: #E06060; }
+  .cmp-h.trump { color: var(--orange-soft); }
+  .cmp-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; padding: 7px 0; border-bottom: 1px solid rgba(44,52,61,0.4); font-size: 13px; align-items: center; }
+  .cmp-row .m { color: var(--muted); font-size: 11.5px; display: block; }
+  .cmp-row .d { font: 700 13px var(--mono); white-space: nowrap; text-align: right; }
+  .cmp-row .d.good { color: var(--green); }
+  .cmp-row .d.bad { color: #E06060; }
+  .cmp-row .btn { padding: 6px 10px; font-size: 12px; }
+  .ref-row { display: grid; grid-template-columns: 1fr 76px auto; gap: 8px; align-items: center; padding: 9px 0; border-bottom: 1px solid rgba(44,52,61,0.4); }
+  .ref-row .nm { font-size: 13.5px; color: var(--ink-2); }
+  .ref-row .meta { color: var(--muted); font-size: 11.5px; display: block; }
+  .ref-row input { width: 100%; background: var(--bg-2); border: 1px solid var(--line); border-radius: 8px; color: var(--ink); font: 600 13px var(--mono); padding: 8px 6px; text-align: center; outline: none; }
+  .ref-row .btn { padding: 8px 12px; font-size: 12.5px; }
+  .arc-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; padding: 10px 0; border-bottom: 1px solid rgba(44,52,61,0.4); }
+  .arc-row .n { font: 700 13.5px var(--mono); color: var(--orange-soft); }
+  .arc-row .m { color: var(--muted); font-size: 12px; }
+  .arc-row .s { font: 700 13.5px var(--mono); }
+  .arc-row .sent { margin-top: 6px; }
+  .arc-row .sent input { width: 100%; background: var(--bg-2); border: 1px dashed var(--line); border-radius: 8px; color: var(--ink); font: 500 12.5px var(--sans); padding: 7px 9px; outline: none; }
+  .arc-btns { display: flex; flex-direction: column; gap: 6px; align-items: flex-end; }
+  .modal-empty { color: var(--muted); padding: 18px 4px; font-size: 13.5px; }
+  /* встроенная инструкция */
+  .help-body { line-height: 1.6; }
+  .help-body .hp-sub { color: var(--muted); font-size: 13.5px; margin: 4px 0 14px; }
+  .help-body h3 { font-size: 15px; color: var(--ink); margin: 18px 0 6px; padding-left: 10px; border-left: 3px solid var(--orange); }
+  .help-body p { font-size: 14px; color: var(--ink-2); margin: 6px 0; }
+  .help-body ol { padding-left: 20px; margin: 6px 0; }
+  .help-body li { font-size: 14px; margin: 5px 0; color: var(--ink-2); }
+  .help-body b { color: var(--ink); }
+  .hp-b { display: inline-block; background: var(--orange-dim); border: 1px solid var(--line-strong); color: var(--orange-soft); border-radius: 6px; padding: 0 7px; font-weight: 700; font-size: 13px; white-space: nowrap; }
+  .hp-tip { background: var(--bg-2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 13px; margin: 16px 0 4px; font-size: 13px; color: var(--muted); }
+
+  /* вкладки */
+  .tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+  .tab {
+    flex: 1 1 auto; text-align: center; padding: 8px 11px; border-radius: 9px;
+    background: var(--card); border: 1px solid var(--line); color: var(--muted);
+    font-weight: 700; font-size: 12.5px; cursor: pointer; white-space: nowrap; user-select: none;
+  }
+  .tab.on { background: var(--orange); color: #14181D; border-color: var(--orange); }
+
+  /* поиск и помещения — липкая панель */
+  .toolbar {
+    position: sticky; top: 0; z-index: 30; background: var(--bg);
+    padding: 6px 0 8px; margin-bottom: 8px;
+  }
+  .searchwrap { position: relative; margin-bottom: 8px; }
+  .searchwrap input {
+    width: 100%; background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+    color: var(--ink); font: 500 14px var(--sans); padding: 10px 12px 10px 38px; outline: none;
+  }
+  .searchwrap input:focus { border-color: var(--orange); }
+  .searchwrap .ic { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 15px; pointer-events: none; }
+  .sugg {
+    position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 40;
+    background: var(--card-2); border: 1px solid var(--line-strong); border-radius: 10px;
+    max-height: 300px; overflow-y: auto; display: none; box-shadow: 0 14px 40px rgba(0,0,0,0.5);
+  }
+  .sugg.show { display: block; }
+  .sugg .sg { padding: 10px 12px; border-bottom: 1px solid var(--line); cursor: pointer; font-size: 13.5px; }
+  .sugg .sg:last-child { border-bottom: 0; }
+  .sugg .sg:hover, .sugg .sg.sel { background: var(--orange-dim); }
+  .sugg .sg .m { color: var(--muted); font-size: 11.5px; }
+
+  .roombar { display: flex; gap: 6px; align-items: center; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .roombar .lbl { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; flex: none; }
+  .rchip {
+    flex: none; display: inline-flex; align-items: center; gap: 6px;
+    background: var(--card); border: 1px solid var(--line); border-radius: 999px;
+    padding: 7px 13px; font-size: 13px; font-weight: 600; color: var(--ink-2); cursor: pointer; user-select: none;
+  }
+  .rchip.on { background: var(--orange-dim); border-color: var(--orange); color: var(--orange-soft); }
+  .rchip .x { color: var(--muted); font-size: 12px; padding: 0 0 0 2px; }
+  .rchip .x:hover { color: #E06060; }
+  .rchip.add { border-style: dashed; color: var(--muted); }
+
+  /* карточки-разделы */
+  details.card {
+    background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+    margin-bottom: 10px; overflow: hidden;
+  }
+  details.card > summary {
+    list-style: none; cursor: pointer; user-select: none;
+    display: flex; align-items: center; gap: 10px; padding: 13px 14px;
+  }
+  details.card > summary::-webkit-details-marker { display: none; }
+  .chev { color: var(--orange); font-size: 11px; transition: transform .15s; }
+  details[open] .chev { transform: rotate(90deg); }
+  .sec-title { font-weight: 700; font-size: 15px; }
+  .sec-badge {
+    margin-left: auto; font: 700 13px var(--mono); color: var(--orange-soft);
+    background: var(--orange-dim); border: 1px solid rgba(232,134,46,0.3);
+    padding: 3px 10px; border-radius: 999px; white-space: nowrap;
+  }
+  .sec-badge.zero { color: var(--muted); background: transparent; border-color: var(--line); }
+  .card-body { padding: 2px 14px 12px; border-top: 1px solid var(--line); }
+
+  .thead {
+    display: grid; grid-template-columns: 1fr 92px 76px 100px; gap: 8px;
+    font: 700 10.5px var(--sans); text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--muted); padding: 10px 6px 4px; margin: 0 -6px;
+  }
+  .thead div:last-child { text-align: right; }
+  .row {
+    display: grid; grid-template-columns: 1fr 92px 76px 100px; gap: 8px; align-items: center;
+    padding: 8px 6px; margin: 0 -6px; border-radius: 8px; scroll-margin-top: 130px;
+  }
+  .row + .row { border-top: 1px solid rgba(44,52,61,0.6); }
+  .row.active { background: var(--card-2); }
+  .row.flash { animation: flash 1.6s ease-out; }
+  @keyframes flash { 0%, 40% { background: rgba(232,134,46,0.35); } 100% { background: transparent; } }
+  .row .nm { font-size: 13.5px; color: var(--ink-2); }
+  .row.active .nm { color: var(--ink); }
+  .row .unit { color: var(--muted); font-size: 11.5px; white-space: nowrap; }
+  .row .norm { color: var(--muted); font-size: 11px; display: block; }
+  .row .others { color: var(--orange-soft); font-size: 11px; display: block; }
+  .row .sum { text-align: right; font: 700 13.5px var(--mono); color: var(--muted); white-space: nowrap; }
+  .row.active .sum { color: var(--orange-soft); }
+
+  input.price, input.qty, .custform input, .custform select, select.stage {
+    width: 100%; background: var(--bg-2); color: var(--ink);
+    border: 1px solid var(--line); border-radius: 8px;
+    padding: 8px 8px; font: 600 13.5px var(--mono); outline: none;
+  }
+  input.qty { text-align: center; }
+  input.price { color: var(--ink-2); }
+  input.price.edited { color: var(--orange-soft); border-color: rgba(232,134,46,0.4); }
+  input:focus, select:focus { border-color: var(--orange) !important; }
+  input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  input[type=number] { -moz-appearance: textfield; appearance: textfield; }
+  select { font-family: var(--sans) !important; appearance: none; }
+
+  /* своя работа */
+  .custwrap { margin-top: 10px; background: var(--bg-2); border: 1px dashed var(--line-strong); border-radius: 10px; padding: 10px 12px 12px; }
+  .custwrap .cf-title { font-weight: 700; font-size: 13px; color: var(--ink-2); }
+  .cf-l { font-size: 10px; color: var(--muted); margin: 8px 0 3px; text-transform: uppercase; letter-spacing: 0.07em; font-weight: 700; }
+  .cf-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+  .custwrap input, .custwrap select {
+    width: 100%; background: var(--card); color: var(--ink); border: 1px solid var(--line);
+    border-radius: 8px; padding: 9px 8px; font: 500 13.5px var(--sans); outline: none;
+  }
+  .cf-sum { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; gap: 10px; }
+  .cf-sum .v { font: 700 15px var(--mono); color: var(--orange-soft); white-space: nowrap; }
+  .btn.danger, .del.danger { color: #E06060 !important; border-color: #E06060 !important; }
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    border: 1px solid var(--line-strong); background: var(--card-2); color: var(--ink);
+    font: 700 13.5px var(--sans); padding: 10px 16px; border-radius: 10px; cursor: pointer;
+  }
+  .btn:hover { border-color: var(--orange); color: var(--orange-soft); }
+  .btn.gold { background: var(--orange); border-color: var(--orange); color: #14181D; }
+  .btn.gold:hover { background: var(--orange-soft); color: #14181D; }
+  .btn.ghost { background: transparent; }
+  .del { border: 0; background: transparent; color: var(--muted); font-size: 15px; cursor: pointer; border-radius: 6px; padding: 4px 6px; }
+  .del:hover { color: #E06060; background: rgba(224,96,96,0.12); }
+
+  /* сроки */
+  .stage-line { display: grid; grid-template-columns: 1fr 86px 96px 108px; gap: 8px; align-items: center; padding: 9px 0; border-top: 1px solid rgba(44,52,61,0.6); font-size: 13px; }
+  .stage-line:first-of-type { border-top: 0; }
+  .stage-line .crew { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--muted); }
+  .stage-line .crew input { width: 46px; text-align: center; }
+  .stage-line .auto { text-align: right; font: 700 13.5px var(--mono); color: var(--muted); }
+  .stage-line .ovr { display: flex; align-items: center; gap: 5px; justify-content: flex-end; font-size: 12px; color: var(--muted); }
+  .stage-line .ovr input { width: 54px; text-align: center; font-weight: 700; color: var(--orange-soft); }
+  .stage-line .days { text-align: right; font: 800 14px var(--mono); color: var(--orange-soft); }
+  .stage-line .ld { color: var(--muted); font-size: 11px; display: block; font-family: var(--sans); font-weight: 400; }
+  .time-head { display: grid; grid-template-columns: 1fr 86px 96px 108px; gap: 8px; font: 700 10px var(--sans); text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); padding: 10px 0 2px; }
+  .time-head div:nth-child(3) { text-align: right; }
+  .time-head div:nth-child(4) { text-align: right; }
+  .time-note { color: var(--muted); font-size: 12px; margin-top: 8px; }
+
+  /* надбавки */
+  .pct-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; padding-top: 10px; }
+  .pct { background: var(--bg-2); border: 1px solid var(--line); border-radius: 10px; padding: 9px 11px; }
+  .pct .l { color: var(--muted); font-size: 11px; margin-bottom: 4px; }
+  .pct .v { display: flex; align-items: center; gap: 5px; }
+  .pct input { width: 64px; text-align: center; background: var(--card); border: 1px solid var(--line); border-radius: 7px; color: var(--ink); font: 700 14px var(--mono); padding: 6px; outline: none; }
+  .pct.disc { border-color: rgba(111,207,151,0.4); }
+  .pct.disc .l { color: var(--green); }
+
+  /* смета */
+  .estimate { border-color: var(--orange) !important; }
+  .est-line { display: flex; justify-content: space-between; gap: 10px; padding: 7px 0; border-bottom: 1px dashed var(--line); font-size: 14px; }
+  .est-line .v { font: 700 14px var(--mono); white-space: nowrap; }
+  .est-line.sub { color: var(--muted); font-size: 12.5px; padding: 3px 0 3px 14px; border-bottom: 0; }
+  .est-line.sub .v { font-size: 12.5px; font-weight: 500; }
+  .est-line.green .v { color: var(--green); }
+  .est-total { display: flex; justify-content: space-between; align-items: baseline; padding: 14px 0 2px; }
+  .est-total .t { font-size: 17px; font-weight: 800; }
+  .est-total .v { font: 800 clamp(21px, 3.2vw, 27px) var(--mono); color: var(--orange-soft); }
+  .est-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+  .est-empty { color: var(--muted); padding: 12px 0; font-size: 13.5px; }
+
+  .dock {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;
+    background: var(--dock); backdrop-filter: blur(10px);
+    border-top: 1px solid var(--line-strong);
+  }
+  .dock-in { max-width: 980px; margin: 0 auto; padding: 10px clamp(12px, 2.5vw, 32px); display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .dock .lbl { color: var(--muted); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.08em; }
+  .dock .tot { font: 800 clamp(17px, 2.8vw, 22px) var(--mono); color: var(--orange-soft); }
+  .dock .term { color: var(--muted); font-size: 11.5px; }
+
+  .toast {
+    position: fixed; bottom: 82px; left: 50%; transform: translateX(-50%) translateY(8px);
+    background: var(--orange); color: #14181D; font: 700 13px var(--sans);
+    padding: 9px 18px; border-radius: 999px; opacity: 0; pointer-events: none; transition: 0.25s; z-index: 60;
+    white-space: nowrap;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  footer { color: var(--muted); font-size: 12px; margin-top: 24px; text-align: center; }
+
+  @media (max-width: 680px) {
+    /* 16px в полях — iPhone перестаёт сам приближать экран при вводе */
+    input, select, textarea { font-size: 16px !important; }
+    .proj { grid-template-columns: 1fr; }
+    .thead, .row { grid-template-columns: 1fr 84px 70px 88px; gap: 5px; }
+    input.price, input.qty { padding: 7px 4px; }
+    .row .nm { font-size: 13px; }
+    .proj .p4 { grid-template-columns: 1fr 1fr; }
+    .stage-line, .time-head { grid-template-columns: 1fr 64px 76px 92px; gap: 5px; }
+    .stage-line .crew input { width: 38px; }
+    .stage-line .ovr input { width: 46px; }
+  }
+
+  /* ===== КП ===== */
+  #kpView { display: none; }
+  body.kp-open #kpView { display: block; }
+  body.kp-open .inner, body.kp-open .dock { display: none; }
+  .kp-bar { max-width: 860px; margin: 0 auto 12px; display: flex; gap: 8px; flex-wrap: wrap; }
+  .kp-sheet {
+    max-width: 860px; margin: 0 auto; background: #fff; color: #1C2228;
+    border-radius: 6px; padding: clamp(20px, 4.5vw, 44px);
+    box-shadow: 0 18px 60px rgba(0,0,0,0.55); font-family: var(--sans); font-size: 14px; line-height: 1.55;
+  }
+  .kp-sheet input, .kp-sheet textarea {
+    border: 0; border-bottom: 1px dashed #C9B7A0; border-radius: 0; background: transparent;
+    color: #1C2228; font: inherit; padding: 2px 4px; outline: none; width: 100%;
+  }
+  .kp-sheet input:focus, .kp-sheet textarea:focus { border-bottom-color: var(--kp-acc, #C96F1F); border-bottom-style: solid; }
+  .kp-sheet textarea { resize: vertical; min-height: 40px; }
+  .kp-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; flex-wrap: wrap; border-bottom: 3px solid var(--kp-acc, #C96F1F); padding-bottom: 12px; }
+  .kp-co input { font-weight: 800; font-size: 22px; letter-spacing: 0.02em; }
+  .kp-tag { font-size: 11.5px; color: #6B7280; margin-top: 2px; }
+  .kp-meta { text-align: right; font-size: 13px; color: #4B5563; min-width: 170px; }
+  .kp-meta .kp-num { display: flex; align-items: baseline; gap: 6px; justify-content: flex-end; font-weight: 700; color: #1C2228; }
+  .kp-meta .kp-num input { width: 120px; text-align: right; font-weight: 700; }
+  .kp-to { display: grid; grid-template-columns: 105px 1fr; gap: 5px 10px; margin: 16px 0 12px; align-items: baseline; }
+  .kp-to .l { color: #6B7280; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .kp-intro { color: #374151; margin: 0 0 16px; }
+  .kp-h { font-size: 16.5px; font-weight: 800; color: #1C2228; margin: 24px 0 10px; padding-left: 10px; border-left: 4px solid var(--kp-acc, #C96F1F); }
+
+  .kp-stages { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  .kp-stages th { text-align: left; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.07em; color: #6B7280; border-bottom: 1px solid #D9CFC0; padding: 7px 6px; }
+  .kp-stages td { padding: 8px 6px; border-bottom: 1px solid #EFE9DE; vertical-align: top; }
+  .kp-stages .r { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .kp-stages tr.sec td { font-weight: 800; background: #FAF6EF; }
+  .kp-stages tr.it td:first-child { padding-left: 16px; color: #374151; }
+  .kp-stages tr.it td { font-size: 13px; }
+  .kp-stages .roomtag { color: #9A6B2F; font-size: 11px; }
+
+  .kp-timeline { display: flex; gap: 3px; margin: 10px 0 4px; height: 26px; border-radius: 6px; overflow: hidden; }
+  .kp-timeline div { display: flex; align-items: center; justify-content: center; font-size: 10.5px; font-weight: 800; color: #fff; min-width: 34px; }
+  .kp-tl-1 { background: var(--kp-acc, #C96F1F); } .kp-tl-2 { background: color-mix(in srgb, var(--kp-acc, #C96F1F) 78%, black); } .kp-tl-3 { background: color-mix(in srgb, var(--kp-acc, #C96F1F) 58%, black); }
+  .kp-tl-note { color: #6B7280; font-size: 11.5px; margin-bottom: 6px; }
+
+  .kp-total { display: flex; justify-content: space-between; align-items: baseline; margin: 14px 0 2px; padding-top: 10px; border-top: 3px solid var(--kp-acc, #C96F1F); }
+  .kp-total .t { font-size: 17px; font-weight: 800; }
+  .kp-total .v { font: 800 25px var(--mono); font-variant-numeric: tabular-nums; }
+  .kp-small { font-size: 12px; color: #6B7280; }
+  .kp-line { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px dashed #E5DDD0; font-size: 13.5px; }
+  .kp-line .v { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+  .kp-line.green .v { color: #2E7D4F; font-weight: 700; }
+
+  .kp-ben { display: grid; grid-template-columns: 1fr 1fr; gap: 11px 18px; }
+  .kp-b { font-size: 13px; color: #374151; }
+  .kp-b b { display: block; color: #1C2228; font-size: 13.5px; margin-bottom: 1px; }
+  .kp-terms ul { margin: 0; padding-left: 18px; font-size: 13px; color: #374151; }
+  .kp-terms li { margin: 3px 0; }
+  .kp-foot { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; margin-top: 24px; padding-top: 12px; border-top: 1px solid #E5DDD0; flex-wrap: wrap; }
+  .kp-foot .l { color: #6B7280; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 2px; }
+  .kp-foot .cell { min-width: 190px; flex: 1; }
+  .kp-empty { color: #6B7280; padding: 16px 0; }
+  @media (max-width: 640px) { .kp-ben { grid-template-columns: 1fr; } .kp-meta { text-align: left; } .kp-meta .kp-num { justify-content: flex-start; } }
+
+  @media print {
+    body { background: #fff; padding: 0; }
+    body:not(.kp-open) .inner, .dock, .toast { display: none !important; }
+    body.kp-open .kp-bar { display: none !important; }
+    body.kp-open .kp-sheet { box-shadow: none; border-radius: 0; max-width: none; padding: 0; font-size: 12.5px; }
+    body.kp-open .kp-sheet input, body.kp-open .kp-sheet textarea { border-bottom-color: transparent; }
+    body.kp-open .kp-sheet input::placeholder, body.kp-open .kp-sheet textarea::placeholder { color: transparent; }
+    .kp-comment:has(textarea:placeholder-shown) { display: none; }
+    .kp-ben, .kp-stages tr, .kp-terms li, .kp-line { break-inside: avoid; }
+    .kp-h { break-after: avoid; }
+  }
+</style>
+</head>
+<body>
+<div class="inner">
+
+  <header>
+    <div>
+      <div class="brand">МЕБЕЛЬНАЯ<b> СМЕТА</b></div>
+      <div class="brand-sub">мебель на заказ — расчёт по изделиям, смета и КП за 10 минут</div>
+      <div class="curnum" id="curNum"></div>
+    </div>
+    <div class="hdr-btns">
+      <button class="hbtn" id="btnRef" type="button">📚 Справочник</button>
+      <button class="hbtn" id="btnArc" type="button">🗂 Мои сметы</button>
+      <button class="hbtn" id="btnHelp" type="button" title="Как пользоваться">❓</button>
+      <button class="hbtn" id="btnTheme" type="button">🎨</button>
+      <div class="theme-panel" id="themePanel">
+        <div class="tp-l">Тема оформления</div>
+        <div class="tp-row" id="tpThemes"></div>
+        <div class="tp-l">Цвет кнопок</div>
+        <div class="tp-row" id="tpAccents"></div>
+      </div>
+    </div>
+  </header>
+
+  <div class="proj">
+    <input id="projName" type="text" placeholder="Объект / комментарий к заказу (попадёт в КП)">
+    <div class="p2">
+      <input id="pClientName" type="text" placeholder="Имя клиента">
+      <input id="pPhone" type="tel" inputmode="tel" placeholder="+7 (___) ___-__-__">
+    </div>
+    <div class="p4">
+      <input id="pCity" type="text" placeholder="Город">
+      <input id="pStreet" type="text" placeholder="Улица">
+      <input id="pHouse" type="text" placeholder="Дом">
+      <input id="pFlat" type="text" placeholder="Кв.">
+    </div>
+  </div>
+
+  <div class="tabs" id="tabs"></div>
+
+  <div class="toolbar">
+    <div class="searchwrap">
+      <span class="ic">🔍</span>
+      <input id="search" type="text" placeholder="Поиск работы: начни вводить название…" autocomplete="off">
+      <div class="sugg" id="sugg"></div>
+    </div>
+    <div class="roombar" id="roombar"></div>
+  </div>
+
+  <div id="sections"></div>
+
+  <!-- СРОК ИЗГОТОВЛЕНИЯ -->
+  <details class="card" open id="secTime">
+    <summary><span class="chev">▶</span><span class="sec-title">🛠 Срок изготовления</span><span class="sec-badge zero" id="bTime">0 дн</span></summary>
+    <div class="card-body" id="timeBody"></div>
+  </details>
+
+  <!-- СКИДКА И ОПЛАТА -->
+  <details class="card" open>
+    <summary><span class="chev">▶</span><span class="sec-title">％ Скидка и оплата</span><span class="sec-badge zero" id="bPct">—</span></summary>
+    <div class="card-body">
+      <div class="pct-grid">
+        <div class="pct disc"><div class="l">Скидка клиенту, %</div><div class="v"><input id="pDisc" type="number" min="0" step="0.5"> %</div></div>
+        <div class="pct"><div class="l">Предоплата, %</div><div class="v"><input id="pAdv" type="number" min="0" max="100" step="5"> %</div></div>
+      </div>
+      <input type="hidden" id="pMat"><input type="hidden" id="pTrans"><input type="hidden" id="pOver">
+      <div class="est-line sub" style="margin-top:8px">Скидка показывается в смете и КП отдельной строкой. Предоплата попадает в условия оплаты предложения.</div>
+    </div>
+  </details>
+
+  <!-- СМЕТА -->
+  <details class="card estimate" open id="secEst">
+    <summary><span class="chev">▶</span><span class="sec-title">Смета</span><span class="sec-badge" id="bEst">0 ₽</span></summary>
+    <div class="card-body">
+      <div id="estBody"></div>
+      <div class="est-actions">
+        <button class="btn gold" id="btnKP" type="button">Коммерческое предложение →</button>
+        <button class="btn" id="btnSave" type="button">💾 Сохранить смету</button>
+        <button class="btn" id="btnCopy" type="button">Копировать смету</button>
+        <button class="btn" id="btnCmp" type="button">⚖ Сравнить с конкурентом</button>
+        <button class="btn" id="btnJson" type="button">⬇ JSON (для CRM)</button>
+        <button class="btn" id="btnCsv" type="button">⬇ CSV (Excel)</button>
+        <button class="btn ghost" id="btnResetPrices" type="button">Сбросить цены</button>
+        <button class="btn ghost" id="btnResetAll" type="button">Очистить расчёт</button>
+      </div>
+    </div>
+  </details>
+
+  <footer>Цены и нормы выработки — стартовые, правь под свою бригаду. Всё сохраняется в этом браузере.</footer>
+</div>
+
+<div class="dock">
+  <div class="dock-in">
+    <div>
+      <div class="lbl">Итого со скидкой</div>
+      <div class="tot" id="dockTotal">0 ₽</div>
+      <div class="term" id="dockTerm"></div>
+    </div>
+    <button class="btn gold" id="btnKPdock" type="button">Создать КП →</button>
+  </div>
+</div>
+
+<!-- ===== КОММЕРЧЕСКОЕ ПРЕДЛОЖЕНИЕ ===== -->
+<div id="kpView">
+  <div class="kp-bar">
+    <button class="btn" id="kpBack" type="button">← К расчёту</button>
+    <button class="btn gold" id="kpPdf" type="button">Скачать PDF</button>
+    <button class="btn" id="kpShare" type="button">Поделиться</button>
+  </div>
+  <div class="kp-sheet">
+    <div class="kp-head">
+      <div class="kp-co" style="flex:1; min-width: 220px;">
+        <input id="kpCompany" type="text" placeholder="НАЗВАНИЕ ВАШЕЙ КОМПАНИИ">
+        <div class="kp-tag">мебель на заказ · кухни · шкафы · гардеробные</div>
+      </div>
+      <div class="kp-meta">
+        <div class="kp-num"><span>КП №</span><input id="kpNum" type="text"></div>
+        <div id="kpDate"></div>
+        <div id="kpValid" class="kp-small"></div>
+      </div>
+    </div>
+
+    <div class="kp-to">
+      <div class="l">Кому</div><input id="kpClient" type="text" placeholder="Имя клиента">
+      <div class="l">Объект</div><input id="kpObject" type="text" placeholder="Адрес / название объекта">
+    </div>
+
+    <p class="kp-intro">Благодарим за обращение. Ниже — расчёт стоимости вашей мебели по изделиям,
+      срок изготовления и монтажа. Точный состав закрепим в договоре после замера.</p>
+
+    <div class="kp-h">Этапы и сроки</div>
+    <div class="kp-timeline" id="kpTimeline"></div>
+    <div class="kp-tl-note" id="kpTlNote"></div>
+    <div id="kpStagesShort"></div>
+
+    <div class="kp-h">Состав заказа</div>
+    <div id="kpTable"></div>
+
+    <div id="kpRooms"></div>
+
+    <div id="kpSummary"></div>
+    <div class="kp-total"><div class="t">Итого по проекту</div><div class="v" id="kpTotal">0 ₽</div></div>
+    <div class="kp-small" id="kpPay"></div>
+
+    <div class="kp-comment">
+      <div class="kp-h">Комментарий</div>
+      <textarea id="kpNote" rows="2" placeholder="Например: сроки указаны при работе одной бригады; материалы закупаем сами с отчётом по чекам…"></textarea>
+    </div>
+
+    <div class="kp-h">Почему заказать у нас</div>
+    <div class="kp-ben">
+      <div class="kp-b"><b>Точный замер — мебель встанет идеально</b>Замеряем сами и отвечаем за размеры: без щелей, перекосов и «на пару сантиметров не влезло».</div>
+      <div class="kp-b"><b>Материалы, которые служат</b>ЛДСП и МДФ проверенных поставщиков, фурнитура Blum/Hettich с плавным ходом и доводчиками.</div>
+      <div class="kp-b"><b>Договор и фиксированная цена</b>Стоимость из этой сметы закрепляется в договоре — без «доплат по ходу».</div>
+      <div class="kp-b"><b>Своё производство</b>Делаем на собственном оборудовании, а не перепродаём — отсюда сроки и контроль качества.</div>
+      <div class="kp-b"><b>Аккуратный монтаж</b>Привозим, собираем и подключаем сами, убираем за собой — вам остаётся только пользоваться.</div>
+      <div class="kp-b"><b>Гарантия на изделие и фурнитуру</b>Если что-то разболталось или заедает — приезжаем и настраиваем по гарантии.</div>
+      <div class="kp-b"><b>3D-проект до старта</b>Показываем, как будет выглядеть гарнитур, — вы утверждаете каждую деталь заранее.</div>
+    </div>
+
+    <div class="kp-h">Условия</div>
+    <div class="kp-terms">
+      <ul>
+        <li>Предложение действительно 14 дней с даты выставления.</li>
+        <li>Смета и сроки фиксируются в договоре после выезда на замер.</li>
+        <li id="kpPayTerm">Оплата поэтапно: аванс по этапу, остаток — по акту выполненных работ.</li>
+      </ul>
+    </div>
+
+    <div class="kp-foot">
+      <div class="cell"><div class="l">Телефон</div><input id="kpPhone" type="text" placeholder="+7 ___ ___-__-__"></div>
+      <div class="cell"><div class="l">Сайт / e-mail</div><input id="kpMail" type="text" placeholder="сайт · почта"></div>
+      <div class="cell" style="text-align:right; flex:none;"><div class="l">Контактное лицо</div><input id="kpManager" type="text" placeholder="Имя" style="text-align:right;"></div>
+    </div>
+  </div>
+</div>
+<!-- ИНСТРУКЦИЯ (встроена, без отдельного файла) -->
+<div class="modal" id="helpModal">
+  <div class="modal-card">
+    <div class="modal-head">
+      <div class="t">Как пользоваться Мебельной сметой</div>
+      <button class="x" id="helpClose" type="button">✕</button>
+    </div>
+    <div class="modal-body help-body">
+      <p class="hp-sub">Расчёт по изделиям → смета → коммерческое предложение в PDF. Прямо на замере, с телефона.</p>
+
+      <h3>1. Быстрый старт на замере</h3>
+      <ol>
+        <li>Вверху впиши <b>клиента</b> (имя, телефон) и <b>адрес</b> (город, улица, дом, квартира).</li>
+        <li>Добавь <b>изделие</b> (Кухня, Шкаф-купе…) — строка «Изделие:» → <span class="hp-b">+ Изделие</span>.</li>
+        <li>Выбери вкладку и введи <b>количество</b> (п.м., м², штуки) — сумма считается сама.</li>
+        <li>Внизу виден <b>итог</b> и <b>срок изготовления</b>.</li>
+        <li>Жми <span class="hp-b">Создать КП →</span> и <span class="hp-b">Скачать PDF</span> — покажи или отправь клиенту прямо на месте.</li>
+      </ol>
+
+      <h3>2. Изделия</h3>
+      <p>Один заказ — несколько изделий. Строка <b>«Изделие:»</b> → <span class="hp-b">+ Изделие</span> («Кухня», «Шкаф-купе», «Гардеробная»). У каждого своя смета, а в КП — разбивка «сколько стоит каждое изделие».</p>
+
+      <h3>3. Разделы и модульный режим</h3>
+      <p>Вкладка <b>📏 Модульные · п.м.</b> — быстрая прикидка «кухня за погонный метр» (эконом/стандарт/премиум) прямо при клиенте. Точный расчёт — по вкладкам <b>Корпус · Фасады · Столешница · Фурнитура · Работы и монтаж</b>. Цену в любой строке можно править на месте — запомнится.</p>
+
+      <h3>4. Поиск</h3>
+      <p>Строка <b>🔍 Поиск</b> сверху: введи «фасад эмаль», «петля», «столешница кварц» → тап по подсказке → перескочит на нужную строку и поставит курсор в количество.</p>
+
+      <h3>5. Свой прайс из Excel</h3>
+      <p>Кнопка <span class="hp-b">📚 Справочник</span> → <span class="hp-b">⬇ Скачать шаблон</span> → впиши в Excel свои позиции и цены → <span class="hp-b">⬆ Загрузить свой (Excel)</span>. Файл читается прямо в телефоне, никуда не отправляется. Вернуть исходный — <span class="hp-b">↺ Стартовый</span>.</p>
+
+      <h3>6. Свои позиции</h3>
+      <p>В конце каждой вкладки блок <b>«➕ Добавить свою работу»</b>: название → единица (п.м., м², шт, компл) → цена → количество → <span class="hp-b">Занести в смету ✓</span>.</p>
+
+      <h3>7. Срок изготовления</h3>
+      <p>Блок <b>🛠 Срок изготовления</b> — впиши дни на изготовление и на доставку/монтаж. Общий срок соберётся сам и попадёт в КП.</p>
+
+      <h3>8. Скидка и предоплата</h3>
+      <p>Блок <b>％</b>: скидка клиенту (отдельной строкой в смете) и предоплата (в условия оплаты КП).</p>
+
+      <h3>9. Сохранение смет</h3>
+      <p><span class="hp-b">💾 Сохранить смету</span> — номер присвоится сам. <span class="hp-b">🗂 Мои сметы</span> — весь архив с поиском по адресу/клиенту и пометкой «кому отправил». Клиент передумал — открыл старую, поправил, сохранил: создастся дубль, прежняя версия останется.</p>
+
+      <h3>10. КП, PDF и CRM</h3>
+      <p><span class="hp-b">Создать КП →</span> — готовый документ с названием твоей компании (впиши один раз — запомнится). <span class="hp-b">Скачать PDF</span> → отправь клиенту. <b>Выгрузка:</b> <span class="hp-b">⬇ JSON (для CRM)</span> — смета прикрепляется к карточке клиента; CSV — для Excel.</p>
+
+      <div class="hp-tip">Данные хранятся только в этом браузере — на другом устройстве их не будет. Важные сметы дополнительно сохраняй в PDF.</div>
+    </div>
+  </div>
+</div>
+
+<!-- СПРАВОЧНИК РАБОТ -->
+<div class="modal" id="refModal">
+  <div class="modal-card">
+    <div class="modal-head">
+      <div class="t">📚 Справочник работ компании</div>
+      <button class="x" id="refClose" type="button">✕</button>
+    </div>
+    <div class="modal-search"><input id="refSearch" type="text" placeholder="Поиск: штукатурка, точка, плитка…" autocomplete="off"></div>
+    <div class="ref-tools">
+      <button class="btn" id="refTpl" type="button">⬇ Скачать шаблон</button>
+      <button class="btn gold" id="refUpload" type="button">⬆ Загрузить свой (Excel)</button>
+      <button class="btn ghost" id="refReset" type="button">↺ Стартовый</button>
+      <input type="file" id="refFile" accept=".xlsx,.csv" hidden>
+    </div>
+    <div class="modal-body" id="refBody"></div>
+  </div>
+</div>
+
+<!-- СРАВНЕНИЕ СО СМЕТОЙ КОНКУРЕНТА -->
+<div class="modal" id="cmpModal">
+  <div class="modal-card">
+    <div class="modal-head">
+      <div class="t">⚖ Сравнение со сметой конкурента</div>
+      <button class="x" id="cmpClose" type="button">✕</button>
+    </div>
+    <div class="ref-tools">
+      <button class="btn gold" id="cmpUpload" type="button">⬆ Загрузить смету конкурента</button>
+      <button class="btn" id="cmpTpl" type="button">⬇ Шаблон</button>
+      <button class="btn" id="cmpCopy" type="button" hidden>Копировать сравнение</button>
+      <input type="file" id="cmpFile" accept=".xlsx,.csv" hidden>
+    </div>
+    <div class="modal-body" id="cmpBody">
+      <div class="modal-empty">Загрузи смету конкурента файлом Excel (.xlsx) или CSV.
+        Колонки: <b>Название; Ед.; Кол-во; Цена за ед.</b> — лишние строки (шапки, итоги) отсеются сами.
+        Сравнение пойдёт с твоей текущей сметой, так что сначала набери свою.</div>
+    </div>
+  </div>
+</div>
+
+<!-- МОИ СМЕТЫ -->
+<div class="modal" id="arcModal">
+  <div class="modal-card">
+    <div class="modal-head">
+      <div class="t">🗂 Мои сметы</div>
+      <button class="x" id="arcClose" type="button">✕</button>
+    </div>
+    <div class="modal-search"><input id="arcSearch" type="text" placeholder="Поиск: номер, клиент, адрес…" autocomplete="off"></div>
+    <div class="modal-body" id="arcBody"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast">Занесено в смету ✓</div>
+
+<script>
+'use strict';
+
+/* ================= КАТАЛОГ =================
+   price — ₽ за единицу (работа); rate — сколько единиц делает 1 человек за день (0 = не влияет на сроки);
+   stage — 1 демонтаж/черновые, 2 подготовка, 3 финиш, 0 прочее (вне этапов) */
+
+const TABS = [
+  { id: 'mod',  name: '📏 Модульные · п.м.' },
+  { id: 'korp', name: '📦 Корпус' },
+  { id: 'fas',  name: '🚪 Фасады' },
+  { id: 'stol', name: '▬ Столешница' },
+  { id: 'furn', name: '⚙ Фурнитура и наполнение' },
+  { id: 'mont', name: '🔧 Работы и монтаж' },
+  { id: 'pro',  name: '🚚 Прочее' },
+];
+
+const STAGE_NAMES = { 1: 'Изготовление', 2: 'Доставка и монтаж', 3: 'Дополнительно', 0: 'Прочее (замер, доставка)' };
+const CUSTOM_STAGE_DEFAULT = { mod: 1, korp: 1, fas: 1, stol: 1, furn: 1, mont: 2, pro: 0 };
+
+const CATALOG = [
+  { tab: 'mod', group: 'Быстрый расчёт за погонный метр (ориентир — уточняется деталировкой)' },
+  { id: 'm1', tab: 'mod', stage: 1, name: 'Кухонный гарнитур — эконом',              unit: 'п.м.', price: 22000, rate: 0 },
+  { id: 'm2', tab: 'mod', stage: 1, name: 'Кухонный гарнитур — стандарт',            unit: 'п.м.', price: 35000, rate: 0 },
+  { id: 'm3', tab: 'mod', stage: 1, name: 'Кухонный гарнитур — премиум',             unit: 'п.м.', price: 55000, rate: 0 },
+  { id: 'm4', tab: 'mod', stage: 1, name: 'Шкаф-купе — стандарт',                    unit: 'п.м.', price: 18000, rate: 0 },
+  { id: 'm5', tab: 'mod', stage: 1, name: 'Шкаф-купе — премиум',                     unit: 'п.м.', price: 30000, rate: 0 },
+  { id: 'm6', tab: 'mod', stage: 1, name: 'Прихожая / гардеробная модульная',        unit: 'п.м.', price: 16000, rate: 0 },
+
+  { tab: 'korp', group: 'Корпус' },
+  { id: 'k1', tab: 'korp', stage: 1, name: 'Корпус ЛДСП 16 мм',                      unit: 'м²', price: 3500, rate: 0 },
+  { id: 'k2', tab: 'korp', stage: 1, name: 'Корпус ЛДСП 18 мм',                      unit: 'м²', price: 4000, rate: 0 },
+  { id: 'k3', tab: 'korp', stage: 1, name: 'Корпус МДФ',                             unit: 'м²', price: 6000, rate: 0 },
+  { id: 'k4', tab: 'korp', stage: 1, name: 'Корпус влагостойкий (ванная)',          unit: 'м²', price: 5500, rate: 0 },
+  { id: 'k5', tab: 'korp', stage: 1, name: 'Задняя стенка ХДФ',                      unit: 'м²', price: 900,  rate: 0 },
+
+  { tab: 'fas', group: 'Фасады' },
+  { id: 'f1', tab: 'fas', stage: 1, name: 'Фасад ЛДСП',                              unit: 'м²', price: 4500,  rate: 0 },
+  { id: 'f2', tab: 'fas', stage: 1, name: 'Фасад МДФ плёночный',                     unit: 'м²', price: 7000,  rate: 0 },
+  { id: 'f3', tab: 'fas', stage: 1, name: 'Фасад МДФ крашеный (эмаль)',              unit: 'м²', price: 12000, rate: 0 },
+  { id: 'f4', tab: 'fas', stage: 1, name: 'Фасад пластик',                           unit: 'м²', price: 8500,  rate: 0 },
+  { id: 'f5', tab: 'fas', stage: 1, name: 'Фасад массив дерева',                     unit: 'м²', price: 18000, rate: 0 },
+  { id: 'f6', tab: 'fas', stage: 1, name: 'Фасад стекло в алюминиевой рамке',        unit: 'м²', price: 9000,  rate: 0 },
+  { id: 'f7', tab: 'fas', stage: 1, name: 'Фасад шпонированный',                     unit: 'м²', price: 14000, rate: 0 },
+
+  { tab: 'stol', group: 'Столешница' },
+  { id: 's1', tab: 'stol', stage: 1, name: 'Столешница ЛДСП постформинг',            unit: 'п.м.', price: 4500,  rate: 0 },
+  { id: 's2', tab: 'stol', stage: 1, name: 'Столешница компакт-плита',               unit: 'п.м.', price: 12000, rate: 0 },
+  { id: 's3', tab: 'stol', stage: 1, name: 'Столешница акриловый камень',            unit: 'п.м.', price: 22000, rate: 0 },
+  { id: 's4', tab: 'stol', stage: 1, name: 'Столешница кварцевый агломерат',         unit: 'п.м.', price: 30000, rate: 0 },
+  { id: 's5', tab: 'stol', stage: 1, name: 'Столешница массив дерева',               unit: 'п.м.', price: 18000, rate: 0 },
+  { id: 's6', tab: 'stol', stage: 1, name: 'Вырез под мойку',                        unit: 'шт',   price: 1500,  rate: 0 },
+  { id: 's7', tab: 'stol', stage: 1, name: 'Вырез под варочную панель',              unit: 'шт',   price: 1500,  rate: 0 },
+  { id: 's8', tab: 'stol', stage: 1, name: 'Пристеночный бортик',                    unit: 'п.м.', price: 800,   rate: 0 },
+
+  { tab: 'furn', group: 'Фурнитура' },
+  { id: 'u1', tab: 'furn', stage: 1, name: 'Петля с доводчиком (Blum/Hettich)',      unit: 'шт',    price: 450,  rate: 0 },
+  { id: 'u2', tab: 'furn', stage: 1, name: 'Направляющие скрытого монтажа',          unit: 'компл', price: 1800, rate: 0 },
+  { id: 'u3', tab: 'furn', stage: 1, name: 'Подъёмный механизм',                     unit: 'шт',    price: 3500, rate: 0 },
+  { id: 'u4', tab: 'furn', stage: 1, name: 'Ручка мебельная',                        unit: 'шт',    price: 400,  rate: 0 },
+  { tab: 'furn', group: 'Наполнение' },
+  { id: 'u5', tab: 'furn', stage: 1, name: 'Ящик с доводчиком (в сборе)',            unit: 'шт',    price: 2500, rate: 0 },
+  { id: 'u6', tab: 'furn', stage: 1, name: 'Карго выдвижное',                        unit: 'шт',    price: 6000, rate: 0 },
+  { id: 'u7', tab: 'furn', stage: 1, name: 'Сушилка для посуды',                     unit: 'компл', price: 3000, rate: 0 },
+  { id: 'u8', tab: 'furn', stage: 1, name: 'Сетка / органайзер',                     unit: 'шт',    price: 2000, rate: 0 },
+  { id: 'u9', tab: 'furn', stage: 1, name: 'Мойка врезная (нержавейка)',             unit: 'шт',    price: 4500, rate: 0 },
+  { id: 'u10', tab: 'furn', stage: 1, name: 'Смеситель',                             unit: 'шт',    price: 4000, rate: 0 },
+  { id: 'u11', tab: 'furn', stage: 1, name: 'Подсветка LED',                         unit: 'п.м.',  price: 1200, rate: 0 },
+  { id: 'u12', tab: 'furn', stage: 1, name: 'Цоколь с уплотнителем',                 unit: 'п.м.',  price: 700,  rate: 0 },
+
+  { tab: 'mont', group: 'Производство и монтаж' },
+  { id: 'r1', tab: 'mont', stage: 1, name: 'Распил и кромкование (за деталь)',       unit: 'шт',   price: 300,  rate: 0 },
+  { id: 'r2', tab: 'mont', stage: 1, name: 'Присадка (сверловка)',                   unit: 'шт',   price: 100,  rate: 0 },
+  { id: 'r3', tab: 'mont', stage: 1, name: 'Сборка изделия',                         unit: 'п.м.', price: 2500, rate: 0 },
+  { id: 'r4', tab: 'mont', stage: 2, name: 'Монтаж на объекте',                      unit: 'п.м.', price: 3000, rate: 0 },
+  { id: 'r5', tab: 'mont', stage: 2, name: 'Врезка мойки и смесителя',               unit: 'компл', price: 3000, rate: 0 },
+  { id: 'r6', tab: 'mont', stage: 2, name: 'Подключение варочной / встройки',        unit: 'шт',   price: 2500, rate: 0 },
+  { id: 'r7', tab: 'mont', stage: 2, name: 'Навеска фасадов и регулировка',          unit: 'п.м.', price: 800,  rate: 0 },
+
+  { tab: 'pro', group: 'Прочее' },
+  { id: 'o1', tab: 'pro', stage: 0, name: 'Замер объекта',                           unit: 'выезд', price: 2000, rate: 0 },
+  { id: 'o2', tab: 'pro', stage: 0, name: 'Проектирование / 3D-визуализация',        unit: 'компл', price: 5000, rate: 0 },
+  { id: 'o3', tab: 'pro', stage: 0, name: 'Доставка',                               unit: 'рейс',  price: 3000, rate: 0 },
+  { id: 'o4', tab: 'pro', stage: 0, name: 'Подъём на этаж (без лифта)',              unit: 'этаж',  price: 500,  rate: 0 },
+  { id: 'o5', tab: 'pro', stage: 0, name: 'Демонтаж старой мебели',                  unit: 'компл', price: 5000, rate: 0 },
+];
+
+const UNITS = ['п.м.', 'м²', 'шт', 'компл', 'рейс', 'этаж', 'выезд'];
+
+/* СПРАВОЧНИК: реальные расценки компании из сметы «Гранд Парк» (работы, ₽ за ед.) */
+const REF = [
+  { name: 'Кухонный гарнитур — эконом (за п.м.)', unit: 'п.м.', price: 22000, stage: 1 },
+  { name: 'Кухонный гарнитур — стандарт (за п.м.)', unit: 'п.м.', price: 35000, stage: 1 },
+  { name: 'Кухонный гарнитур — премиум (за п.м.)', unit: 'п.м.', price: 55000, stage: 1 },
+  { name: 'Шкаф-купе — стандарт (за п.м.)', unit: 'п.м.', price: 18000, stage: 1 },
+  { name: 'Шкаф-купе — премиум (за п.м.)', unit: 'п.м.', price: 30000, stage: 1 },
+  { name: 'Прихожая / гардеробная модульная (за п.м.)', unit: 'п.м.', price: 16000, stage: 1 },
+  { name: 'Корпус ЛДСП 16 мм', unit: 'м²', price: 3500, stage: 1 },
+  { name: 'Корпус ЛДСП 18 мм', unit: 'м²', price: 4000, stage: 1 },
+  { name: 'Корпус МДФ', unit: 'м²', price: 6000, stage: 1 },
+  { name: 'Корпус влагостойкий (ванная)', unit: 'м²', price: 5500, stage: 1 },
+  { name: 'Задняя стенка ХДФ', unit: 'м²', price: 900, stage: 1 },
+  { name: 'Фасад ЛДСП', unit: 'м²', price: 4500, stage: 1 },
+  { name: 'Фасад МДФ плёночный', unit: 'м²', price: 7000, stage: 1 },
+  { name: 'Фасад МДФ крашеный (эмаль)', unit: 'м²', price: 12000, stage: 1 },
+  { name: 'Фасад пластик', unit: 'м²', price: 8500, stage: 1 },
+  { name: 'Фасад массив дерева', unit: 'м²', price: 18000, stage: 1 },
+  { name: 'Фасад стекло в алюминиевой рамке', unit: 'м²', price: 9000, stage: 1 },
+  { name: 'Фасад шпонированный', unit: 'м²', price: 14000, stage: 1 },
+  { name: 'Столешница ЛДСП постформинг', unit: 'п.м.', price: 4500, stage: 1 },
+  { name: 'Столешница компакт-плита', unit: 'п.м.', price: 12000, stage: 1 },
+  { name: 'Столешница акриловый камень', unit: 'п.м.', price: 22000, stage: 1 },
+  { name: 'Столешница кварцевый агломерат', unit: 'п.м.', price: 30000, stage: 1 },
+  { name: 'Столешница массив дерева', unit: 'п.м.', price: 18000, stage: 1 },
+  { name: 'Вырез под мойку', unit: 'шт', price: 1500, stage: 1 },
+  { name: 'Вырез под варочную панель', unit: 'шт', price: 1500, stage: 1 },
+  { name: 'Петля с доводчиком (Blum/Hettich)', unit: 'шт', price: 450, stage: 1 },
+  { name: 'Направляющие скрытого монтажа', unit: 'компл', price: 1800, stage: 1 },
+  { name: 'Подъёмный механизм', unit: 'шт', price: 3500, stage: 1 },
+  { name: 'Ручка мебельная', unit: 'шт', price: 400, stage: 1 },
+  { name: 'Ящик с доводчиком (в сборе)', unit: 'шт', price: 2500, stage: 1 },
+  { name: 'Карго выдвижное', unit: 'шт', price: 6000, stage: 1 },
+  { name: 'Сушилка для посуды', unit: 'компл', price: 3000, stage: 1 },
+  { name: 'Мойка врезная (нержавейка)', unit: 'шт', price: 4500, stage: 1 },
+  { name: 'Смеситель', unit: 'шт', price: 4000, stage: 1 },
+  { name: 'Подсветка LED', unit: 'п.м.', price: 1200, stage: 1 },
+  { name: 'Распил и кромкование (за деталь)', unit: 'шт', price: 300, stage: 1 },
+  { name: 'Сборка изделия', unit: 'п.м.', price: 2500, stage: 1 },
+  { name: 'Монтаж на объекте', unit: 'п.м.', price: 3000, stage: 2 },
+  { name: 'Врезка мойки и смесителя', unit: 'компл', price: 3000, stage: 2 },
+  { name: 'Замер объекта', unit: 'выезд', price: 2000, stage: 0 },
+  { name: 'Проектирование / 3D-визуализация', unit: 'компл', price: 5000, stage: 0 },
+  { name: 'Доставка', unit: 'рейс', price: 3000, stage: 0 },
+  { name: 'Демонтаж старой мебели', unit: 'компл', price: 5000, stage: 0 },
+];
+
+
+
+/* ================= СОСТОЯНИЕ ================= */
+
+const LS_KEY = 'mebelsmeta_calc_v1';
+
+let S = {
+  tab: 'mod',
+  room: 'all',
+  rooms: [],                    // [{id, name}] кроме «Весь объект»
+  q: {},                        // itemId -> { roomId -> qty }
+  priceOv: {},                  // itemId -> цена (правка)
+  custom: [],                   // [{id, tab, stage, name, unit, price, rate}]
+  crew: { 1: 2, 2: 2, 3: 2 },   // человек на этапе
+  daysOv: { 1: 0, 2: 0, 3: 0 }, // дни, заложенные сметчиком (0 = взять расчёт системы)
+  pct: { mat: 0, trans: 0, over: 0, disc: 0, adv: 70 },
+  proj: { name: '', clientName: '', phone: '', city: '', street: '', house: '', flat: '' },
+  kp: {},                       // company, num, client, object, note, phone, mail, manager
+  ui: { theme: 'dark', accent: 'orange' },
+  curNum: '',                   // номер открытой/сохранённой сметы
+};
+
+const ARC_KEY = 'mebelsmeta_archive_v1';
+function loadArc() { try { return JSON.parse(localStorage.getItem(ARC_KEY)) || []; } catch (e) { return []; } }
+function saveArc(a) { try { localStorage.setItem(ARC_KEY, JSON.stringify(a)); } catch (e) {} }
+
+function save() { try { localStorage.setItem(LS_KEY, JSON.stringify(S)); } catch (e) {} }
+function load() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (raw) { const p = JSON.parse(raw); if (p && typeof p === 'object') S = Object.assign(S, p); }
+  } catch (e) {}
+  S.pct = Object.assign({ mat: 0, trans: 0, over: 0, disc: 0, adv: 70 }, S.pct);
+  S.crew = Object.assign({ 1: 2, 2: 2, 3: 2 }, S.crew);
+  S.daysOv = Object.assign({ 1: 0, 2: 0, 3: 0 }, S.daysOv);
+  S.proj = Object.assign({ name: '', clientName: '', phone: '', city: '', street: '', house: '', flat: '' }, S.proj);
+  S.ui = Object.assign({ theme: 'dark', accent: 'orange' }, S.ui);
+}
+
+/* ===== темы и цвет кнопок ===== */
+const THEMES = [
+  { id: 'dark',  name: 'Тёмная',  sw: '#14181D' },
+  { id: 'light', name: 'Светлая', sw: '#F1F2F4' },
+  { id: 'warm',  name: 'Тёплая',  sw: '#F5F0E5' },
+  { id: 'blue',  name: 'Голубая', sw: '#EBF1F7' },
+];
+const ACCENTS = {
+  orange: { a: '#E8862E', soft: '#F0A95C', dim: 'rgba(232,134,46,0.14)', kp: 'var(--kp-acc, #C96F1F)' },
+  blue:   { a: '#3B82E0', soft: '#7FAEEC', dim: 'rgba(59,130,224,0.15)', kp: '#2563B0' },
+  green:  { a: '#2FA36B', soft: '#6CC79A', dim: 'rgba(47,163,107,0.15)', kp: '#1F7A4D' },
+  terra:  { a: '#C9603A', soft: '#DE8E6E', dim: 'rgba(201,96,58,0.15)', kp: '#A84E2E' },
+  gold:   { a: '#C9A96E', soft: '#E3C88F', dim: 'rgba(201,169,110,0.16)', kp: '#8a6d3b' },
+};
+function applyUI() {
+  document.body.dataset.theme = S.ui.theme === 'dark' ? '' : S.ui.theme;
+  const acc = ACCENTS[S.ui.accent] || ACCENTS.orange;
+  const st = document.documentElement.style;
+  st.setProperty('--orange', acc.a);
+  st.setProperty('--orange-soft', S.ui.theme === 'dark' ? acc.soft : acc.kp);
+  st.setProperty('--orange-dim', acc.dim);
+  st.setProperty('--kp-acc', acc.kp);
+  const mt = document.getElementById('metaTheme');
+  if (mt) mt.content = { dark: '#14181D', light: '#F1F2F4', warm: '#F5F0E5', blue: '#EBF1F7' }[S.ui.theme] || '#14181D';
+}
+function renderThemePanel() {
+  const tb = document.getElementById('tpThemes'); tb.innerHTML = '';
+  THEMES.forEach(t => {
+    const d = el('div', 'tp-sw' + (S.ui.theme === t.id ? ' on' : ''), t.name.slice(0, 4));
+    d.style.background = t.sw;
+    d.style.color = t.id === 'dark' ? '#EDEDE8' : '#333';
+    d.title = t.name;
+    d.addEventListener('click', () => { S.ui.theme = t.id; applyUI(); renderThemePanel(); save(); });
+    tb.appendChild(d);
+  });
+  const ab = document.getElementById('tpAccents'); ab.innerHTML = '';
+  Object.entries(ACCENTS).forEach(([id, acc]) => {
+    const d = el('div', 'tp-acc' + (S.ui.accent === id ? ' on' : ''));
+    d.style.background = acc.a;
+    d.addEventListener('click', () => { S.ui.accent = id; applyUI(); renderThemePanel(); save(); });
+    ab.appendChild(d);
+  });
+}
+
+/* ===== маска телефона: +7 (999) 123-45-67 ===== */
+function maskPhone(inp) {
+  inp.addEventListener('input', () => {
+    let d = inp.value.replace(/\D/g, '');
+    if (d.startsWith('8')) d = '7' + d.slice(1);
+    if (d && !d.startsWith('7')) d = '7' + d;
+    d = d.slice(0, 11);
+    let out = '';
+    if (d.length) out = '+7';
+    if (d.length > 1) out += ' (' + d.slice(1, 4);
+    if (d.length >= 4) out += ') ' + d.slice(4, 7);
+    if (d.length >= 7) out += '-' + d.slice(7, 9);
+    if (d.length >= 9) out += '-' + d.slice(9, 11);
+    inp.value = out;
+    inp.dispatchEvent(new Event('masked'));
+  });
+}
+
+/* адрес одной строкой для КП и архива */
+function addressString() {
+  const p = S.proj, parts = [];
+  if (p.city) parts.push('г. ' + p.city);
+  if (p.street) parts.push('ул. ' + p.street);
+  if (p.house) parts.push('д. ' + p.house);
+  if (p.flat) parts.push('кв. ' + p.flat);
+  return parts.join(', ');
+}
+
+/* двойное нажатие вместо системных окон подтверждения (prompt/confirm в превью заблокированы) */
+function armConfirm(btn, label, fn) {
+  if (btn.dataset.armed) { delete btn.dataset.armed; fn(); return; }
+  btn.dataset.armed = '1';
+  const old = btn.textContent;
+  btn.textContent = label;
+  btn.classList.add('danger');
+  setTimeout(() => { if (!btn.isConnected) return; delete btn.dataset.armed; btn.textContent = old; btn.classList.remove('danger'); }, 2600);
+}
+
+/* ================= УТИЛИТЫ ================= */
+
+const fmtN = new Intl.NumberFormat('ru-RU');
+const fmt = n => fmtN.format(Math.round(n)) + ' ₽';
+const num = v => { const n = parseFloat(String(v).replace(',', '.')); return isFinite(n) && n > 0 ? n : 0; };
+const el = (tag, cls, text) => { const d = document.createElement(tag); if (cls) d.className = cls; if (text != null) d.textContent = text; return d; };
+
+function allItems() { return CATALOG.filter(x => x.id).concat(S.custom); }
+function getItem(id) { return allItems().find(x => x.id === id); }
+function price(it) { return S.priceOv[it.id] != null ? S.priceOv[it.id] : it.price; }
+function qtyTotal(id) { const m = S.q[id]; if (!m) return 0; return Object.values(m).reduce((a, b) => a + num(b), 0); }
+function qtyRoom(id, room) { return (S.q[id] && num(S.q[id][room])) || 0; }
+function roomName(rid) { if (rid === 'all') return 'Весь заказ'; const r = S.rooms.find(x => x.id === rid); return r ? r.name : rid; }
+
+/* ================= ВКЛАДКИ И ПОМЕЩЕНИЯ ================= */
+
+function renderTabs() {
+  const box = document.getElementById('tabs');
+  box.innerHTML = '';
+  TABS.forEach(t => {
+    const d = el('div', 'tab' + (S.tab === t.id ? ' on' : ''), t.name);
+    d.addEventListener('click', () => { S.tab = t.id; renderTabs(); renderSections(); save(); });
+    box.appendChild(d);
+  });
+}
+
+function renderRooms() {
+  const box = document.getElementById('roombar');
+  box.innerHTML = '';
+  box.appendChild(el('span', 'lbl', 'Изделие:'));
+  const mk = (id, name, removable) => {
+    const c = el('span', 'rchip' + (S.room === id ? ' on' : ''));
+    c.appendChild(el('span', null, name));
+    if (removable) {
+      const x = el('span', 'x', '✕');
+      x.addEventListener('click', ev => {
+        ev.stopPropagation();
+        armConfirm(x, 'удалить?', () => {
+          S.rooms = S.rooms.filter(r => r.id !== id);
+          Object.values(S.q).forEach(m => delete m[id]);
+          if (S.room === id) S.room = 'all';
+          renderRooms(); renderSections(); recalc(); save();
+        });
+      });
+      c.appendChild(x);
+    }
+    c.addEventListener('click', () => { S.room = id; renderRooms(); renderSections(); save(); });
+    box.appendChild(c);
+  };
+  mk('all', 'Весь заказ', false);
+  S.rooms.forEach(r => mk(r.id, r.name, true));
+  const add = el('span', 'rchip add', '+ Изделие');
+  add.addEventListener('click', () => {
+    // прямо в чипе появляется поле ввода — без системных окон
+    add.textContent = '';
+    const inp = document.createElement('input');
+    inp.placeholder = 'Кухня / Шкаф-купе / Гардеробная';
+    inp.style.cssText = 'background:transparent;border:0;outline:none;color:var(--ink);font:600 13px var(--sans);width:150px;';
+    let done = false;   // Enter и потеря фокуса не должны сработать дважды
+    const commit = () => {
+      if (done) return; done = true;
+      const name = inp.value.trim();
+      if (name) {
+        const id = 'rm' + Date.now();
+        S.rooms.push({ id, name });
+        S.room = id;
+        renderRooms(); renderSections(); save();
+        toast('Изделие добавлено — вводи его позиции');
+      } else renderRooms();
+    };
+    inp.addEventListener('keydown', ev => {
+      if (ev.key === 'Enter') { ev.preventDefault(); commit(); }
+      if (ev.key === 'Escape') { done = true; renderRooms(); }
+    });
+    inp.addEventListener('blur', commit);
+    add.appendChild(inp);
+    inp.focus();
+  }, { once: true });
+  box.appendChild(add);
+}
+
+/* ================= РАЗДЕЛЫ И СТРОКИ ================= */
+
+function renderSections() {
+  const box = document.getElementById('sections');
+  box.innerHTML = '';
+  let curCard = null, curBody = null;
+
+  const mkCard = (title) => {
+    const d = document.createElement('details');
+    d.className = 'card'; d.open = true;
+    const sm = el('summary');
+    sm.append(el('span', 'chev', '▶'), el('span', 'sec-title', title));
+    const badge = el('span', 'sec-badge zero', '0 ₽'); badge.dataset.secbadge = '1';
+    sm.appendChild(badge);
+    d.appendChild(sm);
+    const body = el('div', 'card-body');
+    const th = el('div', 'thead');
+    th.append(el('div', null, 'Работа'), el('div', null, 'Цена, ₽'), el('div', null, 'Кол-во'), el('div', null, 'Сумма'));
+    body.appendChild(th);
+    d.appendChild(body);
+    box.appendChild(d);
+    return { d, body };
+  };
+
+  CATALOG.filter(x => x.tab === S.tab).forEach(x => {
+    if (x.group) { ({ d: curCard, body: curBody } = mkCard(x.group)); return; }
+    curBody.appendChild(buildRow(x));
+  });
+
+  // свои работы этой вкладки
+  const cc = mkCard('Свои работы (' + TABS.find(t => t.id === S.tab).name.replace(/^[^ ]+ /, '') + ')');
+  S.custom.filter(c => c.tab === S.tab).forEach(c => cc.body.appendChild(buildRow(c, true)));
+  cc.body.appendChild(buildCustomForm());
+
+  recalc();
+}
+
+function buildRow(it, deletable) {
+  const r = el('div', 'row'); r.dataset.id = it.id;
+  const nm = el('div', 'nm');
+  nm.append(it.name + ' ');
+  nm.appendChild(el('span', 'unit', '· ' + it.unit));
+  if (it.rate > 0) nm.appendChild(el('span', 'norm', `⏱ ${it.rate} ${it.unit} на человека в день · ${STAGE_NAMES[it.stage].split(' · ')[0]}`));
+  else if (it.stage === 0) nm.appendChild(el('span', 'norm', 'вне этапов'));
+  const others = el('span', 'others'); others.dataset.others = '1';
+  nm.appendChild(others);
+
+  const pr = el('input', 'price'); pr.type = 'number'; pr.min = '0'; pr.step = '1';
+  const q = el('input', 'qty'); q.type = 'number'; q.min = '0'; q.step = '0.01'; q.placeholder = '0';
+  q.setAttribute('inputmode', 'decimal');
+  const sum = el('div', 'sum', '—');
+  r.append(nm, pr, q, sum);
+  if (deletable) {
+    const d = el('button', 'del', '✕'); d.type = 'button'; d.title = 'Удалить свою работу';
+    d.addEventListener('click', () => {
+      armConfirm(d, '?', () => {
+        S.custom = S.custom.filter(c => c.id !== it.id);
+        delete S.q[it.id];
+        renderSections(); save();
+      });
+    });
+    r.appendChild(d);
+    r.style.gridTemplateColumns = '1fr 92px 76px 100px 26px';
+  }
+
+  pr.addEventListener('input', () => {
+    const v = num(pr.value);
+    if (it.custom) { it.price = v; } else { S.priceOv[it.id] = v; }
+    recalc(); save();
+  });
+  q.addEventListener('change', () => {
+    if (num(q.value) > 0) toast('Занесено в смету ✓');
+  });
+  q.addEventListener('input', () => {
+    if (!S.q[it.id]) S.q[it.id] = {};
+    const v = num(q.value);
+    if (v) S.q[it.id][S.room] = v; else delete S.q[it.id][S.room];
+    recalc(); save();
+  });
+  return r;
+}
+
+function buildCustomForm() {
+  const f = el('div', 'custwrap');
+  f.appendChild(el('div', 'cf-title', '➕ Добавить свою работу'));
+
+  f.appendChild(el('div', 'cf-l', 'Название работы'));
+  const name = el('input'); name.placeholder = 'Например: фундамент плитный';
+  f.appendChild(name);
+
+  const grid = el('div', 'cf-grid');
+  const c1 = el('div'), c2 = el('div'), c3 = el('div');
+  c1.appendChild(el('div', 'cf-l', 'Ед. измерения'));
+  const unit = el('select'); UNITS.forEach(u => { const o = el('option', null, u); o.value = u; unit.appendChild(o); });
+  c1.appendChild(unit);
+  c2.appendChild(el('div', 'cf-l', 'Цена за ед., ₽'));
+  const pr = el('input'); pr.type = 'number'; pr.placeholder = '0'; pr.setAttribute('inputmode', 'decimal');
+  c2.appendChild(pr);
+  c3.appendChild(el('div', 'cf-l', 'Кол-во'));
+  const qty = el('input'); qty.type = 'number'; qty.placeholder = '0'; qty.setAttribute('inputmode', 'decimal');
+  c3.appendChild(qty);
+  grid.append(c1, c2, c3);
+  f.appendChild(grid);
+
+  const sumline = el('div', 'cf-sum');
+  const sumv = el('div', 'v', 'Сумма: —');
+  const btn = el('button', 'btn gold', 'Занести в смету ✓'); btn.type = 'button';
+  sumline.append(sumv, btn);
+  f.appendChild(sumline);
+
+  const upd = () => {
+    const t = num(pr.value) * num(qty.value);
+    sumv.textContent = t > 0 ? 'Сумма: ' + fmt(t) : 'Сумма: —';
+  };
+  pr.addEventListener('input', upd);
+  qty.addEventListener('input', upd);
+
+  btn.addEventListener('click', () => {
+    if (!name.value.trim()) { toast('Напиши название работы'); name.focus(); return; }
+    if (!num(pr.value)) { toast('Укажи цену за единицу'); pr.focus(); return; }
+    if (!num(qty.value)) { toast('Укажи количество'); qty.focus(); return; }
+    const id = 'c' + Date.now();
+    S.custom.push({
+      id, custom: true, tab: S.tab,
+      stage: CUSTOM_STAGE_DEFAULT[S.tab],
+      name: name.value.trim(), unit: unit.value,
+      price: num(pr.value), rate: 0,
+    });
+    S.q[id] = { [S.room]: num(qty.value) };
+    renderSections(); save();
+    toast('Занесено в смету ✓');
+  });
+  return f;
+}
+
+function syncRows() {
+  document.querySelectorAll('.row[data-id]').forEach(r => {
+    const it = getItem(r.dataset.id); if (!it) return;
+    const pr = r.querySelector('.price');
+    const q = r.querySelector('.qty');
+    if (document.activeElement !== pr) pr.value = price(it);
+    pr.classList.toggle('edited', !it.custom && S.priceOv[it.id] != null && S.priceOv[it.id] !== it.price);
+    if (document.activeElement !== q) { const v = qtyRoom(it.id, S.room); q.value = v || ''; }
+    // подсказка про другие помещения
+    const others = r.querySelector('[data-others]');
+    const total = qtyTotal(it.id), cur = qtyRoom(it.id, S.room);
+    if (total > cur) {
+      const rest = Object.entries(S.q[it.id] || {}).filter(([rid, v]) => rid !== S.room && num(v) > 0)
+        .map(([rid, v]) => `${roomName(rid)}: ${v}`).join(', ');
+      others.textContent = `＋ в других: ${rest}`;
+    } else others.textContent = '';
+  });
+}
+
+/* ================= РАСЧЁТ ================= */
+
+function calc() {
+  const items = allItems();
+  const lines = items.map(it => ({ it, qty: qtyTotal(it.id), p: price(it) }))
+    .filter(x => x.qty > 0)
+    .map(x => ({ ...x, total: x.qty * x.p, labor: x.it.rate > 0 ? x.qty / x.it.rate : 0 }));
+
+  const byStage = { 1: [], 2: [], 3: [], 0: [] };
+  lines.forEach(l => byStage[l.it.stage].push(l));
+  const stageSum = {}, stageLabor = {}, stageDaysAuto = {}, stageDays = {};
+  [1, 2, 3, 0].forEach(s => {
+    stageSum[s] = byStage[s].reduce((a, x) => a + x.total, 0);
+    stageLabor[s] = byStage[s].reduce((a, x) => a + x.labor, 0);
+  });
+  [1, 2, 3].forEach(s => {
+    const crew = Math.max(1, num(S.crew[s]) || 1);
+    stageDaysAuto[s] = stageLabor[s] > 0 ? Math.ceil(stageLabor[s] / crew) : 0;
+    // сметчик главнее системы: если заложил свои дни — берём их
+    const ov = num(S.daysOv[s]);
+    stageDays[s] = ov > 0 ? Math.round(ov) : stageDaysAuto[s];
+  });
+  const totalDays = stageDays[1] + stageDays[2] + stageDays[3];
+
+  const works = stageSum[1] + stageSum[2] + stageSum[3] + stageSum[0];
+  const mat = works * num(S.pct.mat) / 100;
+  const baseWM = works + mat;
+  const trans = baseWM * num(S.pct.trans) / 100;
+  const over = baseWM * num(S.pct.over) / 100;
+  const before = baseWM + trans + over;
+  const disc = before * num(S.pct.disc) / 100;
+  const grand = before - disc;
+
+  // по помещениям (только работы)
+  const roomSums = {};
+  lines.forEach(l => {
+    Object.entries(S.q[l.it.id] || {}).forEach(([rid, v]) => {
+      const n = num(v); if (!n) return;
+      roomSums[rid] = (roomSums[rid] || 0) + n * l.p;
+    });
+  });
+
+  return { lines, byStage, stageSum, stageLabor, stageDaysAuto, stageDays, totalDays, works, mat, trans, over, disc, grand, roomSums };
+}
+
+function recalc() {
+  syncRows();
+  const c = calc();
+
+  // строки
+  document.querySelectorAll('.row[data-id]').forEach(r => {
+    const it = getItem(r.dataset.id); if (!it) return;
+    const t = qtyTotal(it.id) * price(it);
+    r.querySelector('.sum').textContent = t > 0 ? fmt(t) : '—';
+    r.classList.toggle('active', t > 0);
+  });
+  // бейджи разделов = сумма видимых строк
+  document.querySelectorAll('#sections details.card').forEach(card => {
+    let s = 0;
+    card.querySelectorAll('.row[data-id]').forEach(r => {
+      const it = getItem(r.dataset.id); if (it) s += qtyTotal(it.id) * price(it);
+    });
+    const b = card.querySelector('[data-secbadge]');
+    if (b) { b.textContent = fmt(s); b.classList.toggle('zero', s <= 0); }
+  });
+
+  renderTime(c);
+
+  const bp = document.getElementById('bPct');
+  bp.textContent = `мат ${S.pct.mat}% · скидка ${S.pct.disc}%`;
+  bp.classList.toggle('zero', !num(S.pct.disc));
+
+  document.getElementById('bEst').textContent = fmt(c.grand);
+  document.getElementById('dockTotal').textContent = fmt(c.grand);
+  document.getElementById('dockTerm').textContent = c.totalDays > 0 ? `🛠 ~${c.totalDays} дн.` : '';
+  document.getElementById('bTime').textContent = c.totalDays > 0 ? `~${c.totalDays} дн` : '0 дн';
+  document.getElementById('bTime').classList.toggle('zero', c.totalDays === 0);
+
+  renderEstimate(c);
+}
+
+function renderTime(c) {
+  const box = document.getElementById('timeBody');
+  if (box.contains(document.activeElement)) {
+    const t = box.querySelector('[data-totaldays]');
+    if (t) t.textContent = c.totalDays > 0 ? `~${c.totalDays} дн.` : '—';
+    return;
+  }
+  box.innerHTML = '';
+  const head = el('div', 'time-head');
+  head.style.gridTemplateColumns = '1fr 120px';
+  head.append(el('div', null, 'Этап'), el('div', null, 'Срок, дней'));
+  box.appendChild(head);
+  [1, 2].forEach(s => {
+    const line = el('div', 'stage-line');
+    line.style.gridTemplateColumns = '1fr 120px';
+    const nm = el('div');
+    nm.append(STAGE_NAMES[s]);
+    nm.appendChild(el('span', 'ld', c.stageSum[s] > 0 ? fmt(c.stageSum[s]) : 'нет позиций'));
+    const ovr = el('div', 'ovr');
+    const ovInp = el('input'); ovInp.type = 'number'; ovInp.min = '0'; ovInp.step = '1';
+    ovInp.placeholder = '—';
+    if (num(S.daysOv[s]) > 0) ovInp.value = S.daysOv[s];
+    ovInp.title = 'Сколько дней займёт этот этап. Попадёт в смету и КП.';
+    ovInp.addEventListener('input', () => { S.daysOv[s] = num(ovInp.value); recalc(); save(); });
+    ovr.append(ovInp, el('span', null, 'дн.'));
+    line.append(nm, ovr);
+    box.appendChild(line);
+  });
+  const total = el('div', 'stage-line');
+  total.style.gridTemplateColumns = '1fr 120px';
+  const td = el('div', 'days', c.totalDays > 0 ? `~${c.totalDays} дн.` : '—');
+  td.dataset.totaldays = '1';
+  total.append(el('div', null, 'Всего срок изготовления'), td);
+  box.appendChild(total);
+  box.appendChild(el('div', 'time-note', 'Укажи срок изготовления и монтажа в днях — общий срок соберётся сам и попадёт в коммерческое предложение.'));
+}
+
+/* ================= СМЕТА ================= */
+
+function renderEstimate(c) {
+  const box = document.getElementById('estBody');
+  box.innerHTML = '';
+  if (c.works <= 0) {
+    box.appendChild(el('div', 'est-empty', 'Выбери изделие и введи позиции — смета соберётся сама. Ищи через 🔍 сверху.'));
+    return;
+  }
+  const line = (name, v, cls) => {
+    const l = el('div', 'est-line' + (cls ? ' ' + cls : ''));
+    l.appendChild(el('div', null, name));
+    l.appendChild(el('div', 'v', typeof v === 'string' ? v : fmt(v)));
+    box.appendChild(l);
+  };
+  [1, 2, 3, 0].forEach(s => {
+    if (c.stageSum[s] <= 0) return;
+    line(STAGE_NAMES[s] + (c.stageDays[s] ? ` · ~${c.stageDays[s]} дн.` : ''), c.stageSum[s]);
+    c.byStage[s].forEach(x => line(`${x.it.name} — ${x.qty} ${x.it.unit}`, x.total, 'sub'));
+  });
+  if (Object.keys(c.roomSums).length > 1 || (Object.keys(c.roomSums).length === 1 && !c.roomSums.all)) {
+    line('По изделиям:', '');
+    Object.entries(c.roomSums).forEach(([rid, v]) => line(roomName(rid), v, 'sub'));
+  }
+  if (c.mat > 0) line(`Материалы (~${S.pct.mat}% от работ)`, c.mat);
+  if (c.trans > 0) line(`Транспортные ${S.pct.trans}%`, c.trans);
+  if (c.over > 0) line(`Накладные ${S.pct.over}%`, c.over);
+  if (c.disc > 0) line(`Скидка ${S.pct.disc}%`, '−' + fmt(c.disc), 'green');
+
+  const tot = el('div', 'est-total');
+  tot.append(el('div', 't', 'Итого'), el('div', 'v', fmt(c.grand)));
+  box.appendChild(tot);
+  if (c.totalDays > 0) box.appendChild(el('div', 'est-line sub', `Срок: ~${c.totalDays} рабочих дней (этапы последовательно).`));
+}
+
+function estimateText() {
+  const c = calc();
+  const L = [];
+  L.push('СМЕТА' + (S.curNum ? ' № ' + S.curNum : '') + (S.proj.name ? ' — ' + S.proj.name : ''));
+  const cl = [S.proj.clientName, S.proj.phone].filter(Boolean).join(', ');
+  if (cl) L.push('Клиент: ' + cl);
+  const ad = addressString();
+  if (ad) L.push('Адрес: ' + ad);
+  L.push('');
+  [1, 2, 3, 0].forEach(s => {
+    if (c.stageSum[s] <= 0) return;
+    L.push(`${STAGE_NAMES[s]}${c.stageDays[s] ? ` (~${c.stageDays[s]} дн.)` : ''}: ${fmt(c.stageSum[s])}`);
+    c.byStage[s].forEach(x => L.push(`  · ${x.it.name} — ${x.qty} ${x.it.unit} × ${fmt(x.p)} = ${fmt(x.total)}`));
+    L.push('');
+  });
+  const rooms = Object.entries(c.roomSums);
+  if (rooms.length > 1 || (rooms.length === 1 && rooms[0][0] !== 'all')) {
+    L.push('По изделиям:');
+    rooms.forEach(([rid, v]) => L.push(`  · ${roomName(rid)}: ${fmt(v)}`));
+    L.push('');
+  }
+  if (c.mat > 0) L.push(`Материалы (~${S.pct.mat}%): ${fmt(c.mat)}`);
+  if (c.trans > 0) L.push(`Транспортные ${S.pct.trans}%: ${fmt(c.trans)}`);
+  if (c.over > 0) L.push(`Накладные ${S.pct.over}%: ${fmt(c.over)}`);
+  if (c.disc > 0) L.push(`Скидка ${S.pct.disc}%: −${fmt(c.disc)}`);
+  L.push(`ИТОГО: ${fmt(c.grand)}`);
+  if (c.totalDays > 0) L.push(`Срок: ~${c.totalDays} рабочих дней.`);
+  return L.join('\n');
+}
+
+/* ================= ПОИСК ================= */
+
+let suggSel = -1;
+/* поиск с учётом русских окончаний: «плитка стены» найдёт «Укладка плитки: стены» */
+function searchMatch(name, q) {
+  const words = q.split(/\s+/).filter(w => w.length >= 2);
+  if (!words.length) return false;
+  return words.every(w => {
+    const forms = [w];
+    if (w.length > 4) forms.push(w.slice(0, -1));
+    if (w.length > 5) forms.push(w.slice(0, -2));
+    return forms.some(f => name.includes(f));
+  });
+}
+function doSearch() {
+  const q = document.getElementById('search').value.trim().toLowerCase();
+  const box = document.getElementById('sugg');
+  box.innerHTML = ''; suggSel = -1;
+  if (q.length < 2) { box.classList.remove('show'); return; }
+  const hits = allItems().filter(it => searchMatch(it.name.toLowerCase(), q)).slice(0, 12);
+  if (!hits.length) { box.classList.remove('show'); return; }
+  hits.forEach(it => {
+    const d = el('div', 'sg');
+    d.append(it.name + ' ');
+    d.appendChild(el('span', 'm', `· ${fmt(price(it))}/${it.unit} · ${TABS.find(t => t.id === it.tab).name}`));
+    d.addEventListener('mousedown', ev => { ev.preventDefault(); jumpTo(it); });
+    box.appendChild(d);
+  });
+  box.classList.add('show');
+}
+
+function jumpTo(it) {
+  document.getElementById('sugg').classList.remove('show');
+  document.getElementById('search').value = '';
+  if (S.tab !== it.tab) { S.tab = it.tab; renderTabs(); renderSections(); }
+  requestAnimationFrame(() => {
+    const r = document.querySelector(`.row[data-id="${it.id}"]`);
+    if (!r) return;
+    const card = r.closest('details'); if (card) card.open = true;
+    r.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    r.classList.remove('flash'); void r.offsetWidth; r.classList.add('flash');
+    setTimeout(() => { const q = r.querySelector('.qty'); if (q) q.focus(); }, 450);
+  });
+}
+
+/* ================= КП ================= */
+
+const KP_FIELDS = ['company', 'num', 'client', 'object', 'note', 'phone', 'mail', 'manager'];
+const kpEl = id => document.getElementById(id);
+const kpInputId = f => 'kp' + f.charAt(0).toUpperCase() + f.slice(1);
+const DATE_FMT = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+function kpDefaultNum() {
+  const d = new Date(); const p = n => String(n).padStart(2, '0');
+  return `${String(d.getFullYear()).slice(2)}${p(d.getMonth() + 1)}${p(d.getDate())}-1`;
+}
+
+function openKP() {
+  if (!S.kp.num) S.kp.num = S.curNum || kpDefaultNum();
+  const cl = [S.proj.clientName, S.proj.phone].filter(Boolean).join(', ');
+  if (!S.kp.client && cl) S.kp.client = cl;
+  const obj = [S.proj.name, addressString()].filter(Boolean).join(', ');
+  if (!S.kp.object && obj) S.kp.object = obj;
+  KP_FIELDS.forEach(f => { kpEl(kpInputId(f)).value = S.kp[f] || ''; });
+  const now = new Date(), valid = new Date(now.getTime() + 14 * 86400000);
+  kpEl('kpDate').textContent = 'от ' + DATE_FMT.format(now);
+  kpEl('kpValid').textContent = 'действительно до ' + DATE_FMT.format(valid);
+  renderKPBody();
+  document.body.classList.add('kp-open');
+  document.title = 'КП ' + (S.kp.company || 'МЕБЕЛЬНАЯ СМЕТА') + ' № ' + S.kp.num;
+  window.scrollTo(0, 0);
+}
+function closeKP() {
+  document.body.classList.remove('kp-open');
+  document.title = 'Мебельная смета — расчёт по изделиям и КП';
+}
+
+function renderKPBody() {
+  const c = calc();
+  kpEl('kpTotal').textContent = fmt(c.grand);
+
+  // таймлайн
+  const tl = kpEl('kpTimeline'); tl.innerHTML = '';
+  const tln = kpEl('kpTlNote');
+  if (c.totalDays > 0) {
+    [1, 2, 3].forEach(s => {
+      if (!c.stageDays[s]) return;
+      const seg = el('div', 'kp-tl-' + s, `Этап ${s} · ${c.stageDays[s]} дн`);
+      seg.style.flex = String(c.stageDays[s]);
+      tl.appendChild(seg);
+    });
+    tln.textContent = `Срок изготовления и монтажа: ~${c.totalDays} рабочих дней с момента предоплаты.`;
+  } else { tln.textContent = 'Сроки будут рассчитаны после уточнения объёмов.'; }
+
+  // краткая таблица этапов
+  const short = kpEl('kpStagesShort'); short.innerHTML = '';
+  const t1 = el('table', 'kp-stages');
+  t1.innerHTML = '<thead><tr><th>Этап</th><th class="r">Срок</th><th class="r">Стоимость</th></tr></thead>';
+  const tb1 = document.createElement('tbody');
+  [1, 2, 3].forEach(s => {
+    if (c.stageSum[s] <= 0) return;
+    const tr = document.createElement('tr');
+    tr.append(el('td', null, STAGE_NAMES[s]),
+      el('td', 'r', c.stageDays[s] ? '~' + c.stageDays[s] + ' дн.' : '—'), el('td', 'r', fmt(c.stageSum[s])));
+    tb1.appendChild(tr);
+  });
+  if (c.stageSum[0] > 0) {
+    const tr = document.createElement('tr');
+    tr.append(el('td', null, 'Замер, доставка, прочее'), el('td', 'r', '—'), el('td', 'r', fmt(c.stageSum[0])));
+    tb1.appendChild(tr);
+  }
+  t1.appendChild(tb1); short.appendChild(t1);
+
+  // детальная таблица
+  const box = kpEl('kpTable'); box.innerHTML = '';
+  if (c.works <= 0) { box.appendChild(el('div', 'kp-empty', 'Смета пуста — вернитесь к расчёту.')); }
+  else {
+    const t = el('table', 'kp-stages');
+    t.innerHTML = '<thead><tr><th>Наименование</th><th class="r">Кол-во</th><th class="r">Цена</th><th class="r">Сумма</th></tr></thead>';
+    const tb = document.createElement('tbody');
+    [1, 2, 3, 0].forEach(s => {
+      if (c.stageSum[s] <= 0) return;
+      const sec = document.createElement('tr'); sec.className = 'sec';
+      const td = el('td', null, STAGE_NAMES[s] + (c.stageDays[s] ? ` · ~${c.stageDays[s]} дн.` : '')); td.colSpan = 3;
+      sec.append(td, el('td', 'r', fmt(c.stageSum[s])));
+      tb.appendChild(sec);
+      c.byStage[s].forEach(x => {
+        const tr = document.createElement('tr'); tr.className = 'it';
+        const nameTd = el('td', null, x.it.name);
+        const roomsHere = Object.entries(S.q[x.it.id] || {}).filter(([, v]) => num(v) > 0);
+        if (roomsHere.length && !(roomsHere.length === 1 && roomsHere[0][0] === 'all')) {
+          nameTd.appendChild(el('span', 'roomtag', ' — ' + roomsHere.map(([rid, v]) => `${roomName(rid)} ${v}`).join(', ')));
+        }
+        tr.append(nameTd, el('td', 'r', x.qty + ' ' + x.it.unit), el('td', 'r', fmt(x.p)), el('td', 'r', fmt(x.total)));
+        tb.appendChild(tr);
+      });
+    });
+    t.appendChild(tb); box.appendChild(t);
+  }
+
+  // по помещениям
+  const rk = kpEl('kpRooms'); rk.innerHTML = '';
+  const rooms = Object.entries(c.roomSums);
+  if (rooms.length > 1 || (rooms.length === 1 && rooms[0][0] !== 'all')) {
+    rk.appendChild(el('div', 'kp-h', 'Стоимость по изделиям'));
+    rooms.forEach(([rid, v]) => {
+      const l = el('div', 'kp-line');
+      l.append(el('div', null, roomName(rid)), el('div', 'v', fmt(v)));
+      rk.appendChild(l);
+    });
+  }
+
+  // сводка
+  const sm = kpEl('kpSummary'); sm.innerHTML = '';
+  sm.appendChild(el('div', 'kp-h', 'Сводка'));
+  const add = (n, v, cls) => { const l = el('div', 'kp-line' + (cls ? ' ' + cls : '')); l.append(el('div', null, n), el('div', 'v', typeof v === 'string' ? v : fmt(v))); sm.appendChild(l); };
+  add('Работы', c.works);
+  if (c.mat > 0) add(`Материалы (ориентировочно, ${S.pct.mat}% от работ)`, c.mat);
+  if (c.trans > 0) add(`Транспортные расходы ${S.pct.trans}%`, c.trans);
+  if (c.over > 0) add(`Накладные расходы ${S.pct.over}%`, c.over);
+  if (c.disc > 0) add(`Скидка ${S.pct.disc}%`, '−' + fmt(c.disc), 'green');
+
+  kpEl('kpPay').textContent = c.totalDays > 0
+    ? `Оплата: предоплата ${S.pct.adv}%, остаток ${100 - S.pct.adv}% — при доставке/монтаже. Стоимость фиксируется в договоре после замера.`
+    : 'Расчёт предварительный, финальная смета — после замера.';
+  kpEl('kpPayTerm').textContent = `Оплата: предоплата ${S.pct.adv}%, остаток ${100 - S.pct.adv}% — при доставке и монтаже.`;
+}
+
+function kpText() {
+  const L = [];
+  L.push(`Коммерческое предложение${S.kp.company ? ' — ' + S.kp.company : ''} № ${S.kp.num || kpDefaultNum()}`);
+  if (S.kp.client) L.push('Для: ' + S.kp.client);
+  if (S.kp.object) L.push('Объект: ' + S.kp.object);
+  L.push('');
+  L.push(estimateText());
+  L.push(`Оплата: предоплата ${S.pct.adv}%, остаток при доставке/монтаже. Предложение действительно 14 дней.`);
+  if (S.kp.note) { L.push(''); L.push('Комментарий: ' + S.kp.note); }
+  const contacts = [S.kp.phone, S.kp.mail, S.kp.manager].filter(Boolean).join(' · ');
+  if (contacts) L.push('Контакты: ' + contacts);
+  return L.join('\n');
+}
+
+/* ================= СПРАВОЧНИК РАБОТ ================= */
+
+const REF_TAB = { 0: 'pro', 1: 'korp', 2: 'mont', 3: 'pro' };
+
+/* действующий справочник: свой (загруженный из Excel) или стартовый */
+function refList() { return (S.refUser && S.refUser.length) ? S.refUser : REF; }
+
+function renderRef() {
+  document.querySelector('#refModal .modal-head .t').textContent =
+    `📚 Справочник (${S.refUser && S.refUser.length ? 'свой' : 'стартовый'} · ${refList().length} поз.)`;
+  const q = document.getElementById('refSearch').value.trim().toLowerCase();
+  const box = document.getElementById('refBody'); box.innerHTML = '';
+  const hits = refList().filter(x => !q || searchMatch(x.name.toLowerCase(), q));
+  if (!hits.length) {
+    box.appendChild(el('div', 'modal-empty', 'Не нашлось. Попробуй другое слово — или добавь позицию как «свою работу» в нужной вкладке.'));
+    return;
+  }
+  hits.slice(0, 80).forEach(x => {
+    const r = el('div', 'ref-row');
+    const nm = el('div', 'nm', x.name);
+    nm.appendChild(el('span', 'meta', `${fmt(x.price)} за ${x.unit} · ${STAGE_NAMES[x.stage]}`));
+    const qi = document.createElement('input');
+    qi.type = 'number'; qi.placeholder = 'кол-во'; qi.setAttribute('inputmode', 'decimal');
+    const b = el('button', 'btn gold', 'В смету'); b.type = 'button';
+    b.addEventListener('click', () => {
+      const id = 'c' + Date.now() + Math.floor(Math.random() * 1000);
+      S.custom.push({ id, custom: true, tab: REF_TAB[x.stage] || 'pro', stage: x.stage, name: x.name, unit: x.unit, price: x.price, rate: 0 });
+      const v = num(qi.value);
+      if (v) S.q[id] = { [S.room]: v };
+      save();
+      document.getElementById('refModal').classList.remove('show');
+      renderSections();
+      if (v) toast('Занесено в смету ✓');
+      const it = getItem(id);
+      if (it) jumpTo(it);
+    });
+    r.append(nm, qi, b);
+    box.appendChild(r);
+  });
+  if (hits.length > 80) box.appendChild(el('div', 'modal-empty', `Показаны первые 80 из ${hits.length} — уточни запрос.`));
+}
+
+/* ===== свой справочник из Excel (.xlsx / .csv), читается прямо в браузере ===== */
+
+async function unzip(buf) {
+  const dv = new DataView(buf); const u8 = new Uint8Array(buf);
+  let e = buf.byteLength - 22;
+  while (e >= 0 && dv.getUint32(e, true) !== 0x06054b50) e--;
+  if (e < 0) throw new Error('not zip');
+  const cnt = dv.getUint16(e + 10, true); let off = dv.getUint32(e + 16, true);
+  const out = {}; const td = new TextDecoder();
+  for (let i = 0; i < cnt; i++) {
+    if (dv.getUint32(off, true) !== 0x02014b50) break;
+    const method = dv.getUint16(off + 10, true), csize = dv.getUint32(off + 20, true),
+      fnlen = dv.getUint16(off + 28, true), extralen = dv.getUint16(off + 30, true),
+      cmtlen = dv.getUint16(off + 32, true), lho = dv.getUint32(off + 42, true);
+    const name = td.decode(u8.subarray(off + 46, off + 46 + fnlen));
+    if (name === 'xl/sharedStrings.xml' || /^xl\/worksheets\/sheet\d+\.xml$/.test(name)) {
+      const lfn = dv.getUint16(lho + 26, true), lex = dv.getUint16(lho + 28, true);
+      const start = lho + 30 + lfn + lex;
+      const data = u8.subarray(start, start + csize);
+      let bytes;
+      if (method === 0) bytes = data;
+      else {
+        const stream = new Blob([data]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+        bytes = new Uint8Array(await new Response(stream).arrayBuffer());
+      }
+      out[name] = new TextDecoder().decode(bytes);
+    }
+    off += 46 + fnlen + extralen + cmtlen;
+  }
+  return out;
+}
+
+async function readXlsxRows(buf) {
+  const files = await unzip(buf);
+  const shared = [];
+  if (files['xl/sharedStrings.xml']) {
+    const doc = new DOMParser().parseFromString(files['xl/sharedStrings.xml'], 'application/xml');
+    doc.querySelectorAll('si').forEach(si => {
+      let t = '';
+      si.querySelectorAll('t').forEach(x => { t += x.textContent; });
+      shared.push(t);
+    });
+  }
+  const sheetName = files['xl/worksheets/sheet1.xml'] ? 'xl/worksheets/sheet1.xml'
+    : Object.keys(files).find(n => /^xl\/worksheets\/sheet\d+\.xml$/.test(n));
+  if (!sheetName) throw new Error('no sheet');
+  const doc = new DOMParser().parseFromString(files[sheetName], 'application/xml');
+  const rows = [];
+  doc.querySelectorAll('row').forEach(row => {
+    const arr = [];
+    row.querySelectorAll('c').forEach(c => {
+      const letters = (c.getAttribute('r') || '').replace(/\d+/g, '');
+      let col = 0;
+      for (const ch of letters) col = col * 26 + (ch.charCodeAt(0) - 64);
+      col = Math.max(0, col - 1);
+      const t = c.getAttribute('t');
+      let v;
+      if (t === 'inlineStr') v = c.textContent;
+      else {
+        const vEl = c.querySelector('v');
+        v = vEl ? vEl.textContent : '';
+        if (t === 's') v = shared[parseInt(v, 10)] ?? '';
+      }
+      arr[col] = v;
+    });
+    rows.push(arr);
+  });
+  return rows;
+}
+
+function parseCsvRows(buf) {
+  let text;
+  try { text = new TextDecoder('utf-8', { fatal: true }).decode(buf); }
+  catch (e) { text = new TextDecoder('windows-1251').decode(buf); }
+  text = text.replace(/^﻿/, '');
+  const delim = (text.split(';').length >= text.split(',').length) ? ';' : ',';
+  const rows = []; let cur = [], field = '', inQ = false;
+  const endRow = () => { cur.push(field); rows.push(cur); cur = []; field = ''; };
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (inQ) {
+      if (ch === '"') { if (text[i + 1] === '"') { field += '"'; i++; } else inQ = false; }
+      else field += ch;
+    }
+    else if (ch === '"') inQ = true;
+    else if (ch === delim) { cur.push(field); field = ''; }
+    else if (ch === '\n') endRow();
+    else if (ch !== '\r') field += ch;
+  }
+  if (field || cur.length) endRow();
+  return rows;
+}
+
+async function importRefFile(file) {
+  try {
+    const buf = await file.arrayBuffer();
+    const rows = /\.xlsx$/i.test(file.name) ? await readXlsxRows(buf) : parseCsvRows(buf);
+    const items = [];
+    rows.forEach(r => {
+      const name = String(r[0] ?? '').trim();
+      const price = num(String(r[2] ?? '').replace(/\s/g, ''));
+      if (!name || !price) return;                       // шапка и пустые строки отсеются сами
+      const unit = String(r[1] ?? '').trim() || 'шт';
+      let stage = parseInt(r[3], 10);
+      if (![0, 1, 2, 3].includes(stage)) stage = 0;
+      items.push({ name, unit, price, stage });
+    });
+    if (!items.length) { toast('В файле нет строк «название + цена». Скачай шаблон и заполни по нему.'); return; }
+    // совпадающим по названию базовым работам в разделах — обновить цены
+    const norm = s => s.toLowerCase().replace(/[«»"]/g, '').replace(/\s+/g, ' ').trim();
+    const map = new Map(items.map(i => [norm(i.name), i]));
+    let updated = 0;
+    CATALOG.filter(x => x.id).forEach(it => {
+      const hit = map.get(norm(it.name));
+      if (hit) { S.priceOv[it.id] = hit.price; updated++; }
+    });
+    S.refUser = items;
+    save(); renderRef(); recalc();
+    toast(`Справочник заменён: ${items.length} позиций` + (updated ? `, цены обновлены у ${updated} базовых работ` : ''));
+  } catch (e) {
+    toast('Не смог прочитать файл — сохрани его как .xlsx или .csv и попробуй ещё раз');
+  }
+}
+
+function refTemplateCSV() {
+  const q = s => '"' + String(s).replace(/"/g, '""') + '"';
+  const L = ['Название работы;Ед. изм.;Цена за ед.;Этап (1 черновые / 2 подготовка / 3 финиш / 0 прочее)'];
+  refList().forEach(x => L.push([q(x.name), x.unit, x.price, x.stage].join(';')));
+  return '﻿' + L.join('\r\n');
+}
+
+/* ================= СРАВНЕНИЕ СО СМЕТОЙ КОНКУРЕНТА ================= */
+
+let CMP = null;   // последний результат сравнения (для копирования)
+
+/* слова-стемы названия: для нечёткого сопоставления позиций */
+function nameTokens(s) {
+  return s.toLowerCase().replace(/[«»"().,:;/\\-]/g, ' ').split(/\s+/)
+    .filter(w => w.length >= 3)
+    .map(w => w.length > 5 ? w.slice(0, -2) : (w.length > 4 ? w.slice(0, -1) : w));
+}
+function namesSimilar(a, b) {
+  const ta = nameTokens(a), tb = nameTokens(b);
+  if (!ta.length || !tb.length) return false;
+  const setB = new Set(tb);
+  const hit = ta.filter(w => setB.has(w)).length;
+  return hit / Math.min(ta.length, tb.length) >= 0.6;
+}
+
+/* разбор строк файла конкурента: Название; Ед.; Кол-во; Цена */
+function parseCompetitorRows(rows) {
+  const items = [];
+  rows.forEach(r => {
+    if (!r) return;
+    const cells = r.map(x => String(x ?? '').trim());
+    const name = cells.find(x => x && isNaN(parseFloat(x.replace(',', '.'))) && x.length >= 4);
+    if (!name) return;
+    if (/^итог|^всего|^смета|^наименование|^название|^№/i.test(name)) return;
+    const nums = cells.map(x => num(x.replace(/\s/g, ''))).filter(v => v > 0);
+    if (!nums.length) return;
+    let qty = null, price;
+    if (nums.length >= 2) { qty = nums[0]; price = nums[1]; }
+    else price = nums[0];
+    // если «цена» подозрительно похожа на сумму (есть третье число = qty*price) — оставляем как есть
+    const unit = cells.find(x => /^(м²|м2|м³|м3|шт|п\.?м\.?|мп|компл|т|точка|рейс|м\/п)\.?$/i.test(x)) || '';
+    items.push({ name, unit, qty, price });
+  });
+  return items;
+}
+
+async function importCompetitor(file) {
+  const box = document.getElementById('cmpBody');
+  try {
+    const buf = await file.arrayBuffer();
+    const rows = /\.xlsx$/i.test(file.name) ? await readXlsxRows(buf) : parseCsvRows(buf);
+    const theirs = parseCompetitorRows(rows);
+    if (!theirs.length) {
+      box.innerHTML = '';
+      box.appendChild(el('div', 'modal-empty', 'Не нашёл позиций в файле. Нужны строки «название + число». Скачай шаблон и перенеси смету конкурента в него.'));
+      return;
+    }
+    renderCompare(theirs, file.name);
+  } catch (e) {
+    box.innerHTML = '';
+    box.appendChild(el('div', 'modal-empty', 'Не смог прочитать файл — сохрани его как .xlsx или .csv и попробуй ещё раз.'));
+  }
+}
+
+function renderCompare(theirs, fileName) {
+  const c = calc();
+  const ours = c.lines.map(l => ({ name: l.it.name, unit: l.it.unit, qty: l.qty, price: l.p, total: l.total, stage: l.it.stage }));
+  const box = document.getElementById('cmpBody');
+  box.innerHTML = '';
+
+  const usedTheir = new Set();
+  const both = [], onlyOurs = [];
+  ours.forEach(o => {
+    const idx = theirs.findIndex((t, i) => !usedTheir.has(i) && namesSimilar(o.name, t.name));
+    if (idx >= 0) { usedTheir.add(idx); both.push({ o, t: theirs[idx] }); }
+    else onlyOurs.push(o);
+  });
+  const onlyTheirs = theirs.filter((t, i) => !usedTheir.has(i));
+
+  // сравниваем сопоставимое: наши РАБОТЫ против сумм из файла (там обычно тоже работы)
+  const ourTotal = Math.round(c.works);
+  const theirTotal = theirs.every(t => t.qty) ? Math.round(theirs.reduce((a, t) => a + t.qty * t.price, 0)) : null;
+
+  // сводка
+  const sum = el('div', 'cmp-sum');
+  const b1 = el('div', 'cmp-box'); b1.append(el('div', 'l', 'Наши работы'), el('div', 'v', fmt(ourTotal)));
+  const b2 = el('div', 'cmp-box'); b2.append(el('div', 'l', 'Конкурент' + (theirTotal == null ? ' (по ценам)' : '')),
+    el('div', 'v', theirTotal == null ? '— нет кол-ва' : fmt(theirTotal)));
+  if (theirTotal != null) { (ourTotal <= theirTotal ? b1 : b2).classList.add('win'); }
+  sum.append(b1, b2);
+  box.appendChild(sum);
+  const note = el('div', 'cmp-row');
+  note.style.border = '0';
+  note.appendChild(el('span', 'm', 'Сравниваются работы без материалов и надбавок — как обычно составлены сметы конкурентов.'));
+  box.appendChild(note);
+
+  const cheaper = both.filter(x => x.o.price < x.t.price);
+  const pricier = both.filter(x => x.o.price > x.t.price);
+
+  const section = (title, cls, rows, rowFn) => {
+    if (!rows.length) return;
+    box.appendChild(el('div', 'cmp-h ' + cls, title));
+    rows.forEach(rowFn);
+  };
+
+  const pairRow = (x, good) => {
+    const r = el('div', 'cmp-row');
+    const nm = el('div', null, x.o.name);
+    nm.appendChild(el('span', 'm', `у нас ${fmt(x.o.price)} / у них ${fmt(x.t.price)} за ${x.o.unit}` + (x.t.name !== x.o.name ? ` · у них: «${x.t.name}»` : '')));
+    const diff = Math.round((x.o.price - x.t.price) / x.t.price * 100);
+    r.append(nm, el('div', 'd ' + (good ? 'good' : 'bad'), (diff > 0 ? '+' : '') + diff + '%'));
+    box.appendChild(r);
+  };
+
+  section(`✅ Мы дешевле (${cheaper.length})`, 'good', cheaper, x => pairRow(x, true));
+  section(`⚠ У них дешевле (${pricier.length})`, 'bad', pricier, x => pairRow(x, false));
+
+  section(`🃏 У конкурента этого НЕТ — наши козыри (${onlyOurs.length})`, 'trump', onlyOurs, o => {
+    const r = el('div', 'cmp-row');
+    const nm = el('div', null, o.name);
+    nm.appendChild(el('span', 'm', `${o.qty} ${o.unit} × ${fmt(o.price)} = ${fmt(o.total)} — у них не посчитано, у клиента вылезет доплатой`));
+    r.append(nm, el('div', 'd', fmt(o.total)));
+    box.appendChild(r);
+  });
+
+  section(`➕ У них есть, у нас не посчитано (${onlyTheirs.length})`, '', onlyTheirs, t => {
+    const r = el('div', 'cmp-row');
+    r.style.gridTemplateColumns = '1fr auto auto';
+    const nm = el('div', null, t.name);
+    nm.appendChild(el('span', 'm', `у них ${fmt(t.price)}${t.unit ? ' за ' + t.unit : ''}${t.qty ? ' × ' + t.qty : ''}`));
+    const add = el('button', 'btn', 'В смету +'); add.type = 'button';
+    add.addEventListener('click', () => {
+      const id = 'c' + Date.now() + Math.floor(Math.random() * 1000);
+      S.custom.push({ id, custom: true, tab: 'pro', stage: 0, name: t.name, unit: t.unit || 'шт', price: t.price, rate: 0 });
+      if (t.qty) S.q[id] = { [S.room]: t.qty };
+      save(); renderSections();
+      add.textContent = 'Добавлено ✓'; add.disabled = true;
+      toast('Позиция конкурента добавлена — проверь цену');
+    });
+    r.append(nm, el('div', 'd', t.qty ? fmt(t.qty * t.price) : fmt(t.price)), add);
+    box.appendChild(r);
+  });
+
+  if (!both.length && !onlyOurs.length) {
+    box.appendChild(el('div', 'modal-empty', 'Твоя текущая смета пуста — сравнивать не с чем. Сначала набери свою смету.'));
+  }
+
+  CMP = { fileName, ourTotal, theirTotal, cheaper, pricier, onlyOurs, onlyTheirs };
+  document.getElementById('cmpCopy').hidden = false;
+}
+
+function compareText() {
+  if (!CMP) return '';
+  const L = ['СРАВНЕНИЕ СМЕТ' + (S.proj.name ? ' — ' + S.proj.name : '')];
+  L.push(`Наша смета: ${fmt(CMP.ourTotal)}`);
+  if (CMP.theirTotal != null) L.push(`Смета конкурента: ${fmt(CMP.theirTotal)}`);
+  L.push('');
+  if (CMP.cheaper.length) {
+    L.push('МЫ ДЕШЕВЛЕ:');
+    CMP.cheaper.forEach(x => L.push(`  · ${x.o.name}: у нас ${fmt(x.o.price)}, у них ${fmt(x.t.price)}`));
+    L.push('');
+  }
+  if (CMP.onlyOurs.length) {
+    L.push('У КОНКУРЕНТА НЕ ПОСЧИТАНО (у клиента вылезет доплатой):');
+    CMP.onlyOurs.forEach(o => L.push(`  · ${o.name} — ${o.qty} ${o.unit} (${fmt(o.total)})`));
+    L.push('');
+  }
+  if (CMP.pricier.length) {
+    L.push('У них дешевле:');
+    CMP.pricier.forEach(x => L.push(`  · ${x.o.name}: у нас ${fmt(x.o.price)}, у них ${fmt(x.t.price)}`));
+  }
+  return L.join('\n');
+}
+
+function cmpTemplateCSV() {
+  return '﻿' + ['Название работы;Ед.;Кол-во;Цена за ед.',
+    'Штукатурка стен;м2;120;700',
+    'Стяжка пола;м2;45;650',
+    'Электрика: точка;шт;40;800'].join('\r\n');
+}
+
+/* ================= АРХИВ СМЕТ И НУМЕРАЦИЯ ================= */
+
+function genNum() {
+  const d = new Date(); const p = n => String(n).padStart(2, '0');
+  const base = `${String(d.getFullYear()).slice(2)}${p(d.getMonth() + 1)}${p(d.getDate())}`;
+  const arc = loadArc();
+  const esc = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  if (S.curNum) {
+    // пересохранение открытой сметы → дубль: -Д2, -Д3…
+    const root = S.curNum.replace(/-Д\d+$/, '');
+    let k = 1;
+    arc.forEach(e => { const m = String(e.num).match(new RegExp('^' + esc(root) + '-Д(\\d+)$')); if (m) k = Math.max(k, parseInt(m[1], 10)); });
+    return `${root}-Д${k + 1}`;
+  }
+  let n = 0;
+  arc.forEach(e => { const m = String(e.num).match(new RegExp('^' + base + '-(\\d+)')); if (m) n = Math.max(n, parseInt(m[1], 10)); });
+  return `${base}-${n + 1}`;
+}
+
+function updateCurNum() {
+  document.getElementById('curNum').textContent = S.curNum ? 'Смета № ' + S.curNum : '';
+}
+
+function saveSmeta() {
+  const c = calc();
+  if (c.works <= 0) { toast('Смета пустая — нечего сохранять'); return; }
+  const num = genNum();
+  const arc = loadArc();
+  arc.unshift({
+    num, ts: Date.now(),
+    client: S.proj.clientName, phone: S.proj.phone,
+    object: S.proj.name, address: addressString(),
+    total: Math.round(c.grand), days: c.totalDays, sentTo: '',
+    data: JSON.parse(JSON.stringify({ q: S.q, priceOv: S.priceOv, custom: S.custom, rooms: S.rooms, crew: S.crew, daysOv: S.daysOv, pct: S.pct, proj: S.proj })),
+  });
+  saveArc(arc);
+  S.curNum = num; S.kp.num = num;
+  save(); updateCurNum();
+  toast('Сохранено: смета № ' + num);
+}
+
+function openSmeta(entry) {
+  Object.assign(S, JSON.parse(JSON.stringify(entry.data)));
+  S.curNum = entry.num; S.kp.num = entry.num;
+  save();
+  bindProjFields();
+  ['pMat:mat', 'pTrans:trans', 'pOver:over', 'pDisc:disc', 'pAdv:adv'].forEach(pair => {
+    const [id, key] = pair.split(':');
+    document.getElementById(id).value = S.pct[key];
+  });
+  renderTabs(); renderRooms(); renderSections();
+  updateCurNum();
+  document.getElementById('arcModal').classList.remove('show');
+  toast('Открыта смета № ' + entry.num);
+}
+
+function renderArc() {
+  const q = document.getElementById('arcSearch').value.trim().toLowerCase();
+  const box = document.getElementById('arcBody'); box.innerHTML = '';
+  const all = loadArc();
+  const arc = all.filter(e => !q || (e.num + ' ' + (e.client || '') + ' ' + (e.phone || '') + ' ' + (e.address || '') + ' ' + (e.object || '') + ' ' + (e.sentTo || '')).toLowerCase().includes(q));
+  if (!arc.length) {
+    box.appendChild(el('div', 'modal-empty', all.length ? 'Ничего не найдено.' : 'Пока нет сохранённых смет. Посчитай и нажми «💾 Сохранить смету».'));
+    return;
+  }
+  arc.forEach(e => {
+    const r = el('div', 'arc-row');
+    const left = el('div');
+    left.appendChild(el('div', 'n', '№ ' + e.num + ' · ' + new Date(e.ts).toLocaleDateString('ru-RU') + (e.days ? ` · ~${e.days} дн.` : '')));
+    const meta = [e.client, e.phone, e.object, e.address].filter(Boolean).join(' · ');
+    if (meta) left.appendChild(el('div', 'm', meta));
+    const sent = el('div', 'sent');
+    const si = document.createElement('input');
+    si.placeholder = 'Кому отправили: например, WhatsApp Ивану 6 июля';
+    si.value = e.sentTo || '';
+    si.addEventListener('input', () => {
+      const a = loadArc(); const t = a.find(x => x.num === e.num && x.ts === e.ts);
+      if (t) { t.sentTo = si.value; saveArc(a); }
+    });
+    sent.appendChild(si); left.appendChild(sent);
+    const btns = el('div', 'arc-btns');
+    btns.appendChild(el('div', 's', fmt(e.total)));
+    const row2 = el('div'); row2.style.cssText = 'display:flex;gap:6px;align-items:center;';
+    const ob = el('button', 'btn', 'Открыть'); ob.type = 'button';
+    ob.addEventListener('click', () => armConfirm(ob, 'Заменит текущую?', () => openSmeta(e)));
+    const db = el('button', 'del', '✕'); db.type = 'button'; db.title = 'Удалить смету';
+    db.addEventListener('click', () => armConfirm(db, '?', () => {
+      saveArc(loadArc().filter(x => !(x.num === e.num && x.ts === e.ts)));
+      renderArc();
+    }));
+    row2.append(ob, db);
+    btns.appendChild(row2);
+    r.append(left, btns);
+    box.appendChild(r);
+  });
+}
+
+/* ================= ЭКСПОРТ ДЛЯ CRM / ERP =================
+   Единый машинный формат сметы. Сегодня — файл, который прикрепляется к карточке
+   клиента в любой CRM; завтра этот же JSON поедет по API / вебхуку. */
+
+function smetaData() {
+  const c = calc();
+  const items = c.lines.map(l => ({
+    stage: l.it.stage,
+    name: l.it.name,
+    unit: l.it.unit,
+    price: l.p,
+    qty: l.qty,
+    total: Math.round(l.total),
+    rooms: Object.entries(S.q[l.it.id] || {}).filter(([, v]) => num(v) > 0)
+      .map(([rid, v]) => ({ room: roomName(rid), qty: num(v) })),
+  }));
+  return {
+    format: 'mebelsmeta/v1',
+    num: S.curNum || null,
+    date: new Date().toISOString(),
+    client: { name: S.proj.clientName || '', phone: S.proj.phone || '' },
+    object: S.proj.name || '',
+    address: addressString(),
+    items,
+    stages: [1, 2, 3].filter(s => c.stageSum[s] > 0).map(s => ({
+      stage: s, title: STAGE_NAMES[s], sum: Math.round(c.stageSum[s]), days: c.stageDays[s], crew: S.crew[s],
+    })),
+    otherSum: Math.round(c.stageSum[0]),
+    totals: {
+      works: Math.round(c.works),
+      materialsPct: num(S.pct.mat), materials: Math.round(c.mat),
+      transportPct: num(S.pct.trans), transport: Math.round(c.trans),
+      overheadPct: num(S.pct.over), overhead: Math.round(c.over),
+      discountPct: num(S.pct.disc), discount: Math.round(c.disc),
+      grand: Math.round(c.grand),
+      workDays: c.totalDays,
+      advancePct: num(S.pct.adv),
+    },
+  };
+}
+
+function downloadFile(name, content, mime) {
+  const blob = new Blob([content], { type: mime });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 800);
+}
+
+function smetaCSV() {
+  const d = smetaData();
+  const q = s => '"' + String(s == null ? '' : s).replace(/"/g, '""') + '"';
+  const n = v => String(v).replace('.', ',');
+  const L = [];
+  L.push(['Смета №', d.num || '', 'Дата', new Date().toLocaleDateString('ru-RU')].join(';'));
+  L.push(['Клиент', q(d.client.name), 'Телефон', q(d.client.phone)].join(';'));
+  L.push(['Объект', q(d.object), 'Адрес', q(d.address)].join(';'));
+  L.push('');
+  L.push('Этап;Наименование;Ед.;Кол-во;Цена;Сумма;Помещения');
+  d.items.forEach(i => {
+    const rooms = i.rooms.map(r => (r.room !== 'Весь объект' ? `${r.room}: ${n(r.qty)}` : '')).filter(Boolean).join(', ');
+    L.push([i.stage || 'Прочее', q(i.name), i.unit, n(i.qty), i.price, i.total, q(rooms)].join(';'));
+  });
+  L.push('');
+  L.push(`;Работы;;;;${d.totals.works};`);
+  if (d.totals.materials) L.push(`;Материалы (~${d.totals.materialsPct}%);;;;${d.totals.materials};`);
+  if (d.totals.transport) L.push(`;Транспортные ${d.totals.transportPct}%;;;;${d.totals.transport};`);
+  if (d.totals.overhead) L.push(`;Накладные ${d.totals.overheadPct}%;;;;${d.totals.overhead};`);
+  if (d.totals.discount) L.push(`;Скидка ${d.totals.discountPct}%;;;;-${d.totals.discount};`);
+  L.push(`;ИТОГО;;;;${d.totals.grand};`);
+  if (d.totals.workDays) L.push(`;Срок, раб. дней;;;;${d.totals.workDays};`);
+  return '﻿' + L.join('\r\n');
+}
+
+function bindProjFields() {
+  const map = { projName: 'name', pClientName: 'clientName', pPhone: 'phone', pCity: 'city', pStreet: 'street', pHouse: 'house', pFlat: 'flat' };
+  Object.entries(map).forEach(([id, key]) => { document.getElementById(id).value = S.proj[key] || ''; });
+}
+
+/* ================= ОБЩЕЕ ================= */
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toast._tm);
+  toast._tm = setTimeout(() => t.classList.remove('show'), 1700);
+}
+
+async function copyText(txt, msg) {
+  try { await navigator.clipboard.writeText(txt); toast(msg); }
+  catch (e) {
+    const ta = document.createElement('textarea');
+    ta.value = txt; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); ta.remove(); toast(msg);
+  }
+}
+
+function init() {
+  load();
+
+  bindProjFields();
+  const projMap = { projName: 'name', pClientName: 'clientName', pPhone: 'phone', pCity: 'city', pStreet: 'street', pHouse: 'house', pFlat: 'flat' };
+  Object.entries(projMap).forEach(([id, key]) => {
+    document.getElementById(id).addEventListener('input', e => { S.proj[key] = e.target.value; save(); });
+  });
+  maskPhone(document.getElementById('pPhone'));
+  maskPhone(document.getElementById('kpPhone'));
+
+  // инструкция встроена в калькулятор — открывается всегда, без отдельного файла и 404
+  document.getElementById('btnHelp').addEventListener('click', () => document.getElementById('helpModal').classList.add('show'));
+  document.getElementById('helpClose').addEventListener('click', () => document.getElementById('helpModal').classList.remove('show'));
+  document.getElementById('helpModal').addEventListener('click', ev => { if (ev.target.id === 'helpModal') ev.currentTarget.classList.remove('show'); });
+
+  // оформление
+  applyUI(); renderThemePanel(); updateCurNum();
+  const tp = document.getElementById('themePanel');
+  document.getElementById('btnTheme').addEventListener('click', ev => { ev.stopPropagation(); tp.classList.toggle('show'); });
+  tp.addEventListener('click', ev => ev.stopPropagation());
+  document.addEventListener('click', () => tp.classList.remove('show'));
+
+  // справочник
+  document.getElementById('btnRef').addEventListener('click', () => {
+    document.getElementById('refModal').classList.add('show');
+    renderRef();
+    setTimeout(() => document.getElementById('refSearch').focus(), 100);
+  });
+  document.getElementById('refClose').addEventListener('click', () => document.getElementById('refModal').classList.remove('show'));
+  document.getElementById('refSearch').addEventListener('input', renderRef);
+  document.getElementById('refTpl').addEventListener('click', () => {
+    downloadFile('справочник-шаблон.csv', refTemplateCSV(), 'text/csv;charset=utf-8');
+    toast('Шаблон скачан — открой в Excel, поменяй цены и загрузи обратно');
+  });
+  document.getElementById('refUpload').addEventListener('click', () => document.getElementById('refFile').click());
+  document.getElementById('refFile').addEventListener('change', ev => {
+    const f = ev.target.files && ev.target.files[0];
+    if (f) importRefFile(f);
+    ev.target.value = '';
+  });
+  document.getElementById('refReset').addEventListener('click', ev => {
+    armConfirm(ev.currentTarget, 'Точно вернуть?', () => {
+      S.refUser = null; save(); renderRef();
+      toast('Вернул стартовый справочник');
+    });
+  });
+
+  // мои сметы
+  document.getElementById('btnArc').addEventListener('click', () => {
+    document.getElementById('arcModal').classList.add('show');
+    renderArc();
+  });
+  document.getElementById('arcClose').addEventListener('click', () => document.getElementById('arcModal').classList.remove('show'));
+  document.getElementById('arcSearch').addEventListener('input', renderArc);
+  document.getElementById('btnSave').addEventListener('click', saveSmeta);
+  [document.getElementById('refModal'), document.getElementById('arcModal'), document.getElementById('cmpModal')].forEach(m => {
+    m.addEventListener('click', ev => { if (ev.target === m) m.classList.remove('show'); });
+  });
+
+  // сравнение со сметой конкурента
+  document.getElementById('btnCmp').addEventListener('click', () => document.getElementById('cmpModal').classList.add('show'));
+  document.getElementById('cmpClose').addEventListener('click', () => document.getElementById('cmpModal').classList.remove('show'));
+  document.getElementById('cmpUpload').addEventListener('click', () => document.getElementById('cmpFile').click());
+  document.getElementById('cmpFile').addEventListener('change', ev => {
+    const f = ev.target.files && ev.target.files[0];
+    if (f) importCompetitor(f);
+    ev.target.value = '';
+  });
+  document.getElementById('cmpTpl').addEventListener('click', () => {
+    downloadFile('смета-конкурента-шаблон.csv', cmpTemplateCSV(), 'text/csv;charset=utf-8');
+    toast('Шаблон скачан — перенеси в него смету конкурента');
+  });
+  document.getElementById('cmpCopy').addEventListener('click', () => copyText(compareText(), 'Сравнение скопировано'));
+
+  ['pMat:mat', 'pTrans:trans', 'pOver:over', 'pDisc:disc', 'pAdv:adv'].forEach(pair => {
+    const [id, key] = pair.split(':');
+    const inp = document.getElementById(id);
+    inp.value = S.pct[key];
+    inp.addEventListener('input', () => { S.pct[key] = num(inp.value); recalc(); save(); });
+  });
+
+  renderTabs();
+  renderRooms();
+  renderSections();
+
+  const search = document.getElementById('search');
+  search.addEventListener('input', doSearch);
+  search.addEventListener('keydown', ev => {
+    const box = document.getElementById('sugg');
+    const items = [...box.querySelectorAll('.sg')];
+    if (!items.length) return;
+    if (ev.key === 'ArrowDown') { suggSel = Math.min(suggSel + 1, items.length - 1); }
+    else if (ev.key === 'ArrowUp') { suggSel = Math.max(suggSel - 1, 0); }
+    else if (ev.key === 'Enter') {
+      ev.preventDefault();
+      const q = search.value.trim().toLowerCase();
+      const hits = allItems().filter(it => searchMatch(it.name.toLowerCase(), q));
+      const pick = hits[Math.max(0, suggSel)];
+      if (pick) jumpTo(pick);
+      return;
+    } else return;
+    items.forEach((d, i) => d.classList.toggle('sel', i === suggSel));
+    ev.preventDefault();
+  });
+  search.addEventListener('blur', () => setTimeout(() => document.getElementById('sugg').classList.remove('show'), 150));
+
+  document.getElementById('btnKP').addEventListener('click', openKP);
+  document.getElementById('btnKPdock').addEventListener('click', openKP);
+  document.getElementById('kpBack').addEventListener('click', closeKP);
+  document.getElementById('kpPdf').addEventListener('click', () => window.print());
+  document.getElementById('kpShare').addEventListener('click', async () => {
+    const txt = kpText();
+    if (navigator.share) {
+      try { await navigator.share({ title: 'Коммерческое предложение', text: txt }); return; }
+      catch (e) { if (e.name === 'AbortError') return; }
+    }
+    copyText(txt, 'КП скопировано — вставь в сообщение');
+  });
+  KP_FIELDS.forEach(f => {
+    kpEl(kpInputId(f)).addEventListener('input', e => {
+      S.kp[f] = e.target.value;
+      if (f === 'num' || f === 'company') document.title = 'КП ' + (S.kp.company || 'МЕБЕЛЬНАЯ СМЕТА') + ' № ' + (S.kp.num || '');
+      save();
+    });
+  });
+
+  document.getElementById('btnCopy').addEventListener('click', () => copyText(estimateText(), 'Смета скопирована'));
+  document.getElementById('btnJson').addEventListener('click', () => {
+    if (calc().works <= 0) { toast('Смета пустая'); return; }
+    downloadFile(`смета-${S.curNum || 'без-номера'}.json`, JSON.stringify(smetaData(), null, 2), 'application/json');
+    toast('JSON скачан — прикрепи к карточке в CRM');
+  });
+  document.getElementById('btnCsv').addEventListener('click', () => {
+    if (calc().works <= 0) { toast('Смета пустая'); return; }
+    downloadFile(`смета-${S.curNum || 'без-номера'}.csv`, smetaCSV(), 'text/csv;charset=utf-8');
+    toast('CSV скачан — откроется в Excel');
+  });
+  document.getElementById('btnResetPrices').addEventListener('click', () => {
+    S.priceOv = {}; recalc(); save(); toast('Цены возвращены к прайсу');
+  });
+  document.getElementById('btnResetAll').addEventListener('click', ev => {
+    armConfirm(ev.currentTarget, 'Точно очистить всё?', () => {
+    const keepKp = S.kp, keepUi = S.ui, keepRef = S.refUser;
+    localStorage.removeItem(LS_KEY);
+    S = { tab: 'mod', room: 'all', rooms: [], q: {}, priceOv: {}, custom: [], crew: { 1: 1, 2: 1, 3: 1 }, daysOv: { 1: 0, 2: 0, 3: 0 }, pct: { mat: 0, trans: 0, over: 0, disc: 0, adv: 70 }, proj: { name: '', clientName: '', phone: '', city: '', street: '', house: '', flat: '' }, kp: keepKp, ui: keepUi, curNum: '', refUser: keepRef };
+    save();
+    bindProjFields(); updateCurNum();
+    ['pMat', 'pTrans', 'pOver', 'pDisc', 'pAdv'].forEach((id, i) => { document.getElementById(id).value = [0, 0, 0, 0, 70][i]; });
+    renderTabs(); renderRooms(); renderSections();
+    toast('Расчёт очищен');
+    });
+  });
+
+  recalc();
+}
+
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+</script>
+</body>
+</html>
