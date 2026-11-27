@@ -194,6 +194,25 @@
   .rchip .x:hover { color: #E06060; }
   .rchip.add { border-style: dashed; color: var(--muted); }
 
+  .element-item { margin: 8px 0; border: 1px solid var(--line-strong); border-radius: 10px; }
+  .element-item > summary { padding: 11px; cursor: pointer; font-weight: 700; overflow-wrap: anywhere; }
+  .element-body { display: grid; gap: 10px; padding: 0 12px 12px; min-width: 0; }
+  .measure-body .element-check { display: inline-flex; align-items: center; gap: 7px; min-height: 42px; padding-right: 12px; }
+  .measure-body .element-check input { min-height: 0; width: 18px; height: 18px; }
+  .element-body .measure-grid { grid-template-columns: repeat(auto-fit,minmax(min(100%,140px),1fr)); }
+  #dealPrint { display:none; }
+  #dealModal ~ .toast { z-index:90; max-width:95vw; white-space:normal; }
+  #dealBody { display:grid; gap:10px; }
+  #dealBody p, #dealBody h3 { margin:4px 0; }
+  #dealBody textarea { width:100%; color:var(--ink); background:var(--bg-2); padding:10px; }
+  .deal-text { white-space:pre-wrap; overflow-wrap:anywhere; font:inherit; }
+  @media print {
+    body.deal-printing > :not(#dealPrint) { display:none !important; }
+    body.deal-printing #dealPrint { display:block; color:#111; font:11pt/1.5 sans-serif; }
+    #dealPrint h1, #dealPrint h2, #dealPrint h3 { break-after:avoid; }
+    #dealPrint section + section { break-before:page; }
+    .modal { display:none !important; }
+  }
   #measureCard { margin-bottom: 14px; }
   #measureBadge { max-width: 43%; overflow: hidden; text-overflow: ellipsis; }
   .measure-body { padding: 14px; border-top: 1px solid var(--line); }
@@ -456,7 +475,7 @@
     </div>
     <div class="hdr-btns">
       <button class="hbtn" id="btnRef" type="button">📚 Справочник</button>
-      <button class="hbtn" id="btnArc" type="button">🗂 Мои сметы</button>
+      <button class="hbtn" id="btnArc" type="button">🗂 Сметы и сделки</button>
       <button class="hbtn" id="btnHelp" type="button" title="Как пользоваться">❓</button>
       <button class="hbtn" id="btnTheme" type="button">🎨</button>
       <div class="theme-panel" id="themePanel">
@@ -498,6 +517,7 @@
         <p class="measure-note" id="measureCoverage"></p>
         <dl class="measure-metrics" id="measureObjectMetrics"></dl>
       </div>
+      <button id="measureSheet" type="button" class="btn" hidden>Печать ведомости обмера</button>
       <div id="measureEditor" hidden>
         <label>Как измерен пол<select id="measureMode">
           <option value="rect">Прямоугольник — по длине и ширине</option>
@@ -516,6 +536,10 @@
           <button class="btn" id="measureDoor" type="button">+ Дверь</button>
           <button class="btn" id="measureWindow" type="button">+ Окно</button>
         </div>
+        <h3>Элементы и коммуникации</h3>
+        <div class="measure-line"><label>Что нашли на объекте<select id="elementType"></select></label>
+          <button type="button" class="btn" id="elementAdd">+ Добавить элемент</button></div>
+        <div id="elementList"></div>
         <h3>Объёмы помещения</h3>
         <p class="measure-note">Потолок считаем плоским, высоту стен — одинаковой по всему периметру. Из стен вычитаются окна и двери, из длины плинтуса — ширина дверей.</p>
         <p id="measureStatus" class="measure-alert" role="status"></p>
@@ -556,13 +580,13 @@
     <summary><span class="chev">▶</span><span class="sec-title">％ Материалы, надбавки, скидка</span><span class="sec-badge zero" id="bPct">—</span></summary>
     <div class="card-body">
       <div class="pct-grid">
-        <div class="pct"><div class="l">Материалы, % от работ</div><div class="v"><input id="pMat" type="number" min="0" step="1"> %</div></div>
+        <div class="pct"><div class="l">Материалы, % от работ каталога</div><div class="v"><input id="pMat" type="number" min="0" step="1"> %</div></div>
         <div class="pct"><div class="l">Транспортные, %</div><div class="v"><input id="pTrans" type="number" min="0" step="0.5"> %</div></div>
         <div class="pct"><div class="l">Накладные, %</div><div class="v"><input id="pOver" type="number" min="0" step="0.5"> %</div></div>
         <div class="pct disc"><div class="l">Скидка клиенту, %</div><div class="v"><input id="pDisc" type="number" min="0" step="0.5"> %</div></div>
         <div class="pct"><div class="l">Аванс по этапу, %</div><div class="v"><input id="pAdv" type="number" min="0" max="100" step="5"> %</div></div>
       </div>
-      <div class="est-line sub" style="margin-top:8px">Материалы можно поставить 0%, если считаешь их отдельными строками или материалы заказчика.</div>
+      <div class="est-line sub" style="margin-top:8px">Процент применяется только к работам, введённым через каталог. По элементам замера материалы берутся отдельными строками. Для материалов заказчика укажите 0%.</div>
     </div>
   </details>
 
@@ -595,7 +619,8 @@
       <div class="tot" id="dockTotal">0 ₽</div>
       <div class="term" id="dockTerm"></div>
     </div>
-    <button class="btn gold" id="btnKPdock" type="button">Создать КП →</button>
+    <button class="btn gold" id="dockMeasure" type="button">Начать обмер →</button>
+    <button class="btn gold" id="btnKPdock" hidden type="button">Создать КП →</button>
   </div>
 </div>
 
@@ -605,6 +630,7 @@
     <button class="btn" id="kpBack" type="button">← К расчёту</button>
     <button class="btn gold" id="kpPdf" type="button">Скачать PDF</button>
     <button class="btn" id="kpShare" type="button">Поделиться</button>
+    <button class="btn gold" id="kpDeal" type="button">К договору и предоплате →</button>
   </div>
   <div class="kp-sheet">
     <div class="kp-head">
@@ -625,8 +651,9 @@
     </div>
 
     <p class="kp-intro">Благодарим за обращение. Ниже — расчёт стоимости и сроков работ по вашему объекту,
-      разбитый на этапы. Финальную смету зафиксируем в договоре после выезда на замер.</p>
+      разбитый на этапы. Согласованные объёмы и стоимость работ войдут в приложение к договору.</p>
 
+    <div class="kp-total"><div class="t">Итого по проекту</div><div class="v" id="kpTotal">0 ₽</div></div>
     <div class="kp-h">Этапы и сроки</div>
     <div class="kp-timeline" id="kpTimeline"></div>
     <div class="kp-tl-note" id="kpTlNote"></div>
@@ -638,30 +665,19 @@
     <div id="kpRooms"></div>
 
     <div id="kpSummary"></div>
-    <div class="kp-total"><div class="t">Итого по проекту</div><div class="v" id="kpTotal">0 ₽</div></div>
+
     <div class="kp-small" id="kpPay"></div>
 
     <div class="kp-comment">
-      <div class="kp-h">Комментарий</div>
+      <div class="kp-h">Что согласовано отдельно</div>
       <textarea id="kpNote" rows="2" placeholder="Например: сроки указаны при работе одной бригады; материалы закупаем сами с отчётом по чекам…"></textarea>
-    </div>
-
-    <div class="kp-h">Почему с нами надёжно</div>
-    <div class="kp-ben">
-      <div class="kp-b"><b>Договор и фиксированная смета</b>Цена не «поплывёт» в процессе: любые изменения — только по согласованию с вами, письменно.</div>
-      <div class="kp-b"><b>Поэтапная оплата</b>Вы платите за этап, принимаете работу по акту — и только после этого начинается следующий этап.</div>
-      <div class="kp-b"><b>Понятные сроки</b>План работ по этапам с датами. Вы всегда знаете, кто у вас на объекте и что будет сделано на этой неделе.</div>
-      <div class="kp-b"><b>Свои бригады, не случайный субподряд</b>Мастера проверены на десятках объектов, за их качество отвечаем мы.</div>
-      <div class="kp-b"><b>Фотоотчёты и прораб на связи</b>Регулярные фото и видео хода работ — вы контролируете ремонт из телефона.</div>
-      <div class="kp-b"><b>Чистота на объекте</b>Укрываем мебель и места общего пользования, выносим мусор, сдаём объект чистым.</div>
-      <div class="kp-b"><b>Гарантия по договору</b>Скрытые работы фиксируем актами, выявленные недочёты устраняем бесплатно.</div>
     </div>
 
     <div class="kp-h">Условия</div>
     <div class="kp-terms">
       <ul>
         <li>Предложение действительно 14 дней с даты выставления.</li>
-        <li>Смета и сроки фиксируются в договоре после выезда на замер.</li>
+        <li>Состав работ, стоимость и сроки фиксируются в договоре.</li>
         <li id="kpPayTerm">Оплата поэтапно: аванс по этапу, остаток — по акту выполненных работ.</li>
       </ul>
     </div>
@@ -696,6 +712,8 @@
       <p>Строка <b>«Считаем:»</b> — нажми <span class="hp-b">+ Помещение</span> («Кухня», «Санузел», «Фасад») и вводи объёмы отдельно для каждого. Смета и КП покажут разбивку по комнатам.</p>
 
       <p>На объекте открой <span class="hp-b">Обмер помещений</span>, выбери или добавь комнату и введи размеры в метрах. Для комнаты сложной формы можно указать измеренные площадь пола и периметр. Введи каждый типоразмер окна и двери с его количеством. Выбери объём и работу, затем нажми «В смету». Можно назначить один и тот же объём нескольким работам. Правка количества прямо в строке работы переводит её на ручной ввод только для этого помещения.</p>
+      <p><b>Элементы и коммуникации.</b> В комнате выберите нишу, короб, колонну, откос, канализацию или инженерную отметку. Укажите привязку и размеры. Для существующего элемента достаточно обмера. Для отделки выберите комплект, проверьте грани, расход и цены, затем подтвердите строки. После изменения размеров проверьте их ещё раз. «Печать ведомости обмера» выдаёт лист по всем помещениям.</p>
+      <p><b>Договор и аванс.</b> Из готового КП можно зафиксировать согласованную смету, напечатать свой текст договора с приложением и зарегистрировать подписание. После сверки с банком или кассой внесите поступление. Реестр открывается через «Сметы и сделки». Данные хранятся в этом браузере.</p>
       <h3>3. Работы и поиск</h3>
       <p>Цену в любой строке можно править прямо на месте — правка запомнится. Строка <b>🔍 Поиск</b> сверху: введи «штукатурка», «плитка стены» → тап по подсказке → перескочит на нужную строку и поставит курсор в кол-во.</p>
 
@@ -764,11 +782,18 @@
   </div>
 </div>
 
+<div class="modal" id="dealModal" role="dialog" aria-modal="true" aria-labelledby="dealTitle">
+  <div class="modal-card">
+    <div class="modal-head"><div class="t" id="dealTitle">Согласование, договор и первый платёж</div><button class="x" id="dealClose" type="button" aria-label="Закрыть сделку">✕</button></div>
+    <div class="modal-body measure-body" id="dealBody"></div>
+  </div>
+</div>
+<div id="dealPrint"></div>
 <!-- МОИ СМЕТЫ -->
 <div class="modal" id="arcModal">
   <div class="modal-card">
     <div class="modal-head">
-      <div class="t">🗂 Мои сметы</div>
+      <div class="t">🗂 Сметы и сделки</div>
       <button class="x" id="arcClose" type="button">✕</button>
     </div>
     <div class="modal-search"><input id="arcSearch" type="text" placeholder="Поиск: номер, клиент, адрес…" autocomplete="off"></div>
@@ -1159,7 +1184,10 @@ function roomGeometry(m) {
   if (openings > gross + 1e-8 || doorWidth > perimeter + 1e-8) {
     return { error: 'Проверьте размеры и количество проёмов. Их площадь превышает площадь стен или суммарная ширина дверей больше периметра.' };
   }
-  const values = { walls: gross - openings, floor, ceiling: floor, skirting: perimeter - doorWidth, perimeter, gross, openings };
+  const cuts = elementDeductions(m);
+  if (openings + cuts.wall > gross + 1e-8 || Math.max(cuts.floor, cuts.ceiling) > floor + 1e-8)
+    return {error: 'Вычеты элементов превышают площадь помещения. Проверьте размеры и отмеченные вычеты.'};
+  const values = { walls: gross - openings - cuts.wall, floor: floor - cuts.floor, ceiling: floor - cuts.ceiling, skirting: perimeter - doorWidth, perimeter, gross, openings };
   if (Object.values(values).some(n => !Number.isFinite(n) || n > Number.MAX_SAFE_INTEGER / 100)) {
     return { error: 'Слишком большие размеры для расчёта. Проверьте единицы измерения.' };
   }
@@ -1169,10 +1197,20 @@ function roomGeometry(m) {
 }
 
 function incompleteLinkedRoom() {
-  return S.rooms.find(room => Object.keys(room.measure?.links || {}).length && roomGeometry(room.measure).error);
+  return S.rooms.find(room => (Object.keys(room.measure?.links || {}).length || room.measure?.elements?.some(f => f.applied)) && roomGeometry(room.measure).error);
 }
 
 function readyForEstimate() {
+  const pending = pendingElement();
+  if (pending) {
+    selectRoom(pending.room.id);
+    measureEl('Card').open = true;
+    const card = document.getElementById('element-' + pending.f.id);
+    card.open = true;
+    card.scrollIntoView({block:'start'});
+    toast('Проверьте элемент и подтвердите его строки');
+    return false;
+  }
   const room = incompleteLinkedRoom();
   if (!room) return true;
   selectRoom(room.id);
@@ -1191,6 +1229,7 @@ function renderMeasureRoom() {
   measureEl('RoomForm').hidden = !!room;
   measureEl('NewRoom').hidden = !room;
   measureEl('Editor').hidden = !room;
+  measureEl('Sheet').hidden = !S.rooms.length;
   measureEl('Badge').textContent = room ? room.name : 'Открыть';
   measureEl('Object').hidden = !!room || !S.rooms.length;
   if (!room) {
@@ -1203,6 +1242,7 @@ function renderMeasureRoom() {
     return;
   }
   const m = room.measure || (room.measure = { mode: 'rect', openings: [], links: {} });
+  renderElements(m);
   measureEl('Mode').value = m.mode;
   document.querySelectorAll('[data-dimension]').forEach(input => {
     const key = input.dataset.dimension;
@@ -1221,7 +1261,7 @@ function renderMeasureRoom() {
       const input = el('input');
       input.inputMode = key === 'count' ? 'numeric' : 'decimal';
       input.value = o[key];
-      input.addEventListener('input', () => { o[key] = input.value; updateMeasuredQuantities(); });
+      input.addEventListener('input', () => { o[key] = input.value; updateMeasuredQuantities(); renderElements(m); });
       label.appendChild(input);
       grid.appendChild(label);
     }
@@ -1325,7 +1365,47 @@ function renderMeasureBindings() {
   }
 }
 
+function printMeasurementSheet() {
+  const target=document.getElementById('dealPrint');
+  target.replaceChildren(el('h1',null,'Ведомость обмера'),el('p',null,[S.proj.name,addressString()].filter(Boolean).join(' · ')));
+  S.rooms.forEach(room=>{
+    const m=room.measure, block=el('article'); block.appendChild(el('h2',null,room.name));target.appendChild(block);
+    if (!m) {block.appendChild(el('p',null,'Размеры ещё не внесены'));return;}
+    const g=roomGeometry(m);
+    const plan=m.mode==='rect' ? 'Длина × ширина: ' + (m.length||'—') + ' × ' + (m.width||'—') + ' м' : 'Замеренные площадь и периметр: ' + (m.area||'—') + ' м², ' + (m.perimeter||'—') + ' м';
+    block.appendChild(el('p',null,plan + ' · высота ' + (m.height||'—') + ' м'));
+    block.appendChild(el('p',null,g.error || Object.entries(g.values).map(([key,v])=>MEASURE_SOURCES[key].name + ' ' + fmtN.format(v) + ' ' + MEASURE_SOURCES[key].unit).join(' · ')));
+    for (const [i,o] of m.openings.entries()) block.appendChild(el('p',null,(o.type==='door'?'Дверь':'Окно') + ' № ' + (i+1) + ' · ' + (o.width||'—') + ' × ' + (o.height||'—') + ' м × ' + o.count + ' шт.'));
+    for(const f of m.elements || []) {
+      const info=elementGeometry(f,m), parts=[f.location,f.level && 'От чистого пола: ' + f.level + ' м',f.note];
+      const linked=f.openingId && m.openings.find(o=>o.id===f.openingId);
+      const dims=linked || f;
+      if (dims.width || dims.height || f.depth) parts.push('Ш × В × Г: ' + [dims.width,dims.height,f.depth].map(x=>x||'—').join(' × ') + ' м · ' + (dims.count||1) + ' шт.');
+      if(f.type==='sewer') parts.push('Ø ' + (f.diameter||'—') + ' мм · трасса ' + (f.run||'—') + ' м · отводы ' + f.bends + ' · тройники ' + f.tees);
+      if(['niche','reveal','projection'].includes(f.type)) parts.push('Грани: ' + Object.keys(faceLabels).filter(k=>f.faces[k] && (f.type!=='reveal'||k!=='front')).map(k=>faceLabels[k]).join(', '));
+      if(info.area) parts.push('Отделка ' + fmtN.format(roundedQty(info.area)) + ' м²');
+      if(info.linear && f.type==='reveal') parts.push('Откосы ' + fmtN.format(roundedQty(info.linear)) + ' м');
+      parts.push(info.error,FINISHES[f.finish] || 'Только обмер');
+      block.append(el('h3',null,f.name||ELEMENT_TYPES[f.type]),el('p',null,parts.filter(Boolean).join(' · ')));
+    }
+  });
+  printPreparedSheet();
+}
 function bindMeasure() {
+  measureEl('Sheet').onclick=printMeasurementSheet;
+  const types = document.getElementById('elementType');
+  for (const [key,title] of Object.entries(ELEMENT_TYPES)) types.add(new Option(title,key));
+  document.getElementById('elementAdd').onclick = () => {
+    const m = currentMeasureRoom().measure;
+    const f = makeElement(types.value);
+    if (['wallFinish','floorFinish'].includes(f.type) && m.elements?.some(x=>x.type===f.type)) {
+      toast('Такая поверхность уже есть в помещении');return;
+    }
+    (m.elements ||= []).push(f);
+    renderElements(m); updateMeasuredQuantities();
+    const card = document.getElementById('element-' + f.id);
+    card.open = true; card.scrollIntoView({block:'start'});
+  };
   for (const [key, source] of Object.entries(MEASURE_SOURCES)) measureEl('Source').add(new Option(source.name, key));
   measureEl('Room').onchange = e => selectRoom(e.target.value);
   measureEl('NewRoom').onclick = () => { selectRoom('all'); measureEl('RoomName').focus(); };
@@ -1343,8 +1423,9 @@ function bindMeasure() {
   };
   document.querySelectorAll('[data-dimension]').forEach(input => {
     input.oninput = () => {
-      currentMeasureRoom().measure[input.dataset.dimension] = input.value;
-      updateMeasuredQuantities();
+      const m=currentMeasureRoom().measure;
+      m[input.dataset.dimension] = input.value;
+      updateMeasuredQuantities(); renderElements(m);
     };
   });
   for (const [suffix, type] of [['Door', 'door'], ['Window', 'window']]) {
@@ -1363,6 +1444,325 @@ function bindMeasure() {
     updateMeasuredQuantities();
     toast('Объём внесён в смету');
   };
+}
+
+/* Элементы обмера. Черновик хранится с помещением, в цену входят только проверенные строки. */
+const ELEMENT_TYPES = { wallFinish: 'Основные стены', floorFinish: 'Пол', niche: 'Ниша', projection: 'Выступ / пристенный короб', column: 'Отдельная колонна', reveal: 'Откос', sewer: 'Канализация', note: 'Инженерная точка / отметка' };
+const FINISHES = { paint: 'Окраска со шпаклеванием', tile: 'Керамическая плитка', plaster: 'Штукатурка', laminate: 'Ламинат с подложкой', pipe: 'Монтаж канализации' };
+const uid = () => 'e' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+const roundedQty = value => Math.round((value + Number.EPSILON) * 1000) / 1000;
+const faceLabels = { front: 'Фронт / задняя стенка', left: 'Левая', right: 'Правая', top: 'Верх', bottom: 'Низ' };
+function makeElement(type) {
+  return { id: uid(), type, name: '', location: '', finish: '', edits: {}, count: '1',
+    faces: { front: type !== 'reveal', left: true, right: true, top: ['reveal','niche'].includes(type), bottom: type === 'niche' },
+    cutWall: ['niche','projection'].includes(type), cutFloor: false, cutCeiling: false, reserve: '0', diameter: '', bends: '0', tees: '0' };
+}
+function optionalNumber(value) {
+  const s = String(value ?? '').trim().replace(',', '.');
+  return /^(?:\d+(?:\.\d*)?|\.\d+)$/.test(s) && Number.isFinite(+s) ? +s : NaN;
+}
+function elementGeometry(f, m) {
+  if (f.type === 'note') return { note: true };
+  if (['wallFinish','floorFinish'].includes(f.type)) {
+    const g = roomGeometry(m);
+    if (!g.values) return {error:g.error};
+    const area = g.values[f.type === 'wallFinish' ? 'walls' : 'floor'];
+    return area > 0 ? {area} : {error:'Для отделки нужна положительная площадь.'};
+  }
+  if (f.type === 'sewer') {
+    if (!f.finish && !f.run) return { note: true };
+    const run = measureNumber(f.run), bends = optionalNumber(f.bends), tees = optionalNumber(f.tees);
+    if (!Number.isFinite(run) || ![bends, tees].every(Number.isSafeInteger))
+      return { error: 'Укажите длину трассы и количество отводов и тройников.' };
+    return { run, bends, tees };
+  }
+  const opening = f.openingId && m.openings.find(o => o.id === f.openingId);
+  if (f.openingId && !opening) return { error: 'Выберите проём или введите размеры откоса вручную.' };
+  const w = measureNumber(opening ? opening.width : f.width), h = measureNumber(opening ? opening.height : f.height);
+  const d = measureNumber(f.depth), count = measureNumber(opening ? opening.count : f.count);
+  if (![w, h, d].every(Number.isFinite) || !Number.isSafeInteger(count))
+    return { error: 'Нужны ширина, высота, глубина и целое количество.' };
+  const roomHeight = measureNumber(m.height);
+  if (h > roomHeight) return {error:'Высота элемента превышает высоту помещения.'};
+  const faces = f.faces;
+  const edge = h * (Number(faces.left) + Number(faces.right)) + w * (Number(faces.top) + Number(faces.bottom));
+  const area = count * (f.type === 'column' ? 2 * (w + d) * h : (faces.front && f.type !== 'reveal' ? w * h : 0) + edge * d);
+  if (!(area > 0) || !Number.isSafeInteger(Math.ceil(area * 1000))) return { error: 'Проверьте размеры и отметьте отделываемые грани.' };
+  return { area, linear: count * edge, footprint: count * w * h, plan: count * w * d };
+}
+function elementDeductions(m) {
+  const cuts = { wall: 0, floor: 0, ceiling: 0 };
+  for (const f of m.elements || []) {
+    if (!f.cutWall && !f.cutFloor && !f.cutCeiling) continue;
+    const g = elementGeometry(f, m);
+    if (g.error) continue;
+    if (f.cutWall) cuts.wall += g.footprint || 0;
+    if (f.cutFloor) cuts.floor += g.plan || 0;
+    if (f.cutCeiling) cuts.ceiling += g.plan || 0;
+  }
+  return cuts;
+}
+function elementPackage(f, m) {
+  const g = elementGeometry(f, m);
+  if (!f.finish || g.error) return { geometry: g, error: g.error, rows: [] };
+  const rows = [];
+  function work(key, name, unit, qty, stage, catalogId, fallback) {
+    const it = catalogId && getItem(catalogId);
+    rows.push({ key, kind: 'work', name, unit, base: qty, factor: 1, stage,
+      catalogId, defaultPrice: it ? price(it) : fallback, rate: it ? it.rate : 0 });
+  }
+  function material(key, name, unit, base, factor) {
+    rows.push({ key, kind: 'material', name, unit, base, factor, stage: 0 });
+  }
+  const area = g.area;
+  if (f.finish === 'paint') {
+    if (f.type === 'reveal') {
+      for (const [key, title, stage] of [['prime','Грунтовка откосов 1 раз',2],['putty','Шпатлёвка откосов финишная',2],['paint','Покраска откосов в 2 слоя',3]]) {
+        const record=refList().find(x=>x.name===title && measureUnit(x.unit)==='п.м.');
+        work(key,title,'п.м.',g.linear,stage,null,record?.price);
+      }
+    } else {
+      work('prime','Грунтование','м²',area,2,'r9');
+      work('putty','Шпаклевание','м²',area,2,'r5');
+      work('paint','Окраска в два слоя','м²',area,3,'f1');
+    }
+    material('primer','Грунтовка','л',area,0.15);
+    material('filler','Шпаклёвка','кг',area,1);
+    material('paintMat','Краска (на два слоя)','л',area,0.25);
+  } else if (f.finish === 'tile') {
+    work('tile','Облицовка плиткой','м²',area,2,f.type==='floorFinish' ? 'f3' : 'f4');
+    material('tileMat','Плитка','м²',area,1);
+    material('glue','Плиточный клей','кг',area,4);
+    material('grout','Затирка','кг',area,0.3);
+  } else if (f.finish === 'laminate') {
+    work('lay','Укладка ламината','м²',area,3,'f5');
+    material('cover','Ламинат','м²',area,1);
+    material('underlay','Подложка','м²',area,1);
+  } else if (f.finish === 'plaster') {
+    if (f.type === 'reveal') work('slopes','Штукатурка откосов','п.м.',g.linear,1,'r2');
+    else work('plaster','Штукатурка поверхности','м²',area,1,'r1');
+    material('mix','Штукатурная смесь','кг',area,10);
+  } else if (f.finish === 'pipe') {
+    work('install','Прокладка канализации','п.м.',g.run,1);
+    const dn = f.diameter ? ' · Ø ' + f.diameter + ' мм' : '';
+    material('pipe','Труба' + dn,'м',g.run,1);
+    if (g.bends) material('bend','Отвод' + dn,'шт',g.bends,1);
+    if (g.tees) material('tee','Тройник' + dn,'шт',g.tees,1);
+  }
+  const reserve = optionalNumber(f.reserve);
+  let error = Number.isFinite(reserve) ? '' : 'Проверьте процент запаса.';
+  for (const row of rows) {
+    const edit = f.edits[row.key] || {};
+    const use = value => value !== '' && value != null;
+    const factor = use(edit.factor) ? optionalNumber(edit.factor) : row.factor;
+    const bulk = row.kind === 'material' && row.unit !== 'шт';
+    const autoQty = roundedQty(row.base * factor * (bulk ? 1 + reserve / 100 : 1));
+    row.autoQty = autoQty;
+    row.qty = use(edit.qty) ? optionalNumber(edit.qty) : autoQty;
+    row.price = use(edit.price) ? optionalNumber(edit.price) : row.defaultPrice;
+    row.enabled = edit.enabled !== false;
+    row.title = edit.name?.trim() || row.name;
+    row.total = Math.round(row.qty * row.price * 100) / 100;
+    if (row.enabled && (!(row.qty > 0) || !Number.isFinite(row.total) || !Number.isSafeInteger(Math.ceil(row.total * 100)) || (row.unit === 'шт' && !Number.isInteger(row.qty))))
+      error ||= 'Укажите количество и цену у каждой выбранной строки. Для материала заказчика снимите отметку.';
+  }
+  if (f.finish === 'pipe' && !(measureNumber(f.diameter) > 0)) error ||= 'Введите диаметр выбранной трубы.';
+  if (!rows.some(r => r.enabled)) error ||= 'Выберите хотя бы одну строку или оставьте элемент только на обмере.';
+  if (['wallFinish','floorFinish'].includes(f.type)) {
+    const room = S.rooms.find(r=>r.measure===m);
+    const duplicate = room && rows.find(r=>r.enabled && r.catalogId && qtyRoom(r.catalogId,room.id)>0);
+    if (duplicate) error ||= 'Работа «' + duplicate.name + '» уже есть у этой комнаты в каталоге. Исключите повторяющуюся строку.';
+  }
+  // Снимок фиксирует именно проверенные объёмы и цены; его можно сравнить после изменения проёма или прайса.
+  const selected = rows.filter(r => r.enabled).map(r => ({ kind:r.kind, key:r.key, name:r.title, unit:r.unit, qty:r.qty, price:r.price, total:r.total, stage:r.stage, rate:r.rate || 0 }));
+  const signature = JSON.stringify([f.name, f.finish, g, selected]);
+  return { geometry: g, rows, selected, signature, error };
+}
+function pendingElement() {
+  for (const room of S.rooms) {
+    const m = room.measure;
+    for (const f of m?.elements || []) {
+      if (f.finish) {
+        const pack = elementPackage(f, m);
+        if (pack.error || f.applied?.signature !== pack.signature) return {room, f};
+      } else if (f.applied || (elementGeometry(f,m).error && (f.cutWall || f.cutFloor || f.cutCeiling))) return {room, f};
+    }
+  }
+}
+function appliedElementLines() {
+  const work = [], materials = [];
+  for (const room of S.rooms) for (const f of room.measure?.elements || []) {
+    for (const r of f.applied?.rows || []) {
+      const name = f.applied.label + ' · ' + r.name;
+      const line = { it:{ id:f.id + '-' + r.key, name, unit:r.unit, stage:r.stage, rate:r.rate },
+        roomId:room.id, qty:r.qty, p:r.price, total:r.total, labor:r.rate ? r.qty / r.rate : 0 };
+      (r.kind === 'work' ? work : materials).push(line);
+    }
+  }
+  return { work, materials };
+}
+function lineRooms(l) {
+  return l.roomId ? [[l.roomId, l.qty]] : Object.entries(S.q[l.it.id] || {}).filter(([, v]) => num(v) > 0);
+}
+function materialDetail(l) {
+  return roomName(l.roomId) + ' · ' + l.it.name + ' — ' + fmtN.format(l.qty) + ' ' + l.it.unit + ' × ' + fmt(l.p);
+}
+function elementField(box, labelText, obj, key, onEdit, numeric = true, hint = '') {
+  const label = el('label', null, labelText), input = el('input');
+  input.value = obj[key] ?? '';
+  if (numeric) input.inputMode = 'decimal';
+  input.placeholder = hint;
+  input.addEventListener('input', () => { obj[key] = input.value; onEdit(); });
+  label.appendChild(input); box.appendChild(label);
+  return input;
+}
+function elementChoice(box, title, obj, key, options, change) {
+  const label = el('label', null, title), select = el('select');
+  for (const [id, name] of options) select.add(new Option(name, id));
+  select.value = obj[key] || '';
+  select.onchange = () => { obj[key] = select.value; change(); };
+  label.appendChild(select); box.appendChild(label);
+}
+function elementCheck(box, title, value, action) {
+  const label = el('label', 'element-check'), input = el('input');
+  input.type = 'checkbox'; input.checked = value;
+  input.onchange = () => action(input.checked);
+  label.append(input, document.createTextNode(title)); box.appendChild(label);
+}
+function renderElements(m) {
+  const host = document.getElementById('elementList');
+  const openIds = new Set([...host.querySelectorAll('details[open]')].map(x => x.id));
+  host.replaceChildren();
+  for (const f of m.elements || []) {
+    const card = el('details', 'element-item'); card.id = 'element-' + f.id;
+    card.open = openIds.has(card.id);
+    const heading = el('summary', null, f.name || ELEMENT_TYPES[f.type]);
+    const body = el('div', 'element-body'), size = el('div','measure-grid'), faces = el('div','element-faces');
+    const finish = el('div'), preview = el('div'), rows = el('div'), message = el('p','measure-note');
+    const apply = el('button','btn gold'), remove = el('button','measure-remove','Удалить элемент');
+    apply.type = remove.type = 'button';
+    function update(scroll = false) {
+      updateMeasuredQuantities();
+      if (scroll) renderElements(m);
+      else drawPreview();
+    }
+    elementField(size,'Название на объекте',f,'name',() => { heading.textContent = f.name || ELEMENT_TYPES[f.type]; update(); },false,ELEMENT_TYPES[f.type]);
+    elementField(size,'Привязка к стене или оси',f,'location',() => save(),false,'Например, стена А, 0,8 м от угла');
+    elementField(size,'Отметка от чистого пола, м',f,'level',() => save(),false,'Например, +0,45');
+    if (f.type === 'reveal') {
+      const choices = [['','Отдельный обмер откоса']];
+      m.openings.forEach((o,i) => { o.id ||= uid(); choices.push([o.id, (o.type === 'door' ? 'Дверь' : 'Окно') + ' № ' + (i+1)]); });
+      if (f.openingId && !choices.some(([id]) => id === f.openingId)) choices.push([f.openingId,'Проём удалён — выберите другой']);
+      elementChoice(size,'Взять размеры из проёма',f,'openingId',choices,() => update(true));
+    }
+    if (!['note','sewer','wallFinish','floorFinish'].includes(f.type)) {
+      if (!f.openingId) {
+        for (const [key,title] of [['width','Ширина, м'],['height','Высота, м'],['count','Количество']]) elementField(size,title,f,key,update);
+      }
+      elementField(size,'Глубина, м',f,'depth',update);
+      if (f.type !== 'column') {
+        faces.appendChild(el('p','measure-note','Какие грани отделываем'));
+        for (const [key,title] of Object.entries(faceLabels)) {
+          if (key === 'front' && f.type === 'reveal') continue;
+          elementCheck(faces,title,f.faces[key],v => { f.faces[key]=v; update(); });
+        }
+      } else faces.appendChild(el('p','measure-note','Для отдельно стоящей колонны считаются четыре вертикальные грани.'));
+      if (['niche','projection'].includes(f.type)) elementCheck(faces,'Вычесть проекцию из площади основной стены',f.cutWall,v => { f.cutWall=v; update(); });
+      if (['column','projection'].includes(f.type)) {
+        for (const [key,title] of [['cutFloor','Вычесть основание из пола'],['cutCeiling','Вычесть основание из потолка']])
+          elementCheck(faces,title,f[key],v => { f[key]=v; update(); });
+        faces.appendChild(el('p','measure-note','Включайте вычет, если площадь введена до вычета основания. Плинтус вокруг элемента измеряется отдельно.'));
+      }
+    } else if (f.type === 'sewer') {
+      for (const [key,title] of [['diameter','Диаметр, мм'],['run','Замеренная трасса, м'],['bends','Отводы, шт'],['tees','Тройники, шт']]) elementField(size,title,f,key,update);
+    }
+    elementField(size,'Примечание об основании или точке',f,'note',() => save(),false,'Например, вывод существующий');
+    if (f.type !== 'note') {
+      const options = f.type === 'sewer' ? ['pipe'] : f.type === 'floorFinish' ? ['tile','laminate'] : ['paint','tile','plaster'];
+      elementChoice(finish,'Отделка или монтаж',f,'finish',[['','Только зафиксировать на замере'],...options.map(k => [k, FINISHES[k]])],() => { f.edits={}; update(true); });
+      const presets = (S.elementPresets || []).filter(p => p.type === f.type);
+      if (presets.length) {
+        const picker = {key:''};
+        elementChoice(finish,'Комплект компании',picker,'key',[['','Выбрать сохранённый материал и работы'],...presets.map(p=>[p.id,p.name])],() => {
+          const preset = presets.find(p=>p.id===picker.key);
+          if (!preset) return;
+          f.finish=preset.finish; f.reserve=preset.reserve; f.edits=JSON.parse(JSON.stringify(preset.edits));
+          update(true);
+        });
+      }
+      if (f.finish) elementField(finish,'Запас сыпучих, листовых и погонных материалов, %',f,'reserve',update);
+    }
+    let reviewedSignature;
+    function setStatus(pack) {
+      reviewedSignature=pack.signature;
+      const valid = !pack.error && !!pack.selected?.length;
+      const same = valid && f.applied?.signature === pack.signature;
+      apply.hidden = !f.finish && !f.applied;
+      apply.disabled = !!f.finish && (!valid || same);
+      apply.textContent = !f.finish ? 'Убрать строки из сметы' : same ? 'Проверено · в смете' : 'Подтвердить строки для сметы';
+      message.textContent = pack.error || (!f.finish ? '' : (same ? 'Включено в смету. ' : 'К проверке. ') + 'Работы и материалы элемента: ' + fmt(pack.selected.reduce((t,r) => t + r.total, 0)));
+    }
+    function drawPreview() {
+      const pack = elementPackage(f,m), g = pack.geometry;
+      preview.textContent = g.error || (g.area ? 'Площадь отделки ' + fmtN.format(roundedQty(g.area)) + ' м²' + (f.type === 'reveal' ? ' · длина откосов ' + fmtN.format(roundedQty(g.linear)) + ' м' : '') : g.run ? 'Трасса ' + fmtN.format(g.run) + ' м' : 'Отметка сохраняется в обмере.');
+      rows.replaceChildren();
+      if (pack.rows.length) rows.appendChild(el('p','measure-note','Проверьте состав, расход по упаковке и цены за единицу. Стартовые нормы примерные. Снимите отметку у лишних позиций и материалов заказчика.'));
+      for (const r of pack.rows) {
+        const edit = f.edits[r.key] || (f.edits[r.key] = {});
+        const line = el('fieldset','measure-opening'), legend = el('legend',null, r.kind === 'work' ? 'Работа' : 'Материал');
+        line.appendChild(legend);
+        elementCheck(line,r.name,r.enabled,v => { edit.enabled=v; save(); drawPreview(); recalc(); });
+        if (r.enabled) {
+          const grid = el('div','measure-grid');
+          const changed = () => {
+            const fresh = elementPackage(f,m);
+            qty.placeholder = String(fresh.rows.find(x => x.key === r.key).autoQty);
+            setStatus(fresh); save(); recalc();
+          };
+          if (r.kind === 'material') {
+            elementField(grid,'Марка / наименование',edit,'name',changed,false,r.name);
+            if (r.unit !== 'шт') elementField(grid,'Расход на 1 ' + (f.type === 'sewer' ? 'м' : 'м²'),edit,'factor',changed,true,String(r.factor));
+          }
+          const qty = elementField(grid,'Количество, ' + r.unit,edit,'qty',changed,true,String(r.autoQty));
+          elementField(grid,'Цена за ' + r.unit + ', ₽',edit,'price',changed,true,r.defaultPrice == null ? 'Введите цену' : String(r.defaultPrice));
+          line.appendChild(grid);
+        }
+        rows.appendChild(line);
+      }
+      setStatus(pack);
+    }
+    apply.onclick = () => {
+      const pack = elementPackage(f,m);
+      if (pack.signature !== reviewedSignature) { drawPreview(); toast('Объёмы изменились. Проверьте обновлённые строки.'); return; }
+      if (f.finish && (pack.error || !pack.selected.length)) return;
+      f.applied = f.finish ? { label:f.name || ELEMENT_TYPES[f.type], rows:pack.selected, signature:pack.signature } : null;
+      update();
+    };
+    remove.onclick = () => armConfirm(remove,'Удалить с его строками?',() => {
+      m.elements = m.elements.filter(x => x.id !== f.id);
+      update(true);
+    });
+    body.append(size, faces, preview, finish, rows, message, apply);
+    if (f.finish) {
+      const presetBox = el('details'); presetBox.appendChild(el('summary',null,'Сохранить комплект для следующих замеров'));
+      const form=el('div','measure-line'), label=el('label',null,'Название комплекта'), input=el('input'), button=el('button','btn','Сохранить комплект');
+      input.placeholder='Например, плитка заказчика'; label.appendChild(input); button.type='button';
+      button.onclick=()=>{
+        const name=input.value.trim(), pack=elementPackage(f,m);
+        if (!name || pack.error) { toast('Проверьте строки и назовите комплект'); return; }
+        const edits=JSON.parse(JSON.stringify(f.edits));
+        for (const line of Object.values(edits)) delete line.qty;
+        const presets=S.elementPresets ||= [];
+        const prior=presets.find(i=>i.name===name && i.type===f.type);
+        const preset={id:prior?.id || uid(),name,type:f.type,finish:f.finish,reserve:f.reserve,edits};
+        if(prior) Object.assign(prior,preset); else presets.push(preset);
+        save(); renderElements(m); toast('Комплект сохранён без размеров объекта');
+      };
+      form.append(label,button); presetBox.appendChild(form); body.appendChild(presetBox);
+    }
+    body.appendChild(remove);
+    card.append(heading,body); host.appendChild(card); drawPreview();
+  }
 }
 
 function selectRoom(id) {
@@ -1602,6 +2002,9 @@ function calc() {
     .filter(x => x.qty > 0)
     .map(x => ({ ...x, total: x.qty * x.p, labor: x.it.rate > 0 ? x.qty / x.it.rate : 0 }));
 
+  const elements = appliedElementLines();
+  const manualWorks = lines.reduce((sum,l) => sum + l.total, 0);
+  lines.push(...elements.work);
   const byStage = { 1: [], 2: [], 3: [], 0: [] };
   lines.forEach(l => byStage[l.it.stage].push(l));
   const stageSum = {}, stageLabor = {}, stageDaysAuto = {}, stageDays = {};
@@ -1619,7 +2022,9 @@ function calc() {
   const totalDays = stageDays[1] + stageDays[2] + stageDays[3];
 
   const works = stageSum[1] + stageSum[2] + stageSum[3] + stageSum[0];
-  const mat = works * num(S.pct.mat) / 100;
+  const allowance = manualWorks * num(S.pct.mat) / 100;
+  const detailedMat = elements.materials.reduce((sum,l) => sum + l.total, 0);
+  const mat = allowance + detailedMat;
   const baseWM = works + mat;
   const trans = baseWM * num(S.pct.trans) / 100;
   const over = baseWM * num(S.pct.over) / 100;
@@ -1630,20 +2035,22 @@ function calc() {
   // по помещениям (только работы)
   const roomSums = {};
   lines.forEach(l => {
-    Object.entries(S.q[l.it.id] || {}).forEach(([rid, v]) => {
+    lineRooms(l).forEach(([rid, v]) => {
       const n = num(v); if (!n) return;
       roomSums[rid] = (roomSums[rid] || 0) + n * l.p;
     });
   });
 
-  return { lines, byStage, stageSum, stageLabor, stageDaysAuto, stageDays, totalDays, works, mat, trans, over, disc, grand, roomSums };
+  return { lines, byStage, stageSum, stageLabor, stageDaysAuto, stageDays, totalDays, works, allowance, materials: elements.materials, mat, trans, over, disc, grand, roomSums };
 }
 
 function recalc() {
   syncRows();
   const pending = incompleteLinkedRoom();
   const warning = document.getElementById('estimateMeasureAlert');
-  warning.hidden = !pending;
+  const pendingDetail = pendingElement();
+  warning.hidden = !pending && !pendingDetail;
+  if (pendingDetail) warning.textContent = 'Требуется проверка элемента в помещении «' + pendingDetail.room.name + '». В итоге учтены только подтверждённые строки.';
   if (pending) warning.textContent = 'Незавершённый обмер: ' + pending.name + '. В расчёте пока последние полные размеры.';
   const c = calc();
 
@@ -1672,6 +2079,8 @@ function recalc() {
 
   document.getElementById('bEst').textContent = fmt(c.grand);
   document.getElementById('dockTotal').textContent = fmt(c.grand);
+  document.getElementById('dockMeasure').hidden = c.grand > 0;
+  document.getElementById('btnKPdock').hidden = c.grand <= 0;
   document.getElementById('dockTerm').textContent = c.totalDays > 0 ? `⏱ ~${c.totalDays} раб. дн.` : '';
   document.getElementById('bTime').textContent = c.totalDays > 0 ? `~${c.totalDays} дн` : '0 дн';
   document.getElementById('bTime').classList.toggle('zero', c.totalDays === 0);
@@ -1735,7 +2144,7 @@ function renderTime(c) {
 function renderEstimate(c) {
   const box = document.getElementById('estBody');
   box.innerHTML = '';
-  if (c.works <= 0) {
+  if (c.works <= 0 && !c.materials.length) {
     box.appendChild(el('div', 'est-empty', 'Введи объёмы работ — смета соберётся сама. Ищи позиции через 🔍 сверху.'));
     return;
   }
@@ -1754,7 +2163,8 @@ function renderEstimate(c) {
     line('По помещениям (работы):', '');
     Object.entries(c.roomSums).forEach(([rid, v]) => line(roomName(rid), v, 'sub'));
   }
-  if (c.mat > 0) line(`Материалы (~${S.pct.mat}% от работ)`, c.mat);
+  c.materials.forEach(l => line(materialDetail(l), l.total, 'sub'));
+  if (c.allowance > 0) line(`Ориентир на материалы прочих работ (~${S.pct.mat}%)`, c.allowance);
   if (c.trans > 0) line(`Транспортные ${S.pct.trans}%`, c.trans);
   if (c.over > 0) line(`Накладные ${S.pct.over}%`, c.over);
   if (c.disc > 0) line(`Скидка ${S.pct.disc}%`, '−' + fmt(c.disc), 'green');
@@ -1765,14 +2175,15 @@ function renderEstimate(c) {
   if (c.totalDays > 0) box.appendChild(el('div', 'est-line sub', `Срок: ~${c.totalDays} рабочих дней (этапы последовательно).`));
 }
 
-function estimateText() {
+function estimateText(details = {}) {
   const c = calc();
   const L = [];
-  L.push('СМЕТА' + (S.curNum ? ' № ' + S.curNum : '') + (S.proj.name ? ' — ' + S.proj.name : ''));
-  const cl = [S.proj.clientName, S.proj.phone].filter(Boolean).join(', ');
+  const number=details.num || S.curNum;
+  L.push('СМЕТА' + (number ? ' № ' + number : '') + (!details.object && S.proj.name ? ' — ' + S.proj.name : ''));
+  const cl = details.client || [S.proj.clientName, S.proj.phone].filter(Boolean).join(', ');
   if (cl) L.push('Клиент: ' + cl);
-  const ad = addressString();
-  if (ad) L.push('Адрес: ' + ad);
+  const ad = details.object || addressString();
+  if (ad) L.push('Объект: ' + ad);
   L.push('');
   [1, 2, 3, 0].forEach(s => {
     if (c.stageSum[s] <= 0) return;
@@ -1786,7 +2197,8 @@ function estimateText() {
     rooms.forEach(([rid, v]) => L.push(`  · ${roomName(rid)}: ${fmt(v)}`));
     L.push('');
   }
-  if (c.mat > 0) L.push(`Материалы (~${S.pct.mat}%): ${fmt(c.mat)}`);
+  c.materials.forEach(l => L.push('Материал · ' + materialDetail(l) + ' = ' + fmt(l.total)));
+  if (c.allowance > 0) L.push(`Ориентир на материалы прочих работ (~${S.pct.mat}%): ${fmt(c.allowance)}`);
   if (c.trans > 0) L.push(`Транспортные ${S.pct.trans}%: ${fmt(c.trans)}`);
   if (c.over > 0) L.push(`Накладные ${S.pct.over}%: ${fmt(c.over)}`);
   if (c.disc > 0) L.push(`Скидка ${S.pct.disc}%: −${fmt(c.disc)}`);
@@ -1853,11 +2265,14 @@ function kpDefaultNum() {
 
 function openKP() {
   if (!readyForEstimate()) return;
-  if (!S.kp.num) S.kp.num = S.curNum || kpDefaultNum();
+  if (calc().grand <= 0) { toast('Добавьте работы или материалы в смету'); return; }
+  if (!S.kp.num) S.kp.num = S.curNum || genNum();
   const cl = [S.proj.clientName, S.proj.phone].filter(Boolean).join(', ');
-  if (!S.kp.client && cl) S.kp.client = cl;
+  if (!S.kp.client || S.kp.autoClient !== cl) S.kp.client = cl;
+  S.kp.autoClient = cl;
   const obj = [S.proj.name, addressString()].filter(Boolean).join(', ');
-  if (!S.kp.object && obj) S.kp.object = obj;
+  if (!S.kp.object || S.kp.autoObject !== obj) S.kp.object = obj;
+  S.kp.autoObject = obj;
   KP_FIELDS.forEach(f => { kpEl(kpInputId(f)).value = S.kp[f] || ''; });
   const now = new Date(), valid = new Date(now.getTime() + 14 * 86400000);
   kpEl('kpDate').textContent = 'от ' + DATE_FMT.format(now);
@@ -1910,7 +2325,7 @@ function renderKPBody() {
 
   // детальная таблица
   const box = kpEl('kpTable'); box.innerHTML = '';
-  if (c.works <= 0) { box.appendChild(el('div', 'kp-empty', 'Смета пуста — вернитесь к расчёту.')); }
+  if (c.works <= 0 && !c.materials.length) { box.appendChild(el('div', 'kp-empty', 'Смета пуста — вернитесь к расчёту.')); }
   else {
     const t = el('table', 'kp-stages');
     t.innerHTML = '<thead><tr><th>Наименование</th><th class="r">Кол-во</th><th class="r">Цена</th><th class="r">Сумма</th></tr></thead>';
@@ -1924,7 +2339,7 @@ function renderKPBody() {
       c.byStage[s].forEach(x => {
         const tr = document.createElement('tr'); tr.className = 'it';
         const nameTd = el('td', null, x.it.name);
-        const roomsHere = Object.entries(S.q[x.it.id] || {}).filter(([, v]) => num(v) > 0);
+        const roomsHere = lineRooms(x);
         if (roomsHere.length && !(roomsHere.length === 1 && roomsHere[0][0] === 'all')) {
           nameTd.appendChild(el('span', 'roomtag', ' — ' + roomsHere.map(([rid, v]) => `${roomName(rid)} ${fmtN.format(v)}`).join(', ')));
         }
@@ -1952,14 +2367,15 @@ function renderKPBody() {
   sm.appendChild(el('div', 'kp-h', 'Сводка'));
   const add = (n, v, cls) => { const l = el('div', 'kp-line' + (cls ? ' ' + cls : '')); l.append(el('div', null, n), el('div', 'v', typeof v === 'string' ? v : fmt(v))); sm.appendChild(l); };
   add('Работы', c.works);
-  if (c.mat > 0) add(`Материалы (ориентировочно, ${S.pct.mat}% от работ)`, c.mat);
+  c.materials.forEach(l => add('Материал · ' + materialDetail(l), l.total));
+  if (c.allowance > 0) add(`Материалы прочих работ (ориентировочно, ${S.pct.mat}%)`, c.allowance);
   if (c.trans > 0) add(`Транспортные расходы ${S.pct.trans}%`, c.trans);
   if (c.over > 0) add(`Накладные расходы ${S.pct.over}%`, c.over);
   if (c.disc > 0) add(`Скидка ${S.pct.disc}%`, '−' + fmt(c.disc), 'green');
 
   kpEl('kpPay').textContent = c.totalDays > 0
-    ? `Оплата поэтапно: аванс ${S.pct.adv}% этапа, остаток ${100 - S.pct.adv}% — по акту. Расчёт предварительный, финальная смета — после замера.`
-    : 'Расчёт предварительный, финальная смета — после замера.';
+    ? `Оплата поэтапно: аванс ${S.pct.adv}% этапа, остаток ${100 - S.pct.adv}% — по акту. Суммы уточняются при согласовании состава работ.`
+    : 'Суммы уточняются при согласовании состава работ.';
   kpEl('kpPayTerm').textContent = `Оплата поэтапно: аванс ${S.pct.adv}% этапа, остаток ${100 - S.pct.adv}% — по акту выполненных работ.`;
 }
 
@@ -1969,7 +2385,7 @@ function kpText() {
   if (S.kp.client) L.push('Для: ' + S.kp.client);
   if (S.kp.object) L.push('Объект: ' + S.kp.object);
   L.push('');
-  L.push(estimateText());
+  L.push(estimateText(S.kp));
   L.push(`Оплата: аванс ${S.pct.adv}% этапа, остаток по акту. Предложение действительно 14 дней.`);
   if (S.kp.note) { L.push(''); L.push('Комментарий: ' + S.kp.note); }
   const contacts = [S.kp.phone, S.kp.mail, S.kp.manager].filter(Boolean).join(' · ');
@@ -2335,11 +2751,11 @@ function genNum() {
     // пересохранение открытой сметы → дубль: -Д2, -Д3…
     const root = S.curNum.replace(/-Д\d+$/, '');
     let k = 1;
-    arc.forEach(e => { const m = String(e.num).match(new RegExp('^' + esc(root) + '-Д(\\d+)$')); if (m) k = Math.max(k, parseInt(m[1], 10)); });
+    arc.concat(readDeals()).forEach(e => { const m = String(e.num).match(new RegExp('^' + esc(root) + '-Д(\\d+)$')); if (m) k = Math.max(k, parseInt(m[1], 10)); });
     return `${root}-Д${k + 1}`;
   }
   let n = 0;
-  arc.forEach(e => { const m = String(e.num).match(new RegExp('^' + base + '-(\\d+)')); if (m) n = Math.max(n, parseInt(m[1], 10)); });
+  arc.concat(readDeals()).forEach(e => { const m = String(e.num).match(new RegExp('^' + base + '-(\\d+)')); if (m) n = Math.max(n, parseInt(m[1], 10)); });
   return `${base}-${n + 1}`;
 }
 
@@ -2350,7 +2766,7 @@ function updateCurNum() {
 function saveSmeta() {
   if (!readyForEstimate()) return;
   const c = calc();
-  if (c.works <= 0) { toast('Смета пустая — нечего сохранять'); return; }
+  if (c.works <= 0 && !c.materials.length) { toast('Смета пустая — нечего сохранять'); return; }
   const num = genNum();
   const arc = loadArc();
   arc.unshift({
@@ -2358,7 +2774,7 @@ function saveSmeta() {
     client: S.proj.clientName, phone: S.proj.phone,
     object: S.proj.name, address: addressString(),
     total: Math.round(c.grand), days: c.totalDays, sentTo: '',
-    data: JSON.parse(JSON.stringify({ q: S.q, priceOv: S.priceOv, custom: S.custom, rooms: S.rooms, crew: S.crew, daysOv: S.daysOv, pct: S.pct, proj: S.proj })),
+    data: JSON.parse(JSON.stringify({ q: S.q, priceOv: S.priceOv, custom: S.custom, rooms: S.rooms, crew: S.crew, daysOv: S.daysOv, pct: S.pct, proj: S.proj, kp: S.kp })),
   });
   saveArc(arc);
   S.curNum = num; S.kp.num = num;
@@ -2366,8 +2782,13 @@ function saveSmeta() {
   toast('Сохранено: смета № ' + num);
 }
 
+function companyDetails() {
+  return Object.fromEntries(['company','phone','mail','manager'].map(k => [k, S.kp[k] || '']));
+}
 function openSmeta(entry) {
+  const company = companyDetails();
   Object.assign(S, JSON.parse(JSON.stringify(entry.data)));
+  S.kp = Object.assign(company, entry.data.kp || {});
   S.room = 'all';
   S.curNum = entry.num; S.kp.num = entry.num;
   save();
@@ -2382,11 +2803,185 @@ function openSmeta(entry) {
   toast('Открыта смета № ' + entry.num);
 }
 
+/* Согласованная смета, документ и поступления остаются отдельной записью от рабочего черновика. */
+const DEAL_KEY = 'stroysmeta_deals_v1';
+let activeDeal = '';
+function readDeals() {
+  const data = JSON.parse(localStorage.getItem(DEAL_KEY) || '[]');
+  return Array.isArray(data) ? data : [];
+}
+function dealStatus(d) {
+  if (!d.signed) return 'Ожидает подписания';
+  if (d.advance === 0) return 'Подписан · без аванса';
+  const received = d.payments.reduce((s,p) => s+p.kopecks,0);
+  return received >= d.advance ? 'Предоплата получена' : received ? 'Предоплата частичная' : 'Ожидает предоплаты';
+}
+const cashText = kopecks => new Intl.NumberFormat('ru-RU',{minimumFractionDigits:0, maximumFractionDigits:2}).format(kopecks/100) + ' ₽';
+function moneyInput(input) {
+  const text = input.value.trim().replace(',','.');
+  return /^\d+(\.\d{1,2})?$/.test(text) && Number.isSafeInteger(Math.round(Number(text)*100)) ? Math.round(Number(text)*100) : NaN;
+}
+function dealStore(mutate) {
+  const run = () => {
+    try {
+      const entries = readDeals();
+      const message = mutate(entries);
+      if (message) { toast(message); return; }
+      localStorage.setItem(DEAL_KEY, JSON.stringify(entries));
+      renderDeal();
+    } catch (e) { toast('Сделку сохранить не удалось. Проверьте хранилище браузера.'); }
+  };
+  return navigator.locks ? navigator.locks.request(DEAL_KEY,run) : run();
+}
+function dealControl(box,label,tag='input',hint='') {
+  const wrap = el('label',null,label), input = el(tag);
+  input.placeholder = hint;
+  wrap.appendChild(input); box.appendChild(wrap); return input;
+}
+function dealButton(box,label,action) {
+  const b=el('button','btn',label); b.type='button'; b.onclick=action; box.appendChild(b); return b;
+}
+function frozenQuoteText() {
+  return estimateText(S.kp) + (S.kp.note ? '\n\nСогласовано отдельно: ' + S.kp.note : '');
+}
+function showDeal(id) {
+  activeDeal=id || '';
+  document.getElementById('arcModal').classList.remove('show');
+  document.getElementById('dealModal').classList.add('show');
+  renderDeal();
+}
+function renderDeal() {
+  const body=document.getElementById('dealBody');
+  body.replaceChildren();
+  const d=activeDeal && readDeals().find(x=>x.id===activeDeal);
+  if (!d) {
+    const client=dealControl(body,'Заказчик'); client.value=S.kp.client || '';
+    const object=dealControl(body,'Объект'); object.value=S.kp.object || '';
+    const company=dealControl(body,'Исполнитель'); company.value=S.kp.company || '';
+    const advance=dealControl(body,'Согласованный первый платёж, ₽','input','Например, 25000'); advance.inputMode='decimal';
+    body.appendChild(el('p','measure-note','Итого по КП ' + fmt(calc().grand) + '. Впишите сумму, которую обсудили с клиентом. Укажите 0, если договорились без аванса.'));
+    let withAllowance;
+    if (calc().allowance > 0) {
+      const label=el('label','element-check');withAllowance=el('input');withAllowance.type='checkbox';
+      label.append(withAllowance,document.createTextNode('С клиентом согласована оценка материалов прочих работ на ' + fmt(calc().allowance)));
+      body.appendChild(label);
+    }
+    dealButton(body,'Зафиксировать согласованную смету',() => {
+      const amount=moneyInput(advance), total=Math.round(calc().grand)*100;
+      if (![client,object,company].every(i=>i.value.trim())) { toast('Укажите обе стороны и объект'); return; }
+      if (!(amount>=0 && amount<=total)) { toast('Проверьте сумму первого платежа'); return; }
+      if (withAllowance && !withAllowance.checked) { toast('Согласуйте оценку материалов с клиентом');return; }
+      if (!readyForEstimate() || total<=0) return;
+      const identity={client:client.value.trim(),object:object.value.trim(),company:company.value.trim()};
+      Object.assign(S.kp,identity);
+      ['client','object','company'].forEach(k=>{kpEl(kpInputId(k)).value=S.kp[k];});
+      save();
+      const data=smetaData();
+      const record={id:uid(), num:S.kp.num, created:new Date().toISOString(), client:client.value.trim(), object:object.value.trim(), company:company.value.trim(), total, advance:amount, quote:frozenQuoteText(), data, template:localStorage.getItem('stroysmeta_contract_form') || '', signed:null, payments:[], link:''};
+      dealStore(entries=>{
+        if (entries.some(x=>x.num===record.num)) return 'Этот номер уже зафиксирован. Откройте сделку или измените номер КП.';
+        entries.unshift(record);activeDeal=record.id;
+      });
+    });
+    return;
+  }
+  body.append(el('h3',null,'КП № ' + d.num + ' · ' + dealStatus(d)), el('p',null,d.client + ' · ' + d.object));
+  const received=d.payments.reduce((s,p)=>s+p.kopecks,0);
+  body.appendChild(el('p',null,'Договор ' + cashText(d.total) + ' · первый платёж ' + cashText(d.advance) + ' · поступило ' + cashText(received) + ' · остаток по договору ' + cashText(d.total-received)));
+  const details=el('details'); details.append(el('summary',null,'Согласованная смета'), el('pre','deal-text',d.quote)); body.appendChild(details);
+  const modify = action => dealStore(entries=>{
+    const current=entries.find(x=>x.id===d.id);
+    if (!current) return 'Сделка отсутствует';
+    return action(current);
+  });
+  let template;
+  if (!d.signed) {
+    template=dealControl(body,'Текст договора по форме вашей компании','textarea','Вставьте утверждённый текст. Приложение со сметой добавится автоматически.');
+    template.rows=6; template.value=d.template;
+    body.appendChild(el('p','measure-note','Доступна подстановка {заказчик}, {исполнитель}, {объект}, {номер}, {сумма}, {аванс}. Перед печатью проверьте реквизиты и условия.'));
+    dealButton(body,'Запомнить как шаблон компании',()=>{
+      if (!template.value.trim()) { toast('Введите текст шаблона'); return; }
+      try {localStorage.setItem('stroysmeta_contract_form',template.value.trim());toast('Шаблон сохранён для новых сделок');}
+      catch {toast('Шаблон сохранить не удалось');}
+    });
+    dealButton(body,'Сохранить текст договора',()=>modify(cur=>{
+      if(cur.signed) return 'Договор уже подписан';
+      cur.template=template.value.trim();
+    }));
+  }
+  const unsavedTemplate = () => template && template.value.trim() !== d.template;
+  dealButton(body,d.template ? 'Печать договора со сметой' : 'Печать согласованной сметы',()=>{
+    if (unsavedTemplate()) { toast('Сначала сохраните изменения в договоре'); return; }
+    printDeal(d);
+  });
+  if (!d.signed) {
+    const ref=dealControl(body,'Номер или ссылка на подписанный договор');
+    const date=dealControl(body,'Дата подписания');date.type='date';
+    dealButton(body,'Отметить фактическое подписание',()=>modify(cur=>{
+      if (unsavedTemplate()) return 'Сначала сохраните изменения в договоре';
+      if (!ref.value.trim() || !date.value) return 'Укажите реквизиты подписанного документа и дату';
+      if (cur.signed) return 'Подписание уже зафиксировано';
+      cur.signed={ref:ref.value.trim(),date:date.value};
+    }));
+    return;
+  }
+  body.appendChild(el('p',null,'Договор подписан ' + d.signed.date + ' · ' + d.signed.ref));
+  if (d.advance > received) {
+    const link=dealControl(body,'Ссылка банка на согласованный платёж','input','https://…');link.value=d.link;link.type='url';
+    dealButton(body,'Сохранить платёжную ссылку',()=>modify(cur=>{
+      if (link.value.trim()) {
+        try { if(new URL(link.value).protocol!=='https:') throw Error(); }
+        catch { return 'Нужна полная HTTPS-ссылка банка'; }
+      }
+      cur.link=link.value.trim();
+    }));
+    if(d.link) dealButton(body,'Скопировать ссылку для клиента',()=>copyText(d.link,'Платёжная ссылка скопирована'));
+    body.appendChild(el('p','measure-note','К доплате по авансу ' + cashText(d.advance-received) + '. Сверьте поступление по выписке или кассе, затем внесите его ниже.'));
+    const amount=dealControl(body,'Фактически поступило, ₽');amount.inputMode='decimal';
+    const reference=dealControl(body,'Идентификатор операции или номер документа');
+    const date=dealControl(body,'Дата поступления');date.type='date';
+    dealButton(body,'Записать подтверждённое поступление',()=>modify(cur=>{
+      const k=moneyInput(amount), id=reference.value.trim();
+      if (!id || !date.value || !(k>0)) return 'Укажите сумму, дату и идентификатор поступления';
+      if (cur.payments.some(p=>p.ref===id)) return 'Это поступление уже записано';
+      if (k>cur.advance-cur.payments.reduce((t,p)=>t+p.kopecks,0)) return 'Сумма превышает остаток первого платежа';
+      cur.payments.push({kopecks:k,ref:id,date:date.value});
+    }));
+  }
+  for (const p of d.payments) body.appendChild(el('div','measure-note',p.date + ' · ' + cashText(p.kopecks) + ' · ' + p.ref));
+}
+function printDeal(d) {
+  const target=document.getElementById('dealPrint');
+  target.replaceChildren();
+  const tags={'заказчик':d.client,'исполнитель':d.company,'объект':d.object,'номер':d.num,'сумма':cashText(d.total),'аванс':cashText(d.advance)};
+  if (d.template) {
+    const contract=el('section'); contract.append(el('h1',null,'Договор № ' + d.num),el('div','deal-text',d.template.replace(/\{(заказчик|исполнитель|объект|номер|сумма|аванс)\}/g,(_,k)=>tags[k])));
+    target.appendChild(contract);
+  }
+  const appendix=el('section');
+  appendix.append(el('h2',null,'Согласованная смета к КП № ' + d.num),el('p',null,d.company + ' · ' + d.client + ' · ' + d.object),el('div','deal-text',d.quote),el('p',null,'Первый платёж по договорённости ' + cashText(d.advance)));
+  target.appendChild(appendix);
+  printPreparedSheet();
+}
+function printPreparedSheet() {
+  document.body.classList.add('deal-printing');
+  window.addEventListener('afterprint',()=>document.body.classList.remove('deal-printing'),{once:true});
+  window.print();
+}
+
 function renderArc() {
   const q = document.getElementById('arcSearch').value.trim().toLowerCase();
   const box = document.getElementById('arcBody'); box.innerHTML = '';
   const all = loadArc();
   const arc = all.filter(e => !q || (e.num + ' ' + (e.client || '') + ' ' + (e.phone || '') + ' ' + (e.address || '') + ' ' + (e.object || '') + ' ' + (e.sentTo || '')).toLowerCase().includes(q));
+  const deals=readDeals().filter(d => [d.num,d.client,d.object].join(' ').toLowerCase().includes(q));
+  for (const d of deals) {
+    const row=el('div','arc-row');
+    row.appendChild(el('span',null,'Сделка № ' + d.num + ' · ' + d.client + ' · ' + dealStatus(d)));
+    dealButton(row,'Открыть сделку',()=>showDeal(d.id));
+    box.appendChild(row);
+  }
+  if (!arc.length && deals.length) return;
   if (!arc.length) {
     box.appendChild(el('div', 'modal-empty', all.length ? 'Ничего не найдено.' : 'Пока нет сохранённых смет. Посчитай и нажми «💾 Сохранить смету».'));
     return;
@@ -2436,7 +3031,7 @@ function smetaData() {
     price: l.p,
     qty: l.qty,
     total: Math.round(l.total),
-    rooms: Object.entries(S.q[l.it.id] || {}).filter(([, v]) => num(v) > 0)
+    rooms: lineRooms(l)
       .map(([rid, v]) => ({ room: roomName(rid), qty: num(v) })),
   }));
   return {
@@ -2447,13 +3042,15 @@ function smetaData() {
     object: S.proj.name || '',
     address: addressString(),
     items,
+    measuredElements: S.rooms.flatMap(room => (room.measure?.elements || []).map(f => ({room:room.name, element:f.name || ELEMENT_TYPES[f.type], location:f.location, level:f.level, note:f.note, dimensions:f, geometry:elementGeometry(f, room.measure)}))),
+    materialLines: c.materials.map(l => ({name:l.it.name, room:roomName(l.roomId), qty:l.qty, unit:l.it.unit, price:l.p, total:l.total})),
     stages: [1, 2, 3].filter(s => c.stageSum[s] > 0).map(s => ({
       stage: s, title: STAGE_NAMES[s], sum: Math.round(c.stageSum[s]), days: c.stageDays[s], crew: S.crew[s],
     })),
     otherSum: Math.round(c.stageSum[0]),
     totals: {
       works: Math.round(c.works),
-      materialsPct: num(S.pct.mat), materials: Math.round(c.mat),
+      materialsPct: num(S.pct.mat), materials: Math.round(c.mat), materialAllowance: Math.round(c.allowance),
       transportPct: num(S.pct.trans), transport: Math.round(c.trans),
       overheadPct: num(S.pct.over), overhead: Math.round(c.over),
       discountPct: num(S.pct.disc), discount: Math.round(c.disc),
@@ -2490,7 +3087,8 @@ function smetaCSV() {
   });
   L.push('');
   L.push(`;Работы;;;;${d.totals.works};`);
-  if (d.totals.materials) L.push(`;Материалы (~${d.totals.materialsPct}%);;;;${d.totals.materials};`);
+  d.materialLines.forEach(l => L.push(['Материал',q(l.name),l.unit,n(l.qty),n(l.price),n(l.total),q(l.room)].join(';')));
+  if (d.totals.materialAllowance) L.push(`;Ориентир на материалы прочих работ (~${d.totals.materialsPct}%);;;;${d.totals.materialAllowance};`);
   if (d.totals.transport) L.push(`;Транспортные ${d.totals.transportPct}%;;;;${d.totals.transport};`);
   if (d.totals.overhead) L.push(`;Накладные ${d.totals.overheadPct}%;;;;${d.totals.overhead};`);
   if (d.totals.discount) L.push(`;Скидка ${d.totals.discountPct}%;;;;-${d.totals.discount};`);
@@ -2630,6 +3228,19 @@ function init() {
   });
   search.addEventListener('blur', () => setTimeout(() => document.getElementById('sugg').classList.remove('show'), 150));
 
+  document.getElementById('dockMeasure').onclick = () => {
+    measureEl('Card').open=true;measureEl('Card').scrollIntoView({block:'start'});
+    if(!currentMeasureRoom()) measureEl('RoomName').focus();
+  };
+  document.getElementById('kpDeal').onclick = () => {
+    if (!S.kp.num?.trim()) { toast('Укажите номер КП');return; }
+    const existing=readDeals().find(d=>d.num===S.kp.num);
+    if (existing && (existing.quote!==frozenQuoteText() || existing.company!==S.kp.company)) {
+      toast('Этот номер уже согласован. Задайте новый номер КП.'); return;
+    }
+    showDeal(existing?.id);
+  };
+  document.getElementById('dealClose').onclick=()=>document.getElementById('dealModal').classList.remove('show');
   document.getElementById('btnKP').addEventListener('click', openKP);
   document.getElementById('btnKPdock').addEventListener('click', openKP);
   document.getElementById('kpBack').addEventListener('click', closeKP);
@@ -2655,13 +3266,13 @@ function init() {
   });
   document.getElementById('btnJson').addEventListener('click', () => {
     if (!readyForEstimate()) return;
-    if (calc().works <= 0) { toast('Смета пустая'); return; }
+    if (calc().grand <= 0) { toast('Смета пустая'); return; }
     downloadFile(`смета-${S.curNum || 'без-номера'}.json`, JSON.stringify(smetaData(), null, 2), 'application/json');
     toast('JSON скачан — прикрепи к карточке в CRM');
   });
   document.getElementById('btnCsv').addEventListener('click', () => {
     if (!readyForEstimate()) return;
-    if (calc().works <= 0) { toast('Смета пустая'); return; }
+    if (calc().grand <= 0) { toast('Смета пустая'); return; }
     downloadFile(`смета-${S.curNum || 'без-номера'}.csv`, smetaCSV(), 'text/csv;charset=utf-8');
     toast('CSV скачан — откроется в Excel');
   });
@@ -2670,9 +3281,9 @@ function init() {
   });
   document.getElementById('btnResetAll').addEventListener('click', ev => {
     armConfirm(ev.currentTarget, 'Точно очистить всё?', () => {
-    const keepKp = S.kp, keepUi = S.ui, keepRef = S.refUser;
+    const keepKp = companyDetails(), keepUi = S.ui, keepRef = S.refUser, keepPresets = S.elementPresets;
     localStorage.removeItem(LS_KEY);
-    S = { tab: 'dem', room: 'all', rooms: [], q: {}, priceOv: {}, custom: [], crew: { 1: 2, 2: 2, 3: 2 }, daysOv: { 1: 0, 2: 0, 3: 0 }, pct: { mat: 50, trans: 3, over: 6, disc: 0, adv: 70 }, proj: { name: '', clientName: '', phone: '', city: '', street: '', house: '', flat: '' }, kp: keepKp, ui: keepUi, curNum: '', refUser: keepRef };
+    S = { tab: 'dem', room: 'all', rooms: [], q: {}, priceOv: {}, custom: [], crew: { 1: 2, 2: 2, 3: 2 }, daysOv: { 1: 0, 2: 0, 3: 0 }, pct: { mat: 50, trans: 3, over: 6, disc: 0, adv: 70 }, proj: { name: '', clientName: '', phone: '', city: '', street: '', house: '', flat: '' }, kp: keepKp, ui: keepUi, elementPresets: keepPresets, curNum: '', refUser: keepRef };
     save();
     bindProjFields(); updateCurNum();
     ['pMat', 'pTrans', 'pOver', 'pDisc', 'pAdv'].forEach((id, i) => { document.getElementById(id).value = [50, 3, 6, 0, 70][i]; });
