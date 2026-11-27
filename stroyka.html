@@ -462,6 +462,7 @@
     .kp-ben, .kp-stages tr, .kp-terms li, .kp-line { break-inside: avoid; }
     .kp-h { break-after: avoid; }
   }
+#kpBrandLogo[hidden] {display:none!important;}
 </style>
 </head>
 <body>
@@ -475,7 +476,7 @@
     </div>
     <div class="hdr-btns">
       <button class="hbtn" id="btnRef" type="button">📚 Справочник</button>
-      <button class="hbtn" id="btnCompanyProfile" type="button">Настройки компании</button>
+      <button class="hbtn" id="btnCompanyProfile" type="button">Фирменные документы</button>
       <button class="hbtn" id="btnArc" type="button">🗂 Сметы и сделки</button>
       <button class="hbtn" id="btnHelp" type="button" title="Как пользоваться">❓</button>
       <button class="hbtn" id="btnTheme" type="button">🎨</button>
@@ -636,6 +637,7 @@
   <div class="kp-sheet">
     <div class="kp-head">
       <div class="kp-co" style="flex:1; min-width: 220px;">
+        <img id="kpBrandLogo" alt="Логотип компании" hidden style="display:block;max-width:180px;width:auto;height:auto;max-height:65px;margin-bottom:12px" />
         <input id="kpCompany" type="text" placeholder="НАЗВАНИЕ ВАШЕЙ КОМПАНИИ">
         <div class="kp-tag">строительство · отделка · ремонт под ключ</div>
       </div>
@@ -785,7 +787,7 @@
 
 <div class="modal" id="profileModal" role="dialog" aria-modal="true" aria-labelledby="profileTitle">
   <div class="modal-card">
-    <div class="modal-head"><div class="t" id="profileTitle">Настройки компании</div><button class="x" id="profileClose" type="button" aria-label="Закрыть настройки">✕</button></div>
+    <div class="modal-head"><div class="t" id="profileTitle">Фирменные документы</div><button class="x" id="profileClose" type="button" aria-label="Закрыть настройки">✕</button></div>
     <div id="profileBody" class="modal-body measure-body"></div>
   </div>
 </div>
@@ -2274,7 +2276,7 @@ function openKP() {
   if (!readyForEstimate()) return;
   if (calc().grand <= 0) { toast('Добавьте работы или материалы в смету'); return; }
   if (!S.kp.num) S.kp.num = S.curNum || genNum();
-  if (!S.kp.company) S.kp.company = fieldProfile().company || '';
+  if (!S.kp.company) S.kp.company = activeCompanyProfile().company || '';
   const cl = [S.proj.clientName, S.proj.phone].filter(Boolean).join(', ');
   if (!S.kp.client || S.kp.autoClient !== cl) S.kp.client = cl;
   S.kp.autoClient = cl;
@@ -2285,6 +2287,7 @@ function openKP() {
   const now = new Date(), valid = new Date(now.getTime() + 14 * 86400000);
   kpEl('kpDate').textContent = 'от ' + DATE_FMT.format(now);
   kpEl('kpValid').textContent = 'действительно до ' + DATE_FMT.format(valid);
+  renderQuoteBrand();
   renderKPBody();
   document.body.classList.add('kp-open');
   document.title = 'КП ' + (S.kp.company || 'СТРОЙСМЕТА') + ' № ' + S.kp.num;
@@ -2855,6 +2858,41 @@ function fieldProfile() {
   try { return JSON.parse(localStorage.getItem(FIELD_PROFILE_KEY)||'{}') || {}; }
   catch { return {}; }
 }
+function activeCompanyProfile(companyName) {
+  const p=fieldProfile();
+  return p.mode==='demo' && p.company &&
+    (companyName===undefined || String(companyName).trim()===p.company) ? p : {};
+}
+function renderQuoteBrand() {
+  const img=document.getElementById('kpBrandLogo');
+  const logo=activeCompanyProfile(S.kp.company).logo||'';
+  img.hidden=!/^data:image\/(png|jpeg|webp);base64,/i.test(logo);
+  if(img.hidden) img.removeAttribute('src'); else if(img.getAttribute('src')!==logo) img.src=logo;
+}
+const COMPANY_TOKENS=['заказчик','исполнитель','объект','номер','сумма','аванс','реквизиты','почта'];
+function templateIssues(value) {
+  const unknown=[...new Set(Array.from(value.matchAll(/\{([^{}]+)\}/g),m=>m[1]).filter(k=>!COMPANY_TOKENS.includes(k)))];
+  return unknown.length?'Неизвестные поля: '+unknown.map(k=>'{'+k+'}').join(', '):'';
+}
+function templateUpload(body,label,target) {
+  const pick=dealControl(body,label);
+  pick.type='file';pick.accept='.txt,text/plain';
+  let revision=0;
+  target.addEventListener('input',()=>{revision++;});
+  pick.onchange=async()=>{
+    const current=++revision, f=pick.files[0];
+    if(!f)return;
+    try{
+      if(!/\.txt$/i.test(f.name) || f.size>80000)throw Error('Нужен файл TXT не больше 80 КБ');
+      const raw=new TextDecoder('utf-8',{fatal:true}).decode(await f.arrayBuffer());
+      if(current!==revision)return;
+      if(!raw.trim())throw Error('Файл пуст');
+      if(/\u0000/.test(raw))throw Error('Нужен текстовый файл UTF-8');
+      target.value=raw;toast('Шаблон загружен. Проверьте поля и сохраните профиль.');
+    }catch(error){if(current===revision)toast(error instanceof TypeError?'Файл должен быть в кодировке UTF-8':error.message);}
+    finally {if(current===revision)pick.value='';}
+  };
+}
 function freezeDealData(identity,num) {
   const data=smetaData();
   return {...data,num,client:{...data.client,name:identity.client,email:identity.email},
@@ -2883,9 +2921,9 @@ function dealDocument(d,kind) {
   const prices='\nИтого: '+cashText(d.total)+'\nСогласованный первый платёж: '+cashText(d.advance);
   if(kind==='quote') return {title:'Коммерческое предложение № '+d.num,
     body:recordHeader+'\n\n'+d.quote+'\n\nСогласованный первый платёж: '+cashText(d.advance)};
-  if(kind==='contract') return {title:(d.signed?'Договор № ':'Проект договора № ')+d.num,
+  if(kind==='contract') return {title:'Сформированный проект договора № '+d.num,
     body:recordHeader+(d.profile?.details?'\nРеквизиты: '+d.profile.details:'')+
-      (d.signed?'\nФакт подписания отмечен: '+d.signed.date+' · '+d.signed.ref:'\nСформированный файл не подтверждает подписание.')+
+      '\nЭтот файл не содержит подписей сторон.'+(d.signed?'\nВ учёте отмечено подписание отдельного документа: '+d.signed.date+' · '+d.signed.ref:'')+
       '\n\n'+fillDealTemplate(d.template,d)+'\n\nПРИЛОЖЕНИЕ. СОГЛАСОВАННАЯ СМЕТА\n'+d.quote+prices};
   return {title:'Проект акта к договору № '+d.num,
     body:recordHeader+'\n\n'+fillDealTemplate(d.profile.act,d)+
@@ -2967,9 +3005,15 @@ async function downloadDealPdf(d,kind,thenMail=false) {
   } catch {toast('PDF не удалось подготовить. Можно напечатать документ из карточки сделки.');}
 }
 function dealMailText(d,kind) {
+  const labels={
+    quote:['Согласованное коммерческое предложение','коммерческое предложение'],
+    contract:['Проект договора и согласованная смета','проект договора со сметой'],
+    act:['Проект акта','проект акта'],
+  };
+  const [subject,label]=labels[kind];
   return {
-    subject:kind==='contract' ? 'Договор и согласованная смета № '+d.num : 'Согласованное предложение № '+d.num,
-    body:'Здравствуйте!\r\n\r\nНаправляю '+(kind==='contract'?'договор со сметой':'коммерческое предложение')+' по объекту «'+
+    subject:subject+' № '+d.num,
+    body:'Здравствуйте!\r\n\r\nНаправляю '+label+' по объекту «'+
       d.object+'». Документ во вложении.\r\n\r\n'+d.company,
   };
 }
@@ -3030,13 +3074,21 @@ function mailDealDraft(d,kind) {
 function showFieldProfile() {
   const modal=document.getElementById('profileModal'), body=document.getElementById('profileBody');
   const old=fieldProfile(); body.replaceChildren();
-  body.appendChild(el('p','measure-note','Настройки хранятся на этом устройстве и применяются к новым сделкам. Подписи и печати не подставляются.'));
+  body.appendChild(el('h3',null,'Бесплатно: обмер, смета и КП'));
+  body.appendChild(el('p','measure-note','Базовый расчёт, обычное КП и его PDF работают без этой опции.'));
+  body.appendChild(el('h3',null,'Дополнительная опция: фирменные документы'));
+  body.appendChild(el('p','measure-note','Логотип, реквизиты и свои шаблоны договора и акта. Сейчас доступен локальный тест без оплаты: нет подписки, входа в аккаунт или синхронизации. Профиль применяется к новым сделкам и хранится только в этом браузере.'));
+  const preview=dealControl(body,'Включить тест фирменных документов');
+  preview.type='checkbox';preview.checked=old.mode==='demo';
   const company=dealControl(body,'Название компании'); company.value=old.company||'';
   const sender=dealControl(body,'Рабочая почта отправителя для .eml (если используется)');sender.type='email';sender.value=old.sender||'';
   const details=dealControl(body,'Реквизиты компании','textarea');details.value=old.details||'';
   const template=dealControl(body,'Утверждённый шаблон договора','textarea');template.value=old.contract||'';
   const act=dealControl(body,'Утверждённый шаблон акта','textarea');act.value=old.act||'';
   [template,act,details].forEach(v=>v.rows=3);
+  templateUpload(body,'Загрузить свой договор (.txt, UTF-8)',template);
+  templateUpload(body,'Загрузить свой акт (.txt, UTF-8)',act);
+  body.appendChild(el('p','measure-note','Если документ в Word, скопируйте текст или сохраните его как TXT в UTF-8. Оформление Word, подпись и печать не переносятся.'));
   body.appendChild(el('p','measure-note','Поля: {заказчик}, {исполнитель}, {объект}, {номер}, {сумма}, {аванс}, {реквизиты}, {почта}.'));
   let logo=old.logo||'';const image=dealControl(body,'Логотип: PNG, JPEG или WebP, до 400 КБ');image.type='file';image.accept='image/png,image/jpeg,image/webp';
   const hint=el('p','measure-note',logo?'Логотип сохранён':'Логотип не добавлен');body.appendChild(hint);
@@ -3051,8 +3103,16 @@ function showFieldProfile() {
   dealButton(body,'Сохранить настройки компании',()=>{
     if(waiting){toast('Дождитесь загрузки логотипа');return;}
     if(!validDealEmail(sender.value.trim())){toast('Проверьте рабочую почту');return;}
-    try {localStorage.setItem(FIELD_PROFILE_KEY,JSON.stringify({company:company.value.trim(),sender:sender.value.trim(),details:details.value.trim(),contract:template.value.trim(),act:act.value.trim(),logo}));
-      modal.classList.remove('show');toast('Настройки сохранены для новых сделок');
+    if(preview.checked && !company.value.trim()){toast('Укажите название компании');return;}
+    if(template.value.length>40000 || act.value.length>40000){toast('До 40 000 символов на шаблон');return;}
+    const issue=templateIssues(template.value)||templateIssues(act.value);
+    if(issue){toast(issue);return;}
+    try {localStorage.setItem(FIELD_PROFILE_KEY,JSON.stringify({mode:preview.checked?'demo':'base',company:company.value.trim(),sender:sender.value.trim(),details:details.value.trim(),contract:template.value.trim(),act:act.value.trim(),logo}));
+      if(document.body.classList.contains('kp-open')){
+        if(preview.checked && !S.kp.company){S.kp.company=company.value.trim();kpEl('kpCompany').value=S.kp.company;save();}
+        renderQuoteBrand();
+      }
+      modal.classList.remove('show');toast(preview.checked?'Тест включён для новых сделок':'Профиль сохранён, тест выключен');
     } catch {toast('Не удалось сохранить настройки');}
   });
   modal.classList.add('show');
@@ -3099,12 +3159,12 @@ function renderDeal() {
       Object.assign(S.kp,{client:identity.client,object:identity.object,company:identity.company,clientEmail:identity.email});
       ['client','object','company'].forEach(k=>{kpEl(kpInputId(k)).value=S.kp[k];});
       save();
-      const profile=fieldProfile();
+      const profile=activeCompanyProfile(identity.company);
       const {logo,details,act,sender}=profile;
       const data=freezeDealData(identity,S.kp.num);
       const record={id:uid(), num:S.kp.num, created:new Date().toISOString(), ...identity,
-        profile:{logo,details,act,sender}, total, advance:amount, quote:frozenQuoteText(), data,
-        template:profile.contract || localStorage.getItem('stroysmeta_contract_form') || '',
+        profile:{logo,details,act,sender,branded:profile.mode==='demo'}, total, advance:amount, quote:frozenQuoteText(), data,
+        template:profile.contract || '',
         followup:followup.value||'',signed:null,payments:[], link:''};
       dealStore(entries=>{
         if (entries.some(x=>x.num===record.num)) return 'Этот номер уже зафиксирован. Откройте сделку или измените номер КП.';
@@ -3138,18 +3198,19 @@ function renderDeal() {
       cur.followup=next.value;
     }));
     body.appendChild(el('p','measure-note','Дата также видна в разделе «Сметы и сделки». Автоматического напоминания или отправки нет.'));
-    template=dealControl(body,'Текст договора по форме вашей компании','textarea','Вставьте утверждённый текст. Приложение со сметой добавится автоматически.');
-    template.rows=6; template.value=d.template;
-    body.appendChild(el('p','measure-note','Доступна подстановка {заказчик}, {исполнитель}, {объект}, {номер}, {сумма}, {аванс}. Перед печатью проверьте реквизиты и условия.'));
-    dealButton(body,'Запомнить как шаблон компании',()=>{
-      if (!template.value.trim()) { toast('Введите текст шаблона'); return; }
-      try {localStorage.setItem('stroysmeta_contract_form',template.value.trim());toast('Шаблон сохранён для новых сделок');}
-      catch {toast('Шаблон сохранить не удалось');}
-    });
-    dealButton(body,'Сохранить текст договора',()=>modify(cur=>{
-      if(cur.signed) return 'Договор уже подписан';
-      cur.template=template.value.trim();
-    }));
+    if(d.profile?.branded || d.template){
+      template=dealControl(body,'Текст договора по форме вашей компании','textarea','Вставьте утверждённый текст. Согласованная смета добавится автоматически.');
+      template.rows=6; template.value=d.template;
+      body.appendChild(el('p','measure-note','Перед отправкой проверьте реквизиты и условия. Чтобы изменить шаблон для будущих сделок, откройте «Фирменные документы».'));
+      dealButton(body,'Сохранить текст договора',()=>modify(cur=>{
+        if(cur.signed) return 'Договор уже подписан';
+        if(template.value.length>40000)return 'До 40 000 символов на шаблон';
+        const issue=templateIssues(template.value);if(issue)return issue;
+        cur.template=template.value.trim();
+      }));
+    }else{
+      body.appendChild(el('p','measure-note','Можно использовать подписанный договор, подготовленный вне калькулятора. Для своих шаблонов внутри калькулятора включите «Фирменные документы» перед созданием новой сделки.'));
+    }
   }
   const unsavedTemplate = () => template && template.value.trim() !== d.template;
   dealButton(body,d.template ? 'Печать договора со сметой' : 'Печать согласованной сметы',()=>{
@@ -3172,13 +3233,28 @@ function renderDeal() {
       });
     }
   }
-  if(d.profile?.act && d.signed)dealButton(body,'Скачать проект акта',()=>downloadDealPdf(d,'act'));
+  if(d.profile?.act && d.signed){
+    dealButton(body,'Скачать проект акта',()=>downloadDealPdf(d,'act'));
+    if(d.email)dealButton(body,'Скачать письмо .eml с проектом акта',()=>downloadDealEmail(d,'act'));
+    if(d.actSigned){
+      body.appendChild(el('p',null,'Подписание акта отмечено: '+d.actSigned.date+' · '+d.actSigned.ref));
+    }else{
+      const actRef=dealControl(body,'Номер или ссылка на подписанный акт');
+      const actDate=dealControl(body,'Дата подписания акта');actDate.type='date';actDate.max=localDatePlus();
+      dealButton(body,'Отметить подписание акта',()=>modify(cur=>{
+        if(!cur.signed || !cur.profile?.act || cur.actSigned)return 'Подписание акта нельзя отметить повторно';
+        if(!actRef.value.trim() || !actDate.value || actDate.value>localDatePlus() || actDate.value<cur.signed.date)
+          return 'Укажите реквизиты и дату подписания акта, не раньше даты договора и не позже сегодня';
+        cur.actSigned={ref:actRef.value.trim(),date:actDate.value};
+      }));
+    }
+  }
   if (!d.signed) {
     const ref=dealControl(body,'Номер или ссылка на подписанный договор');
-    const date=dealControl(body,'Дата подписания');date.type='date';
+    const date=dealControl(body,'Дата подписания');date.type='date';date.max=localDatePlus();
     dealButton(body,'Отметить фактическое подписание',()=>modify(cur=>{
       if (unsavedTemplate()) return 'Сначала сохраните изменения в договоре';
-      if (!ref.value.trim() || !date.value) return 'Укажите реквизиты подписанного документа и дату';
+      if (!ref.value.trim() || !date.value || date.value>localDatePlus()) return 'Укажите реквизиты подписанного документа и дату не позже сегодня';
       if (cur.signed) return 'Подписание уже зафиксировано';
       cur.signed={ref:ref.value.trim(),date:date.value};
     }));
@@ -3523,6 +3599,7 @@ function init() {
   KP_FIELDS.forEach(f => {
     kpEl(kpInputId(f)).addEventListener('input', e => {
       S.kp[f] = e.target.value;
+      if (f === 'company') renderQuoteBrand();
       if (f === 'num' || f === 'company') document.title = 'КП ' + (S.kp.company || 'СТРОЙСМЕТА') + ' № ' + (S.kp.num || '');
       save();
     });
