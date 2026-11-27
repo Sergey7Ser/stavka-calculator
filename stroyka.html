@@ -194,6 +194,34 @@
   .rchip .x:hover { color: #E06060; }
   .rchip.add { border-style: dashed; color: var(--muted); }
 
+  #measureCard { margin-bottom: 14px; }
+  #measureBadge { max-width: 43%; overflow: hidden; text-overflow: ellipsis; }
+  .measure-body { padding: 14px; border-top: 1px solid var(--line); }
+  .measure-body h3 { margin: 18px 0 8px; font-size: 15px; }
+  .measure-note { font-size: 13px; color: var(--ink-2); margin: 6px 0 10px; }
+  .measure-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 118px), 1fr)); gap: 8px; }
+  .measure-body label { display: grid; align-content: end; gap: 4px; font-size: 13px; color: var(--ink-2); }
+  .measure-body input, .measure-body select {
+    width: 100%; min-width: 0; min-height: 44px; border: 1px solid var(--line-strong); border-radius: 8px;
+    color: var(--ink); background: var(--bg-2); font: inherit; padding: 8px;
+  }
+  .measure-line { display: flex; align-items: end; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+  .measure-line label { flex: 1 1 145px; min-width: 0; }
+  .measure-body .btn { min-height: 44px; white-space: normal; }
+  .measure-body button:disabled { opacity: .5; cursor: default; }
+  .measure-opening { border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px 12px; margin: 0 0 8px; min-width: 0; }
+  .measure-opening legend { color: var(--ink-2); font-size: 13px; font-weight: 700; padding: 0 4px; }
+  .measure-opening .measure-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .measure-remove { color: var(--ink-2); background: transparent; border: 0; text-decoration: underline; cursor: pointer; padding: 8px 4px; }
+  .measure-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 120px), 1fr)); gap: 7px; margin: 8px 0; }
+  .measure-metrics div { padding: 8px 10px; background: var(--bg-2); border-radius: 8px; }
+  .measure-metrics dt { font-size: 12px; color: var(--muted); }
+  .measure-metrics dd { margin: 2px 0 0; font: 700 16px var(--mono); }
+  .measure-bound { display: flex; justify-content: space-between; gap: 8px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+  .measure-bound small { display: block; color: var(--muted); }
+  .measure-alert { margin: 8px 0; padding: 8px 12px; border-left: 3px solid var(--orange); background: var(--card-2); font-size: 13px; }
+  .measure-body [hidden] { display: none; }
+
   /* карточки-разделы */
   details.card {
     background: var(--card); border: 1px solid var(--line); border-radius: 12px;
@@ -454,6 +482,56 @@
     </div>
   </div>
 
+  <details class="card" id="measureCard">
+    <summary><span class="chev">▶</span><span class="sec-title">Обмер помещений</span><span class="sec-badge" id="measureBadge">Открыть</span></summary>
+    <div class="measure-body">
+      <div class="measure-line">
+        <label>Помещение<select id="measureRoom"></select></label>
+        <button class="btn" id="measureNewRoom" type="button">+ Новое помещение</button>
+      </div>
+      <form id="measureRoomForm" class="measure-line">
+        <label>Название помещения<input id="measureRoomName" placeholder="Например, кухня" required></label>
+        <button class="btn gold" type="submit">Добавить помещение</button>
+      </form>
+      <div id="measureObject" hidden>
+        <h3>Объёмы по объекту</h3>
+        <p class="measure-note" id="measureCoverage"></p>
+        <dl class="measure-metrics" id="measureObjectMetrics"></dl>
+      </div>
+      <div id="measureEditor" hidden>
+        <label>Как измерен пол<select id="measureMode">
+          <option value="rect">Прямоугольник — по длине и ширине</option>
+          <option value="outline">Сложная форма — по площади и периметру</option>
+        </select></label>
+        <div class="measure-grid" style="margin-top:8px">
+          <label>Длина, м<input id="measureLength" data-dimension="length" inputmode="decimal"></label>
+          <label>Ширина, м<input id="measureWidth" data-dimension="width" inputmode="decimal"></label>
+          <label>Площадь пола, м²<input id="measureArea" data-dimension="area" inputmode="decimal"></label>
+          <label>Периметр, м<input id="measurePerimeter" data-dimension="perimeter" inputmode="decimal"></label>
+          <label>Высота стен, м<input id="measureHeight" data-dimension="height" inputmode="decimal"></label>
+        </div>
+        <h3>Двери и окна</h3>
+        <div id="measureOpenings"></div>
+        <div class="measure-line">
+          <button class="btn" id="measureDoor" type="button">+ Дверь</button>
+          <button class="btn" id="measureWindow" type="button">+ Окно</button>
+        </div>
+        <h3>Объёмы помещения</h3>
+        <p class="measure-note">Потолок считаем плоским, высоту стен — одинаковой по всему периметру. Из стен вычитаются окна и двери, из длины плинтуса — ширина дверей.</p>
+        <p id="measureStatus" class="measure-alert" role="status"></p>
+        <dl id="measureMetrics" class="measure-metrics"></dl>
+        <h3>Работы по обмеру</h3>
+        <div class="measure-line">
+          <label>Какой объём взять<select id="measureSource"></select></label>
+          <label>Работа в смете<select id="measureWork"></select></label>
+          <button id="measureApply" class="btn gold" type="button">В смету</button>
+        </div>
+        <p class="measure-note">При уточнении размеров объёмы выбранных работ пересчитаются. Если работа занимает только часть поверхности, её объём можно вписать вручную в строке сметы.</p>
+        <div id="measureLinks"></div>
+      </div>
+    </div>
+  </details>
+
   <div class="tabs" id="tabs"></div>
 
   <div class="toolbar">
@@ -492,6 +570,7 @@
   <details class="card estimate" open id="secEst">
     <summary><span class="chev">▶</span><span class="sec-title">Смета</span><span class="sec-badge" id="bEst">0 ₽</span></summary>
     <div class="card-body">
+      <p class="measure-alert" id="estimateMeasureAlert" hidden></p>
       <div id="estBody"></div>
       <div class="est-actions">
         <button class="btn gold" id="btnKP" type="button">Коммерческое предложение →</button>
@@ -616,6 +695,7 @@
       <h3>2. Помещения</h3>
       <p>Строка <b>«Считаем:»</b> — нажми <span class="hp-b">+ Помещение</span> («Кухня», «Санузел», «Фасад») и вводи объёмы отдельно для каждого. Смета и КП покажут разбивку по комнатам.</p>
 
+      <p>На объекте открой <span class="hp-b">Обмер помещений</span>, выбери или добавь комнату и введи размеры в метрах. Для комнаты сложной формы можно указать измеренные площадь пола и периметр. Введи каждый типоразмер окна и двери с его количеством. Выбери объём и работу, затем нажми «В смету». Можно назначить один и тот же объём нескольким работам. Правка количества прямо в строке работы переводит её на ручной ввод только для этого помещения.</p>
       <h3>3. Работы и поиск</h3>
       <p>Цену в любой строке можно править прямо на месте — правка запомнится. Строка <b>🔍 Поиск</b> сверху: введи «штукатурка», «плитка стены» → тап по подсказке → перескочит на нужную строку и поставит курсор в кол-во.</p>
 
@@ -1032,7 +1112,274 @@ function renderTabs() {
   });
 }
 
+/* ================= ОБМЕР ПОМЕЩЕНИЙ ================= */
+const MEASURE_SOURCES = {
+  walls: { name: 'Стены без проёмов', unit: 'м²', suggested: ['r1', 'r5', 'f1', 'f2', 'f4', 'd4', 'r9'] },
+  floor: { name: 'Пол', unit: 'м²', suggested: ['r3', 'r4', 'f3', 'f5', 'f6', 'd5'] },
+  ceiling: { name: 'Потолок', unit: 'м²', suggested: ['r6', 'f9', 'f10', 'd6'] },
+  skirting: { name: 'Плинтус без дверей', unit: 'п.м.', suggested: ['f7'] },
+  perimeter: { name: 'Периметр', unit: 'п.м.', suggested: [] },
+  gross: { name: 'Стены до вычета', unit: 'м²', suggested: [] },
+  openings: { name: 'Площадь проёмов', unit: 'м²', suggested: [] },
+};
+const measureEl = suffix => document.getElementById('measure' + suffix);
+const currentMeasureRoom = () => S.rooms.find(room => room.id === S.room);
+
+function measureNumber(raw) {
+  const value = String(raw ?? '').trim().replace(',', '.');
+  if (!/^(?:\d+(?:\.\d*)?|\.\d+)$/.test(value)) return NaN;
+  const n = Number(value);
+  return n > 0 && Number.isFinite(n) ? n : NaN;
+}
+
+function roomGeometry(m) {
+  const rect = m?.mode !== 'outline';
+  const length = measureNumber(m?.length), width = measureNumber(m?.width);
+  const floor = rect ? length * width : measureNumber(m.area);
+  const perimeter = rect ? 2 * (length + width) : measureNumber(m.perimeter);
+  const height = measureNumber(m?.height);
+  if (![floor, perimeter, height].every(Number.isFinite)) {
+    return { error: rect ? 'Введите длину, ширину и высоту в метрах.' : 'Введите площадь пола, периметр и высоту стен.' };
+  }
+  let openings = 0, doorWidth = 0;
+  for (const [index, opening] of (m.openings || []).entries()) {
+    const w = measureNumber(opening.width), h = measureNumber(opening.height);
+    const count = measureNumber(opening.count);
+    const title = (opening.type === 'door' ? 'Дверь' : 'Окно') + ' № ' + (index + 1) + '. ';
+    if (!Number.isFinite(w) || !Number.isFinite(h) || !Number.isSafeInteger(count)) {
+      return { error: title + 'Укажите ширину, высоту и целое количество проёмов.' };
+    }
+    if (h > height || (rect && w > Math.max(length, width))) {
+      return { error: title + 'Размер проёма превышает размер стены.' };
+    }
+    openings += w * h * count;
+    if (opening.type === 'door') doorWidth += w * count;
+  }
+  const gross = perimeter * height;
+  if (openings > gross + 1e-8 || doorWidth > perimeter + 1e-8) {
+    return { error: 'Проверьте размеры и количество проёмов. Их площадь превышает площадь стен или суммарная ширина дверей больше периметра.' };
+  }
+  const values = { walls: gross - openings, floor, ceiling: floor, skirting: perimeter - doorWidth, perimeter, gross, openings };
+  if (Object.values(values).some(n => !Number.isFinite(n) || n > Number.MAX_SAFE_INTEGER / 100)) {
+    return { error: 'Слишком большие размеры для расчёта. Проверьте единицы измерения.' };
+  }
+  // Сначала вычитаем все проёмы, затем округляем объёмы для строк сметы.
+  for (const key of Object.keys(values)) values[key] = Math.round((Math.max(0, values[key]) + Number.EPSILON) * 100) / 100;
+  return { values };
+}
+
+function incompleteLinkedRoom() {
+  return S.rooms.find(room => Object.keys(room.measure?.links || {}).length && roomGeometry(room.measure).error);
+}
+
+function readyForEstimate() {
+  const room = incompleteLinkedRoom();
+  if (!room) return true;
+  selectRoom(room.id);
+  measureEl('Card').open = true;
+  measureEl('Status').scrollIntoView({ block: 'center' });
+  toast('Завершите обмер помещения');
+  return false;
+}
+
+function renderMeasureRoom() {
+  const room = currentMeasureRoom();
+  const select = measureEl('Room');
+  select.replaceChildren(new Option('Весь объект', 'all'));
+  for (const r of S.rooms) select.add(new Option(r.name, r.id));
+  select.value = room?.id || 'all';
+  measureEl('RoomForm').hidden = !!room;
+  measureEl('NewRoom').hidden = !room;
+  measureEl('Editor').hidden = !room;
+  measureEl('Badge').textContent = room ? room.name : 'Открыть';
+  measureEl('Object').hidden = !!room || !S.rooms.length;
+  if (!room) {
+    const totals = {}, completed = S.rooms.map(r => roomGeometry(r.measure).values).filter(Boolean);
+    for (const key of Object.keys(MEASURE_SOURCES)) {
+      totals[key] = completed.reduce((sum, values) => sum + values[key], 0);
+    }
+    measureEl('Coverage').textContent = 'Учтено помещений с полным обмером: ' + completed.length + ' из ' + S.rooms.length + '.';
+    renderMeasureMetrics(measureEl('ObjectMetrics'), completed.length ? totals : null);
+    return;
+  }
+  const m = room.measure || (room.measure = { mode: 'rect', openings: [], links: {} });
+  measureEl('Mode').value = m.mode;
+  document.querySelectorAll('[data-dimension]').forEach(input => {
+    const key = input.dataset.dimension;
+    input.value = m[key] || '';
+    input.parentElement.hidden = key !== 'height' && (['length', 'width'].includes(key) !== (m.mode === 'rect'));
+  });
+  const list = measureEl('Openings');
+  list.replaceChildren();
+  m.openings.forEach((o, index) => {
+    const group = el('fieldset', 'measure-opening');
+    const title = (o.type === 'door' ? 'Дверь' : 'Окно') + ' № ' + (index + 1);
+    group.appendChild(el('legend', null, title));
+    const grid = el('div', 'measure-grid');
+    for (const [key, name] of [['width', 'Ширина, м'], ['height', 'Высота, м'], ['count', 'Количество']]) {
+      const label = el('label', null, name);
+      const input = el('input');
+      input.inputMode = key === 'count' ? 'numeric' : 'decimal';
+      input.value = o[key];
+      input.addEventListener('input', () => { o[key] = input.value; updateMeasuredQuantities(); });
+      label.appendChild(input);
+      grid.appendChild(label);
+    }
+    const remove = el('button', 'measure-remove', 'Удалить проём');
+    remove.type = 'button';
+    remove.setAttribute('aria-label', 'Удалить: ' + title);
+    remove.onclick = () => { m.openings.splice(index, 1); renderMeasureRoom(); updateMeasuredQuantities(); };
+    group.append(grid, remove);
+    list.appendChild(group);
+  });
+  renderMeasureResult();
+}
+
+function renderMeasureResult() {
+  const room = currentMeasureRoom();
+  if (!room) return;
+  const { values, error } = roomGeometry(room.measure);
+  const status = measureEl('Status');
+  status.hidden = !error;
+  status.textContent = error || '';
+  if (error && Object.keys(room.measure.links).length) status.textContent += ' Связанные работы пока рассчитаны по последнему полному обмеру.';
+  renderMeasureMetrics(measureEl('Metrics'), values);
+  renderMeasureBindings();
+}
+
+function renderMeasureMetrics(metrics, values) {
+  metrics.replaceChildren();
+  if (values) {
+    for (const [key, source] of Object.entries(MEASURE_SOURCES)) {
+      const cell = el('div');
+      cell.append(el('dt', null, source.name), el('dd', null, fmtN.format(values[key]) + ' ' + source.unit));
+      metrics.appendChild(cell);
+    }
+  }
+}
+
+function updateMeasuredQuantities() {
+  const room = currentMeasureRoom();
+  const { values } = roomGeometry(room.measure);
+  if (values) {
+    for (const [id, source] of Object.entries(room.measure.links)) {
+      if (!S.q[id]) S.q[id] = {};
+      S.q[id][room.id] = values[source];
+    }
+  }
+  save();
+  renderMeasureResult();
+  recalc();
+}
+
+function measureUnit(unit) {
+  const normalized = String(unit || '').toLowerCase().replace(/[\s.]/g, '');
+  if (['м2', 'м²', 'квм'].includes(normalized)) return 'м²';
+  if (['м', 'пм', 'мп', 'м/п', 'погм'].includes(normalized)) return 'п.м.';
+  return unit;
+}
+
+function renderMeasureWorks() {
+  if (!currentMeasureRoom()) return;
+  const source = MEASURE_SOURCES[measureEl('Source').value];
+  const work = measureEl('Work'), previous = work.value;
+  work.replaceChildren(new Option('Выберите работу', ''));
+  const matches = allItems().filter(it => measureUnit(it.unit) === source.unit);
+  for (const suggested of [true, false]) {
+    const group = el('optgroup');
+    group.label = suggested ? 'Часто используют' : 'Другие работы в тех же единицах';
+    matches.filter(it => source.suggested.includes(it.id) === suggested)
+      .forEach(it => group.appendChild(new Option(it.name, it.id)));
+    if (group.children.length) work.appendChild(group);
+  }
+  if (matches.some(it => it.id === previous)) work.value = previous;
+  renderMeasureBindings();
+}
+
+function renderMeasureBindings() {
+  const room = currentMeasureRoom();
+  if (!room) return;
+  const source = measureEl('Source').value, work = measureEl('Work').value;
+  const { values } = roomGeometry(room.measure);
+  const button = measureEl('Apply');
+  button.disabled = !values || !work || room.measure.links[work] === source;
+  const existing = qtyRoom(work, room.id);
+  const quantity = values && fmtN.format(values[source]) + ' ' + MEASURE_SOURCES[source].unit;
+  if (room.measure.links[work] === source) button.textContent = 'Уже в смете';
+  else if (work && quantity) button.textContent = existing ? 'Заменить ' + fmtN.format(existing) + ' на ' + quantity : 'В смету · ' + quantity;
+  else button.textContent = 'В смету';
+  const list = measureEl('Links');
+  list.replaceChildren();
+  for (const [id, key] of Object.entries(room.measure.links)) {
+    const item = getItem(id);
+    if (!item) continue;
+    const row = el('div', 'measure-bound'), label = el('span', null, item.name);
+    label.appendChild(el('small', null, MEASURE_SOURCES[key].name + ' · ' + fmtN.format(qtyRoom(id, room.id)) + ' ' + item.unit));
+    const detach = el('button', 'measure-remove', 'На ручной ввод');
+    detach.type = 'button';
+    detach.onclick = () => {
+      delete room.measure.links[id];
+      save(); renderMeasureResult(); recalc();
+    };
+    row.append(label, detach); list.appendChild(row);
+  }
+}
+
+function bindMeasure() {
+  for (const [key, source] of Object.entries(MEASURE_SOURCES)) measureEl('Source').add(new Option(source.name, key));
+  measureEl('Room').onchange = e => selectRoom(e.target.value);
+  measureEl('NewRoom').onclick = () => { selectRoom('all'); measureEl('RoomName').focus(); };
+  measureEl('RoomForm').onsubmit = e => {
+    e.preventDefault();
+    const input = measureEl('RoomName'), name = input.value.trim();
+    if (!name) { input.focus(); return; }
+    input.value = '';
+    addRoom(name);
+    measureEl('Length').focus();
+  };
+  measureEl('Mode').onchange = e => {
+    currentMeasureRoom().measure.mode = e.target.value;
+    renderMeasureRoom(); updateMeasuredQuantities();
+  };
+  document.querySelectorAll('[data-dimension]').forEach(input => {
+    input.oninput = () => {
+      currentMeasureRoom().measure[input.dataset.dimension] = input.value;
+      updateMeasuredQuantities();
+    };
+  });
+  for (const [suffix, type] of [['Door', 'door'], ['Window', 'window']]) {
+    measureEl(suffix).onclick = () => {
+      currentMeasureRoom().measure.openings.push({ type, width: '', height: '', count: '1' });
+      renderMeasureRoom(); updateMeasuredQuantities();
+      measureEl('Openings').lastElementChild.querySelector('input').focus();
+    };
+  }
+  measureEl('Source').onchange = () => { measureEl('Work').value = ''; renderMeasureWorks(); };
+  measureEl('Work').onchange = renderMeasureBindings;
+  measureEl('Apply').onclick = () => {
+    const room = currentMeasureRoom(), id = measureEl('Work').value, key = measureEl('Source').value;
+    if (!room || measureUnit(getItem(id)?.unit) !== MEASURE_SOURCES[key].unit || roomGeometry(room.measure).error) return;
+    room.measure.links[id] = key;
+    updateMeasuredQuantities();
+    toast('Объём внесён в смету');
+  };
+}
+
+function selectRoom(id) {
+  S.room = id;
+  renderRooms();
+  renderSections();
+  save();
+}
+
+function addRoom(name) {
+  const id = 'rm' + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
+  S.rooms.push({ id, name });
+  selectRoom(id);
+}
+
 function renderRooms() {
+  renderMeasureRoom();
   const box = document.getElementById('roombar');
   box.innerHTML = '';
   box.appendChild(el('span', 'lbl', 'Считаем:'));
@@ -1052,7 +1399,7 @@ function renderRooms() {
       });
       c.appendChild(x);
     }
-    c.addEventListener('click', () => { S.room = id; renderRooms(); renderSections(); save(); });
+    c.addEventListener('click', () => selectRoom(id));
     box.appendChild(c);
   };
   mk('all', 'Весь объект', false);
@@ -1069,10 +1416,7 @@ function renderRooms() {
       if (done) return; done = true;
       const name = inp.value.trim();
       if (name) {
-        const id = 'rm' + Date.now();
-        S.rooms.push({ id, name });
-        S.room = id;
-        renderRooms(); renderSections(); save();
+        addRoom(name);
         toast('Помещение добавлено — вводи его объёмы');
       } else renderRooms();
     };
@@ -1121,6 +1465,7 @@ function renderSections() {
   S.custom.filter(c => c.tab === S.tab).forEach(c => cc.body.appendChild(buildRow(c, true)));
   cc.body.appendChild(buildCustomForm());
 
+  renderMeasureWorks();
   recalc();
 }
 
@@ -1133,6 +1478,8 @@ function buildRow(it, deletable) {
   else if (it.stage === 0) nm.appendChild(el('span', 'norm', 'вне этапов'));
   const others = el('span', 'others'); others.dataset.others = '1';
   nm.appendChild(others);
+  const measureHint = el('span', 'norm'); measureHint.dataset.measureHint = '';
+  nm.appendChild(measureHint);
 
   const pr = el('input', 'price'); pr.type = 'number'; pr.min = '0'; pr.step = '1';
   const q = el('input', 'qty'); q.type = 'number'; q.min = '0'; q.step = '0.01'; q.placeholder = '0';
@@ -1144,6 +1491,7 @@ function buildRow(it, deletable) {
     d.addEventListener('click', () => {
       armConfirm(d, '?', () => {
         S.custom = S.custom.filter(c => c.id !== it.id);
+        S.rooms.forEach(room => { if (room.measure?.links) delete room.measure.links[it.id]; });
         delete S.q[it.id];
         renderSections(); save();
       });
@@ -1161,9 +1509,12 @@ function buildRow(it, deletable) {
     if (num(q.value) > 0) toast('Занесено в смету ✓');
   });
   q.addEventListener('input', () => {
+    const links = currentMeasureRoom()?.measure?.links;
+    if (links) delete links[it.id];
     if (!S.q[it.id]) S.q[it.id] = {};
     const v = num(q.value);
     if (v) S.q[it.id][S.room] = v; else delete S.q[it.id][S.room];
+    renderMeasureResult();
     recalc(); save();
   });
   return r;
@@ -1227,6 +1578,8 @@ function syncRows() {
     const it = getItem(r.dataset.id); if (!it) return;
     const pr = r.querySelector('.price');
     const q = r.querySelector('.qty');
+    const source = currentMeasureRoom()?.measure?.links?.[it.id];
+    r.querySelector('[data-measure-hint]').textContent = source ? 'Из обмера · ' + MEASURE_SOURCES[source].name : '';
     if (document.activeElement !== pr) pr.value = price(it);
     pr.classList.toggle('edited', !it.custom && S.priceOv[it.id] != null && S.priceOv[it.id] !== it.price);
     if (document.activeElement !== q) { const v = qtyRoom(it.id, S.room); q.value = v || ''; }
@@ -1288,6 +1641,10 @@ function calc() {
 
 function recalc() {
   syncRows();
+  const pending = incompleteLinkedRoom();
+  const warning = document.getElementById('estimateMeasureAlert');
+  warning.hidden = !pending;
+  if (pending) warning.textContent = 'Незавершённый обмер: ' + pending.name + '. В расчёте пока последние полные размеры.';
   const c = calc();
 
   // строки
@@ -1391,7 +1748,7 @@ function renderEstimate(c) {
   [1, 2, 3, 0].forEach(s => {
     if (c.stageSum[s] <= 0) return;
     line(STAGE_NAMES[s] + (c.stageDays[s] ? ` · ~${c.stageDays[s]} дн.` : ''), c.stageSum[s]);
-    c.byStage[s].forEach(x => line(`${x.it.name} — ${x.qty} ${x.it.unit}`, x.total, 'sub'));
+    c.byStage[s].forEach(x => line(`${x.it.name} — ${fmtN.format(x.qty)} ${x.it.unit}`, x.total, 'sub'));
   });
   if (Object.keys(c.roomSums).length > 1 || (Object.keys(c.roomSums).length === 1 && !c.roomSums.all)) {
     line('По помещениям (работы):', '');
@@ -1420,7 +1777,7 @@ function estimateText() {
   [1, 2, 3, 0].forEach(s => {
     if (c.stageSum[s] <= 0) return;
     L.push(`${STAGE_NAMES[s]}${c.stageDays[s] ? ` (~${c.stageDays[s]} дн., ${S.crew[s]} чел.)` : ''}: ${fmt(c.stageSum[s])}`);
-    c.byStage[s].forEach(x => L.push(`  · ${x.it.name} — ${x.qty} ${x.it.unit} × ${fmt(x.p)} = ${fmt(x.total)}`));
+    c.byStage[s].forEach(x => L.push(`  · ${x.it.name} — ${fmtN.format(x.qty)} ${x.it.unit} × ${fmt(x.p)} = ${fmt(x.total)}`));
     L.push('');
   });
   const rooms = Object.entries(c.roomSums);
@@ -1495,6 +1852,7 @@ function kpDefaultNum() {
 }
 
 function openKP() {
+  if (!readyForEstimate()) return;
   if (!S.kp.num) S.kp.num = S.curNum || kpDefaultNum();
   const cl = [S.proj.clientName, S.proj.phone].filter(Boolean).join(', ');
   if (!S.kp.client && cl) S.kp.client = cl;
@@ -1568,9 +1926,9 @@ function renderKPBody() {
         const nameTd = el('td', null, x.it.name);
         const roomsHere = Object.entries(S.q[x.it.id] || {}).filter(([, v]) => num(v) > 0);
         if (roomsHere.length && !(roomsHere.length === 1 && roomsHere[0][0] === 'all')) {
-          nameTd.appendChild(el('span', 'roomtag', ' — ' + roomsHere.map(([rid, v]) => `${roomName(rid)} ${v}`).join(', ')));
+          nameTd.appendChild(el('span', 'roomtag', ' — ' + roomsHere.map(([rid, v]) => `${roomName(rid)} ${fmtN.format(v)}`).join(', ')));
         }
-        tr.append(nameTd, el('td', 'r', x.qty + ' ' + x.it.unit), el('td', 'r', fmt(x.p)), el('td', 'r', fmt(x.total)));
+        tr.append(nameTd, el('td', 'r', fmtN.format(x.qty) + ' ' + x.it.unit), el('td', 'r', fmt(x.p)), el('td', 'r', fmt(x.total)));
         tb.appendChild(tr);
       });
     });
@@ -1990,6 +2348,7 @@ function updateCurNum() {
 }
 
 function saveSmeta() {
+  if (!readyForEstimate()) return;
   const c = calc();
   if (c.works <= 0) { toast('Смета пустая — нечего сохранять'); return; }
   const num = genNum();
@@ -2009,6 +2368,7 @@ function saveSmeta() {
 
 function openSmeta(entry) {
   Object.assign(S, JSON.parse(JSON.stringify(entry.data)));
+  S.room = 'all';
   S.curNum = entry.num; S.kp.num = entry.num;
   save();
   bindProjFields();
@@ -2164,6 +2524,7 @@ async function copyText(txt, msg) {
 
 function init() {
   load();
+  bindMeasure();
 
   bindProjFields();
   const projMap = { projName: 'name', pClientName: 'clientName', pPhone: 'phone', pCity: 'city', pStreet: 'street', pHouse: 'house', pFlat: 'flat' };
@@ -2289,13 +2650,17 @@ function init() {
     });
   });
 
-  document.getElementById('btnCopy').addEventListener('click', () => copyText(estimateText(), 'Смета скопирована'));
+  document.getElementById('btnCopy').addEventListener('click', () => {
+    if (readyForEstimate()) copyText(estimateText(), 'Смета скопирована');
+  });
   document.getElementById('btnJson').addEventListener('click', () => {
+    if (!readyForEstimate()) return;
     if (calc().works <= 0) { toast('Смета пустая'); return; }
     downloadFile(`смета-${S.curNum || 'без-номера'}.json`, JSON.stringify(smetaData(), null, 2), 'application/json');
     toast('JSON скачан — прикрепи к карточке в CRM');
   });
   document.getElementById('btnCsv').addEventListener('click', () => {
+    if (!readyForEstimate()) return;
     if (calc().works <= 0) { toast('Смета пустая'); return; }
     downloadFile(`смета-${S.curNum || 'без-номера'}.csv`, smetaCSV(), 'text/csv;charset=utf-8');
     toast('CSV скачан — откроется в Excel');
