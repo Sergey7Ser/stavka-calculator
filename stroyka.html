@@ -217,6 +217,15 @@
   #measureBadge { max-width: 43%; overflow: hidden; text-overflow: ellipsis; }
   .measure-body { padding: 14px; border-top: 1px solid var(--line); }
   .measure-body h3 { margin: 18px 0 8px; font-size: 15px; }
+  .measure-help { margin: 4px 0 8px; font-size: 13px; color: var(--ink-2); }
+  .measure-help > summary { width: fit-content; min-height: 44px; align-content: center; padding: 4px 8px; border-radius: 6px; cursor: pointer; color: var(--orange-soft); }
+  .measure-help > summary:focus-visible { outline: 2px solid currentColor; }
+  .measure-help p { margin: 4px 0 8px; font-size: 13px; color: var(--ink-2); line-height: 1.45; }
+  .measure-help[open] { padding-bottom: 4px; }
+  .element-body .measure-grid { align-items: start; }
+  @media (max-width: 600px) {
+    .survey-help-field { grid-column: 1 / -1; }
+  }
   .measure-note { font-size: 13px; color: var(--ink-2); margin: 6px 0 10px; }
   .measure-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 118px), 1fr)); gap: 8px; }
   .measure-body label { display: grid; align-content: end; gap: 4px; font-size: 13px; color: var(--ink-2); }
@@ -505,9 +514,13 @@
     <summary><span class="chev">▶</span><span class="sec-title">Обмер помещений</span><span class="sec-badge" id="measureBadge">Открыть</span></summary>
     <div class="measure-body">
       <div class="measure-line">
+        <label>Размеры при обмере<select id="measureInputUnit" aria-describedby="measureUnitHint">
+          <option value="mm">Миллиметры (мм)</option><option value="cm">Сантиметры (см)</option>
+        </select></label>
         <label>Помещение<select id="measureRoom"></select></label>
         <button class="btn" id="measureNewRoom" type="button">+ Новое помещение</button>
       </div>
+      <p class="measure-note" id="measureUnitHint"></p>
       <form id="measureRoomForm" class="measure-line">
         <label>Название помещения<input id="measureRoomName" placeholder="Например, кухня" required></label>
         <button class="btn gold" type="submit">Добавить помещение</button>
@@ -519,32 +532,39 @@
       </div>
       <button id="measureSheet" type="button" class="btn" hidden>Печать ведомости обмера</button>
       <div id="measureEditor" hidden>
-        <label>Как измерен пол<select id="measureMode">
+        <label>Форма пола в комнате<select aria-describedby="floorModeHint" id="measureMode">
           <option value="rect">Прямоугольник — по длине и ширине</option>
           <option value="outline">Сложная форма — по площади и периметру</option>
         </select></label>
+        <details class="measure-help"><summary>Как измерить пол?</summary>
+          <p id="floorModeHint">У прямоугольной комнаты измерьте две соседние стены от угла до угла. Калькулятор перемножит длину и ширину. Для Г-образной комнаты разделите план на прямоугольники, сложите их площади и выберите «Сложная форма». Введите сумму в м² и периметр по всему контуру комнаты.</p>
+        </details>
         <div class="measure-grid" style="margin-top:8px">
-          <label>Длина, м<input id="measureLength" data-dimension="length" inputmode="decimal"></label>
-          <label>Ширина, м<input id="measureWidth" data-dimension="width" inputmode="decimal"></label>
+          <label><span>Длина, <span data-length-unit>мм</span></span><input id="measureLength" data-dimension="length" inputmode="decimal"></label>
+          <label><span>Ширина, <span data-length-unit>мм</span></span><input id="measureWidth" data-dimension="width" inputmode="decimal"></label>
           <label>Площадь пола, м²<input id="measureArea" data-dimension="area" inputmode="decimal"></label>
-          <label>Периметр, м<input id="measurePerimeter" data-dimension="perimeter" inputmode="decimal"></label>
-          <label>Высота стен, м<input id="measureHeight" data-dimension="height" inputmode="decimal"></label>
+          <label><span>Периметр, <span data-length-unit>мм</span></span><input id="measurePerimeter" data-dimension="perimeter" inputmode="decimal"></label>
+          <label><span>Высота стен, <span data-length-unit>мм</span></span><input id="measureHeight" data-dimension="height" inputmode="decimal"></label>
         </div>
         <h3>Двери и окна</h3>
+        <p class="measure-note">Для каждого проёма укажите ширину и высоту. Площадь проёмов вычтется из стен, ширина дверей — из длины плинтуса.</p>
         <div id="measureOpenings"></div>
         <div class="measure-line">
           <button class="btn" id="measureDoor" type="button">+ Дверь</button>
           <button class="btn" id="measureWindow" type="button">+ Окно</button>
         </div>
         <h3>Элементы и коммуникации</h3>
-        <div class="measure-line"><label>Что нашли на объекте<select id="elementType"></select></label>
+        <div class="measure-line"><label>Что нашли на объекте<select id="elementType" aria-describedby="elementTypeHint"></select></label>
           <button type="button" class="btn" id="elementAdd">+ Добавить элемент</button></div>
+        <p id="elementTypeHint" class="measure-note"></p>
         <div id="elementList"></div>
         <h3>Объёмы помещения</h3>
         <p class="measure-note">Потолок считаем плоским, высоту стен — одинаковой по всему периметру. Из стен вычитаются окна и двери, из длины плинтуса — ширина дверей.</p>
         <p id="measureStatus" class="measure-alert" role="status"></p>
         <dl id="measureMetrics" class="measure-metrics"></dl>
         <h3>Работы по обмеру</h3>
+        <details class="measure-help"><summary>Что делает кнопка «В смету»?</summary>
+          <p>Выберите объём и работу. Например, «Пол» и «Укладка ламината» перенесут площадь пола в строку работы. Для расчёта вместе с подложкой и ламинатом добавьте элемент «Отделка пола» выше и выберите покрытие. Используйте один способ для одной и той же работы.</p></details>
         <div class="measure-line">
           <label>Какой объём взять<select id="measureSource"></select></label>
           <label>Работа в смете<select id="measureWork"></select></label>
@@ -711,7 +731,7 @@
       <h3>2. Помещения</h3>
       <p>Строка <b>«Считаем:»</b> — нажми <span class="hp-b">+ Помещение</span> («Кухня», «Санузел», «Фасад») и вводи объёмы отдельно для каждого. Смета и КП покажут разбивку по комнатам.</p>
 
-      <p>На объекте открой <span class="hp-b">Обмер помещений</span>, выбери или добавь комнату и введи размеры в метрах. Для комнаты сложной формы можно указать измеренные площадь пола и периметр. Введи каждый типоразмер окна и двери с его количеством. Выбери объём и работу, затем нажми «В смету». Можно назначить один и тот же объём нескольким работам. Правка количества прямо в строке работы переводит её на ручной ввод только для этого помещения.</p>
+      <p>На объекте открой <span class="hp-b">Обмер помещений</span>, выбери или добавь комнату и выбери миллиметры или сантиметры и введи размеры. Площадь в смете отображается в м². Для комнаты сложной формы можно указать измеренные площадь пола и периметр. Введи каждый типоразмер окна и двери с его количеством. Выбери объём и работу, затем нажми «В смету». Можно назначить один и тот же объём нескольким работам. Правка количества прямо в строке работы переводит её на ручной ввод только для этого помещения.</p>
       <p><b>Элементы и коммуникации.</b> В комнате выберите нишу, короб, колонну, откос, канализацию или инженерную отметку. Укажите привязку и размеры. Для существующего элемента достаточно обмера. Для отделки выберите комплект, проверьте грани, расход и цены, затем подтвердите строки. После изменения размеров проверьте их ещё раз. «Печать ведомости обмера» выдаёт лист по всем помещениям.</p>
       <p><b>Договор и аванс.</b> Из готового КП можно зафиксировать согласованную смету, напечатать свой текст договора с приложением и зарегистрировать подписание. После сверки с банком или кассой внесите поступление. Реестр открывается через «Сметы и сделки». Данные хранятся в этом браузере.</p>
       <h3>3. Работы и поиск</h3>
@@ -1150,6 +1170,22 @@ const MEASURE_SOURCES = {
 const measureEl = suffix => document.getElementById('measure' + suffix);
 const currentMeasureRoom = () => S.rooms.find(room => room.id === S.room);
 
+// Размеры прежних и новых смет хранятся в метрах, диаметр трубы — в миллиметрах.
+function surveyUnit() { return S.ui?.measureUnit === 'cm' ? 'см' : 'мм'; }
+const surveyDecimal = new Intl.NumberFormat('ru-RU', { useGrouping:false, maximumFractionDigits:15 });
+function surveyLength(value, toDisplay, diameter = false) {
+  const raw = String(value ?? '').trim();
+  if (!/^[+-]?(?:\d+(?:[.,]\d*)?|[.,]\d+)$/.test(raw)) return raw;
+  const factor = (surveyUnit() === 'мм' ? 1000 : 100) / (diameter ? 1000 : 1);
+  const n = Number(raw.replace(',', '.'));
+  const result = toDisplay ? n * factor : n / factor;
+  if (!Number.isFinite(result)) return raw;
+  return surveyDecimal.format(result).replace(',', toDisplay ? ',' : '.');
+}
+function surveyUnitHint() {
+  return (surveyUnit() === 'мм' ? '4000 × 3000 мм' : '400 × 300 см') + ' = 12 м². При смене единиц размеры пересчитываются, площадь остаётся прежней.';
+}
+
 function measureNumber(raw) {
   const value = String(raw ?? '').trim().replace(',', '.');
   if (!/^(?:\d+(?:\.\d*)?|\.\d+)$/.test(value)) return NaN;
@@ -1164,7 +1200,7 @@ function roomGeometry(m) {
   const perimeter = rect ? 2 * (length + width) : measureNumber(m.perimeter);
   const height = measureNumber(m?.height);
   if (![floor, perimeter, height].every(Number.isFinite)) {
-    return { error: rect ? 'Введите длину, ширину и высоту в метрах.' : 'Введите площадь пола, периметр и высоту стен.' };
+    return { error: rect ? 'Введите длину, ширину и высоту в выбранных единицах.' : 'Введите площадь пола, периметр и высоту стен.' };
   }
   let openings = 0, doorWidth = 0;
   for (const [index, opening] of (m.openings || []).entries()) {
@@ -1221,6 +1257,9 @@ function readyForEstimate() {
 }
 
 function renderMeasureRoom() {
+  measureEl('InputUnit').value = surveyUnit() === 'мм' ? 'mm' : 'cm';
+  measureEl('UnitHint').textContent = surveyUnitHint();
+  for (const suffix of document.querySelectorAll('[data-length-unit]')) suffix.textContent = surveyUnit();
   const room = currentMeasureRoom();
   const select = measureEl('Room');
   select.replaceChildren(new Option('Весь объект', 'all'));
@@ -1246,7 +1285,7 @@ function renderMeasureRoom() {
   measureEl('Mode').value = m.mode;
   document.querySelectorAll('[data-dimension]').forEach(input => {
     const key = input.dataset.dimension;
-    input.value = m[key] || '';
+    input.value = key === 'area' ? m[key] || '' : surveyLength(m[key], true);
     input.parentElement.hidden = key !== 'height' && (['length', 'width'].includes(key) !== (m.mode === 'rect'));
   });
   const list = measureEl('Openings');
@@ -1256,12 +1295,12 @@ function renderMeasureRoom() {
     const title = (o.type === 'door' ? 'Дверь' : 'Окно') + ' № ' + (index + 1);
     group.appendChild(el('legend', null, title));
     const grid = el('div', 'measure-grid');
-    for (const [key, name] of [['width', 'Ширина, м'], ['height', 'Высота, м'], ['count', 'Количество']]) {
+    for (const [key, name] of [['width', 'Ширина, ' + surveyUnit()], ['height', 'Высота, ' + surveyUnit()], ['count', 'Количество']]) {
       const label = el('label', null, name);
       const input = el('input');
       input.inputMode = key === 'count' ? 'numeric' : 'decimal';
-      input.value = o[key];
-      input.addEventListener('input', () => { o[key] = input.value; updateMeasuredQuantities(); renderElements(m); });
+      input.value = key === 'count' ? o[key] : surveyLength(o[key], true);
+      input.addEventListener('input', () => { o[key] = key === 'count' ? input.value : surveyLength(input.value, false); updateMeasuredQuantities(); renderElements(m); });
       label.appendChild(input);
       grid.appendChild(label);
     }
@@ -1368,20 +1407,21 @@ function renderMeasureBindings() {
 function printMeasurementSheet() {
   const target=document.getElementById('dealPrint');
   target.replaceChildren(el('h1',null,'Ведомость обмера'),el('p',null,[S.proj.name,addressString()].filter(Boolean).join(' · ')));
+  const unit = surveyUnit(), length = value => surveyLength(value, true) || '—';
   S.rooms.forEach(room=>{
     const m=room.measure, block=el('article'); block.appendChild(el('h2',null,room.name));target.appendChild(block);
     if (!m) {block.appendChild(el('p',null,'Размеры ещё не внесены'));return;}
     const g=roomGeometry(m);
-    const plan=m.mode==='rect' ? 'Длина × ширина: ' + (m.length||'—') + ' × ' + (m.width||'—') + ' м' : 'Замеренные площадь и периметр: ' + (m.area||'—') + ' м², ' + (m.perimeter||'—') + ' м';
-    block.appendChild(el('p',null,plan + ' · высота ' + (m.height||'—') + ' м'));
+    const plan=m.mode==='rect' ? 'Длина × ширина: ' + length(m.length) + ' × ' + length(m.width) + ' ' + unit : 'Замеренные площадь и периметр: ' + (m.area||'—') + ' м², ' + length(m.perimeter) + ' ' + unit;
+    block.appendChild(el('p',null,plan + ' · высота ' + length(m.height) + ' ' + unit));
     block.appendChild(el('p',null,g.error || Object.entries(g.values).map(([key,v])=>MEASURE_SOURCES[key].name + ' ' + fmtN.format(v) + ' ' + MEASURE_SOURCES[key].unit).join(' · ')));
-    for (const [i,o] of m.openings.entries()) block.appendChild(el('p',null,(o.type==='door'?'Дверь':'Окно') + ' № ' + (i+1) + ' · ' + (o.width||'—') + ' × ' + (o.height||'—') + ' м × ' + o.count + ' шт.'));
+    for (const [i,o] of m.openings.entries()) block.appendChild(el('p',null,(o.type==='door'?'Дверь':'Окно') + ' № ' + (i+1) + ' · ' + length(o.width) + ' × ' + length(o.height) + ' ' + unit + ' × ' + o.count + ' шт.'));
     for(const f of m.elements || []) {
-      const info=elementGeometry(f,m), parts=[f.location,f.level && 'От чистого пола: ' + f.level + ' м',f.note];
+      const info=elementGeometry(f,m), parts=[f.location,f.level && 'От чистого пола: ' + length(f.level) + ' ' + unit,f.note];
       const linked=f.openingId && m.openings.find(o=>o.id===f.openingId);
       const dims=linked || f;
-      if (dims.width || dims.height || f.depth) parts.push('Ш × В × Г: ' + [dims.width,dims.height,f.depth].map(x=>x||'—').join(' × ') + ' м · ' + (dims.count||1) + ' шт.');
-      if(f.type==='sewer') parts.push('Ø ' + (f.diameter||'—') + ' мм · трасса ' + (f.run||'—') + ' м · отводы ' + f.bends + ' · тройники ' + f.tees);
+      if (dims.width || dims.height || f.depth) parts.push('Ш × В × Г: ' + [dims.width,dims.height,f.depth].map(length).join(' × ') + ' ' + unit + ' · ' + (dims.count||1) + ' шт.');
+      if(f.type==='sewer') parts.push('Ø ' + (f.diameter||'—') + ' мм · трасса ' + length(f.run) + ' ' + unit + ' · отводы ' + f.bends + ' · тройники ' + f.tees);
       if(['niche','reveal','projection'].includes(f.type)) parts.push('Грани: ' + Object.keys(faceLabels).filter(k=>f.faces[k] && (f.type!=='reveal'||k!=='front')).map(k=>faceLabels[k]).join(', '));
       if(info.area) parts.push('Отделка ' + fmtN.format(roundedQty(info.area)) + ' м²');
       if(info.linear && f.type==='reveal') parts.push('Откосы ' + fmtN.format(roundedQty(info.linear)) + ' м');
@@ -1393,8 +1433,24 @@ function printMeasurementSheet() {
 }
 function bindMeasure() {
   measureEl('Sheet').onclick=printMeasurementSheet;
+  measureEl('InputUnit').onchange = e => {
+    S.ui.measureUnit = e.target.value;
+    save(); renderMeasureRoom();
+  };
   const types = document.getElementById('elementType');
   for (const [key,title] of Object.entries(ELEMENT_TYPES)) types.add(new Option(title,key));
+  const typeHints = {
+    wallFinish:'Площадь стен уже рассчитана по комнате и проёмам. Добавьте отделку стен и выберите материал, чтобы получить работы и расход.',
+    floorFinish:'Площадь берётся из обмера комнаты. Выберите покрытие, чтобы рассчитать его укладку и материалы. Если покрываете часть пола, проверьте и поправьте количество в каждой строке.',
+    niche:'Ниша — углубление в стене. Обмерьте проём, глубину и отметьте внутренние поверхности, которые предстоит отделать.',
+    projection:'Это часть стены или короб, выступающий в комнату. Измерьте его ширину, высоту и глубину, затем отметьте открытые грани.',
+    column:'Для отдельно стоящей колонны измерьте две стороны основания и высоту. Отделка считается по четырём боковым граням.',
+    reveal:'Откос — поверхность между рамой окна или дверной коробкой и плоскостью стены. Выберите уже обмеренный проём либо введите его размеры вручную.',
+    sewer:'Запишите диаметр трубы, длину по её трассе, количество отводов и тройников. Выберите монтаж, чтобы добавить трубы и работу в смету.',
+    note:'Зафиксируйте розетку, вывод воды или другую точку. Место и высота попадут в ведомость обмера.'
+  };
+  const explainType = () => { document.getElementById('elementTypeHint').textContent = typeHints[types.value]; };
+  types.onchange = explainType; explainType();
   document.getElementById('elementAdd').onclick = () => {
     const m = currentMeasureRoom().measure;
     const f = makeElement(types.value);
@@ -1424,7 +1480,8 @@ function bindMeasure() {
   document.querySelectorAll('[data-dimension]').forEach(input => {
     input.oninput = () => {
       const m=currentMeasureRoom().measure;
-      m[input.dataset.dimension] = input.value;
+      const key = input.dataset.dimension;
+      m[key] = key === 'area' ? input.value : surveyLength(input.value, false);
       updateMeasuredQuantities(); renderElements(m);
     };
   });
@@ -1447,7 +1504,7 @@ function bindMeasure() {
 }
 
 /* Элементы обмера. Черновик хранится с помещением, в цену входят только проверенные строки. */
-const ELEMENT_TYPES = { wallFinish: 'Основные стены', floorFinish: 'Пол', niche: 'Ниша', projection: 'Выступ / пристенный короб', column: 'Отдельная колонна', reveal: 'Откос', sewer: 'Канализация', note: 'Инженерная точка / отметка' };
+const ELEMENT_TYPES = { wallFinish: 'Основные стены', floorFinish: 'Отделка пола', niche: 'Ниша', projection: 'Выступ / пристенный короб', column: 'Отдельная колонна', reveal: 'Откос', sewer: 'Канализация', note: 'Инженерная точка / отметка' };
 const FINISHES = { paint: 'Окраска со шпаклеванием', tile: 'Керамическая плитка', plaster: 'Штукатурка', laminate: 'Ламинат с подложкой', pipe: 'Монтаж канализации' };
 const uid = () => 'e' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 const roundedQty = value => Math.round((value + Number.EPSILON) * 1000) / 1000;
@@ -1607,12 +1664,19 @@ function lineRooms(l) {
 function materialDetail(l) {
   return roomName(l.roomId) + ' · ' + l.it.name + ' — ' + fmtN.format(l.qty) + ' ' + l.it.unit + ' × ' + fmt(l.p);
 }
-function elementField(box, labelText, obj, key, onEdit, numeric = true, hint = '') {
+function surveyFieldHelp(input, title, description) {
+  const label = input.parentElement, wrap = el('div','survey-help-field'), help = el('details','measure-help');
+  const text = el('p',null,description);
+  text.id = uid(); input.setAttribute('aria-describedby',text.id);
+  help.append(el('summary',null,title),text);
+  label.replaceWith(wrap); wrap.append(label,help);
+}
+function elementField(box, labelText, obj, key, onEdit, numeric = true, hint = '', dimension = '') {
   const label = el('label', null, labelText), input = el('input');
-  input.value = obj[key] ?? '';
+  input.value = dimension ? surveyLength(obj[key], true, dimension === 'diameter') : obj[key] ?? '';
   if (numeric) input.inputMode = 'decimal';
   input.placeholder = hint;
-  input.addEventListener('input', () => { obj[key] = input.value; onEdit(); });
+  input.addEventListener('input', () => { obj[key] = dimension ? surveyLength(input.value, false, dimension === 'diameter') : input.value; onEdit(); });
   label.appendChild(input); box.appendChild(label);
   return input;
 }
@@ -1646,9 +1710,15 @@ function renderElements(m) {
       if (scroll) renderElements(m);
       else drawPreview();
     }
+    function elementLength(title, key, onEdit = update) {
+      return elementField(size, title + ', ' + surveyUnit(), f, key, onEdit, key !== 'level', '', key === 'diameter' ? 'diameter' : 'length');
+    }
     elementField(size,'Название на объекте',f,'name',() => { heading.textContent = f.name || ELEMENT_TYPES[f.type]; update(); },false,ELEMENT_TYPES[f.type]);
-    elementField(size,'Привязка к стене или оси',f,'location',() => save(),false,'Например, стена А, 0,8 м от угла');
-    elementField(size,'Отметка от чистого пола, м',f,'level',() => save(),false,'Например, +0,45');
+    const offset = surveyUnit() === 'мм' ? '800 мм' : '80 см';
+    const location = elementField(size,'Привязка к стене или оси',f,'location',() => save(),false,'Стена А, ' + offset + ' от левого угла');
+    surveyFieldHelp(location, 'Как указать привязку?', 'Например, «стена с окном, ' + offset + ' от левого угла до центра трубы». По этой записи бригада найдёт вывод. На стоимость привязка не влияет.');
+    const level = elementLength('Высота от чистого пола', 'level', () => save());
+    surveyFieldHelp(level, 'Откуда измерять высоту?', 'Чистый пол — верх готового покрытия. Измерьте от этого уровня до выбранной точки, например до центра трубы, и укажите эту точку в привязке. Если покрытие ещё не уложено, используйте проектную отметку. Высота попадёт в ведомость обмера.');
     if (f.type === 'reveal') {
       const choices = [['','Отдельный обмер откоса']];
       m.openings.forEach((o,i) => { o.id ||= uid(); choices.push([o.id, (o.type === 'door' ? 'Дверь' : 'Окно') + ' № ' + (i+1)]); });
@@ -1657,9 +1727,11 @@ function renderElements(m) {
     }
     if (!['note','sewer','wallFinish','floorFinish'].includes(f.type)) {
       if (!f.openingId) {
-        for (const [key,title] of [['width','Ширина, м'],['height','Высота, м'],['count','Количество']]) elementField(size,title,f,key,update);
+        elementLength('Ширина', 'width');
+        elementLength('Высота', 'height');
+        elementField(size,'Количество',f,'count',update);
       }
-      elementField(size,'Глубина, м',f,'depth',update);
+      elementLength('Глубина', 'depth');
       if (f.type !== 'column') {
         faces.appendChild(el('p','measure-note','Какие грани отделываем'));
         for (const [key,title] of Object.entries(faceLabels)) {
@@ -1667,6 +1739,11 @@ function renderElements(m) {
           elementCheck(faces,title,f.faces[key],v => { f.faces[key]=v; update(); });
         }
       } else faces.appendChild(el('p','measure-note','Для отдельно стоящей колонны считаются четыре вертикальные грани.'));
+      if (['niche','projection','column'].includes(f.type)) {
+        const help = el('details','measure-help');
+        help.append(el('summary',null,'Когда вычитать из основной поверхности?'), el('p',null,'Если уже обмерили стену целиком, вычтите прямоугольник, где находится ниша или выступ: его грани считаются отдельно. Для колонны или короба вычитайте основание из пола, только если оно вошло в исходную площадь. Потолок корректируйте, если элемент доходит до него.'));
+        faces.appendChild(help);
+      }
       if (['niche','projection'].includes(f.type)) elementCheck(faces,'Вычесть проекцию из площади основной стены',f.cutWall,v => { f.cutWall=v; update(); });
       if (['column','projection'].includes(f.type)) {
         for (const [key,title] of [['cutFloor','Вычесть основание из пола'],['cutCeiling','Вычесть основание из потолка']])
@@ -1674,12 +1751,15 @@ function renderElements(m) {
         faces.appendChild(el('p','measure-note','Включайте вычет, если площадь введена до вычета основания. Плинтус вокруг элемента измеряется отдельно.'));
       }
     } else if (f.type === 'sewer') {
-      for (const [key,title] of [['diameter','Диаметр, мм'],['run','Замеренная трасса, м'],['bends','Отводы, шт'],['tees','Тройники, шт']]) elementField(size,title,f,key,update);
+      elementLength('Диаметр', 'diameter');
+      elementLength('Замеренная трасса', 'run');
+      for (const [key,title] of [['bends','Отводы, шт'],['tees','Тройники, шт']]) elementField(size,title,f,key,update);
     }
     elementField(size,'Примечание об основании или точке',f,'note',() => save(),false,'Например, вывод существующий');
     if (f.type !== 'note') {
       const options = f.type === 'sewer' ? ['pipe'] : f.type === 'floorFinish' ? ['tile','laminate'] : ['paint','tile','plaster'];
       elementChoice(finish,'Отделка или монтаж',f,'finish',[['','Только зафиксировать на замере'],...options.map(k => [k, FINISHES[k]])],() => { f.edits={}; update(true); });
+      finish.appendChild(el('p','measure-note','Для ведомости достаточно размеров. Чтобы рассчитать цену, выберите отделку или монтаж, проверьте работы и материалы ниже и нажмите «Подтвердить строки для сметы».'));
       const presets = (S.elementPresets || []).filter(p => p.type === f.type);
       if (presets.length) {
         const picker = {key:''};
