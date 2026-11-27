@@ -475,6 +475,7 @@
     </div>
     <div class="hdr-btns">
       <button class="hbtn" id="btnRef" type="button">📚 Справочник</button>
+      <button class="hbtn" id="btnCompanyProfile" type="button">Настройки компании</button>
       <button class="hbtn" id="btnArc" type="button">🗂 Сметы и сделки</button>
       <button class="hbtn" id="btnHelp" type="button" title="Как пользоваться">❓</button>
       <button class="hbtn" id="btnTheme" type="button">🎨</button>
@@ -782,6 +783,12 @@
   </div>
 </div>
 
+<div class="modal" id="profileModal" role="dialog" aria-modal="true" aria-labelledby="profileTitle">
+  <div class="modal-card">
+    <div class="modal-head"><div class="t" id="profileTitle">Настройки компании</div><button class="x" id="profileClose" type="button" aria-label="Закрыть настройки">✕</button></div>
+    <div id="profileBody" class="modal-body measure-body"></div>
+  </div>
+</div>
 <div class="modal" id="dealModal" role="dialog" aria-modal="true" aria-labelledby="dealTitle">
   <div class="modal-card">
     <div class="modal-head"><div class="t" id="dealTitle">Согласование, договор и первый платёж</div><button class="x" id="dealClose" type="button" aria-label="Закрыть сделку">✕</button></div>
@@ -2267,6 +2274,7 @@ function openKP() {
   if (!readyForEstimate()) return;
   if (calc().grand <= 0) { toast('Добавьте работы или материалы в смету'); return; }
   if (!S.kp.num) S.kp.num = S.curNum || genNum();
+  if (!S.kp.company) S.kp.company = fieldProfile().company || '';
   const cl = [S.proj.clientName, S.proj.phone].filter(Boolean).join(', ');
   if (!S.kp.client || S.kp.autoClient !== cl) S.kp.client = cl;
   S.kp.autoClient = cl;
@@ -2841,6 +2849,160 @@ function dealControl(box,label,tag='input',hint='') {
 function dealButton(box,label,action) {
   const b=el('button','btn',label); b.type='button'; b.onclick=action; box.appendChild(b); return b;
 }
+/* Deal documents use the frozen record, never the currently open draft. */
+const FIELD_PROFILE_KEY='stroysmeta_field_profile_v1';
+function fieldProfile() {
+  try { return JSON.parse(localStorage.getItem(FIELD_PROFILE_KEY)||'{}') || {}; }
+  catch { return {}; }
+}
+function freezeDealData(identity,num) {
+  const data=smetaData();
+  return {...data,num,client:{...data.client,name:identity.client,email:identity.email},
+    object:identity.object,address:identity.object,company:identity.company};
+}
+function validDealEmail(v) { return !v || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); }
+function localDatePlus(days=0) {
+  const d=new Date();d.setDate(d.getDate()+days);
+  return [d.getFullYear(), String(d.getMonth()+1).padStart(2,'0'), String(d.getDate()).padStart(2,'0')].join('-');
+}
+function dealFields(doc) {
+  return {'заказчик':doc.client,'исполнитель':doc.company,'объект':doc.object,'номер':doc.num,
+    'сумма':cashText(doc.total),'аванс':cashText(doc.advance),
+    'реквизиты':doc.profile?.details || '','почта':doc.email || ''};
+}
+function fillDealTemplate(template,doc) {
+  const fields = dealFields(doc);
+  return template.replace(/\{(заказчик|исполнитель|объект|номер|сумма|аванс|реквизиты|почта)\}/g,(_,k)=>fields[k]);
+}
+function documentName(d,kind) {
+  const type={quote:'КП',contract:'Договор',act:'Проект-акта'}[kind];
+  return type+'-'+String(d.num).replace(/[^\p{L}\p{N}._-]+/gu,'-')+'.pdf';
+}
+function dealDocument(d,kind) {
+  const recordHeader=d.company+'\nЗаказчик: '+d.client+'\nОбъект: '+d.object;
+  const prices='\nИтого: '+cashText(d.total)+'\nСогласованный первый платёж: '+cashText(d.advance);
+  if(kind==='quote') return {title:'Коммерческое предложение № '+d.num,
+    body:recordHeader+'\n\n'+d.quote+'\n\nСогласованный первый платёж: '+cashText(d.advance)};
+  if(kind==='contract') return {title:(d.signed?'Договор № ':'Проект договора № ')+d.num,
+    body:recordHeader+(d.profile?.details?'\nРеквизиты: '+d.profile.details:'')+
+      (d.signed?'\nФакт подписания отмечен: '+d.signed.date+' · '+d.signed.ref:'\nСформированный файл не подтверждает подписание.')+
+      '\n\n'+fillDealTemplate(d.template,d)+'\n\nПРИЛОЖЕНИЕ. СОГЛАСОВАННАЯ СМЕТА\n'+d.quote+prices};
+  return {title:'Проект акта к договору № '+d.num,
+    body:recordHeader+'\n\n'+fillDealTemplate(d.profile.act,d)+
+      '\n\nПроект документа. Состав и факт выполнения работ проверяются перед подписанием.'};
+}
+/* PDF without network dependencies; Cyrillic rendered with the device's installed fonts. */
+async function dealPDF(d,kind) {
+  const {title,body}=dealDocument(d,kind), pages=[];
+  const W=1124,H=1588, margin=100;
+  let logo=null;
+  if (/^data:image\/(png|jpeg|webp);base64,/i.test(d.profile?.logo||'')) {
+    const img=new Image(); img.src=d.profile.logo;
+    try { await img.decode(); if(img.naturalWidth && img.naturalHeight) logo=img; } catch {}
+  }
+  let cv, ctx, y;
+  const begin=()=>{ cv=document.createElement('canvas');cv.width=W;cv.height=H;ctx=cv.getContext('2d');
+    if(!ctx) throw Error('Canvas unavailable');
+    ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H); ctx.fillStyle='#16232b';ctx.font='24px sans-serif';y=110;
+    if(!pages.length && logo) {const k=Math.min(225/logo.naturalWidth,75/logo.naturalHeight);
+      ctx.drawImage(logo,margin,y,logo.naturalWidth*k,logo.naturalHeight*k);y+=99;}
+  };
+  const finish=()=>{ctx.fillStyle='#475562';ctx.font='18px sans-serif';
+    ctx.fillText('№ '+d.num+'  ·  Страница '+(pages.length+1),margin,H-70);
+    const data=atob(cv.toDataURL('image/jpeg',0.88).split(',')[1]);
+    pages.push(Uint8Array.from(data,c=>c.charCodeAt(0)));
+  };
+  const line=(text,bold=false)=>{
+    if(y>H-138){finish();begin();}
+    ctx.fillStyle='#16232b';ctx.font=bold?'bold 33px sans-serif':'24px sans-serif';
+    ctx.fillText(text,margin,y);y+=bold?48:35;
+  };
+  const flow=(value,bold=false)=>{
+    for(const part of String(value).split('\n')){
+      if(!part){line('');continue;}
+      ctx.font=bold?'bold 33px sans-serif':'24px sans-serif';
+      let pending='';
+      for(const tok of part.split(/\s+/)){
+        const test=(pending?pending+' ':'')+tok;
+        if(ctx.measureText(test).width>W-2*margin && pending){line(pending,bold);pending='';}
+        if(ctx.measureText(tok).width>W-2*margin){
+          let seg='';
+          for(const c of tok){if(ctx.measureText(seg+c).width>W-2*margin){line(seg,bold);seg='';}seg+=c;}
+          pending=seg;
+        }else pending=(pending?pending+' ':'')+tok;
+      }
+      if(pending)line(pending,bold);
+    }
+  };
+  begin();flow(title,true);line('');flow(body);finish();
+  return encodeDealPdf(pages,W,H);
+}
+function encodeDealPdf(pages,W,H) {
+  const te=new TextEncoder(), chunks=[], pos=[0];
+  let offset=0;
+  const emit=x=>{const bin=typeof x==='string'?te.encode(x):x;chunks.push(bin);offset+=bin.length;};
+  const obj=(id,parts)=>{pos[id]=offset;emit(id+' 0 obj\n');parts.forEach(emit);emit('\nendobj\n');};
+  emit('%PDF-1.4\n');
+  obj(1,['<< /Type /Catalog /Pages 2 0 R >>']);
+  obj(2,['<< /Type /Pages /Count '+pages.length+' /Kids ['+pages.map((_,i)=>3+3*i+' 0 R').join(' ')+'] >>']);
+  pages.forEach((data,i)=>{
+    const id=3+3*i, pen='q\n595.28 0 0 841.89 0 0 cm\n/Im0 Do\nQ\n';
+    obj(id,['<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /XObject << /Im0 '+(id+1)+' 0 R >> >> /Contents '+(id+2)+' 0 R >>']);
+    obj(id+1,['<< /Type /XObject /Subtype /Image /Width '+W+' /Height '+H+' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length '+data.length+' >>\nstream\n',data,'\nendstream']);
+    obj(id+2,['<< /Length '+te.encode(pen).length+' >>\nstream\n',pen,'endstream']);
+  });
+  const xref=offset;emit('xref\n0 '+pos.length+'\n0000000000 65535 f \n');
+  pos.slice(1).forEach(n=>emit(String(n).padStart(10,'0')+' 00000 n \n'));
+  emit('trailer\n<< /Size '+pos.length+' /Root 1 0 R >>\nstartxref\n'+xref+'\n%%EOF\n');
+  return new Blob(chunks,{type:'application/pdf'});
+}
+async function downloadDealPdf(d,kind,thenMail=false) {
+  if(thenMail && (!d.email || !validDealEmail(d.email))) {toast('В сделке нет подтверждённой почты клиента');return;}
+  try {
+    const pdf=await dealPDF(d,kind);
+    const filename=documentName(d,kind);
+    downloadFile(filename,pdf,'application/pdf');
+    if(thenMail) mailDealDraft(d,kind);
+    else toast('PDF сохранён для скачивания');
+  } catch {toast('PDF не удалось подготовить. Можно напечатать документ из карточки сделки.');}
+}
+function mailDealDraft(d,kind) {
+  if(!d.email || !validDealEmail(d.email)) {toast('В сделке не указан email клиента');return;}
+  const subject=kind==='contract' ? 'Договор и согласованная смета № '+d.num : 'Согласованное предложение № '+d.num;
+  const body='Здравствуйте!\n\nНаправляю '+(kind==='contract'?'договор со сметой':'коммерческое предложение')+' по объекту «'+d.object+'».\n\n'+d.company;
+  const route='mailto:'+encodeURIComponent(d.email)+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);
+  toast('Почта откроет черновик. Прикрепите скачанный PDF вручную. Ничего не отправлено.');
+  window.location.href=route;
+}
+function showFieldProfile() {
+  const modal=document.getElementById('profileModal'), body=document.getElementById('profileBody');
+  const old=fieldProfile(); body.replaceChildren();
+  body.appendChild(el('p','measure-note','Настройки хранятся на этом устройстве и применяются к новым сделкам. Подписи и печати не подставляются.'));
+  const company=dealControl(body,'Название компании'); company.value=old.company||'';
+  const details=dealControl(body,'Реквизиты компании','textarea');details.value=old.details||'';
+  const template=dealControl(body,'Утверждённый шаблон договора','textarea');template.value=old.contract||'';
+  const act=dealControl(body,'Утверждённый шаблон акта','textarea');act.value=old.act||'';
+  [template,act,details].forEach(v=>v.rows=3);
+  body.appendChild(el('p','measure-note','Поля: {заказчик}, {исполнитель}, {объект}, {номер}, {сумма}, {аванс}, {реквизиты}, {почта}.'));
+  let logo=old.logo||'';const image=dealControl(body,'Логотип: PNG, JPEG или WebP, до 400 КБ');image.type='file';image.accept='image/png,image/jpeg,image/webp';
+  const hint=el('p','measure-note',logo?'Логотип сохранён':'Логотип не добавлен');body.appendChild(hint);
+  let waiting=false;
+  image.onchange=()=>{const f=image.files[0];if(!f)return;
+    if(!/^image\/(png|jpeg|webp)$/.test(f.type)||f.size>409600){image.value='';toast('Выберите PNG, JPEG или WebP не больше 400 КБ');return;}
+    const reader=new FileReader();waiting=true;
+    reader.onload=()=>{waiting=false;if(typeof reader.result==='string'){logo=reader.result;hint.textContent='Логотип выбран';}};
+    reader.onerror=()=>{waiting=false;toast('Логотип не удалось прочитать');};reader.readAsDataURL(f);
+  };
+  dealButton(body,'Убрать логотип',()=>{if(waiting)return;logo='';image.value='';hint.textContent='Логотип не добавлен';});
+  dealButton(body,'Сохранить настройки компании',()=>{
+    if(waiting){toast('Дождитесь загрузки логотипа');return;}
+    try {localStorage.setItem(FIELD_PROFILE_KEY,JSON.stringify({company:company.value.trim(),details:details.value.trim(),contract:template.value.trim(),act:act.value.trim(),logo}));
+      modal.classList.remove('show');toast('Настройки сохранены для новых сделок');
+    } catch {toast('Не удалось сохранить настройки');}
+  });
+  modal.classList.add('show');
+}
+
 function frozenQuoteText() {
   return estimateText(S.kp) + (S.kp.note ? '\n\nСогласовано отдельно: ' + S.kp.note : '');
 }
@@ -2858,7 +3020,11 @@ function renderDeal() {
     const client=dealControl(body,'Заказчик'); client.value=S.kp.client || '';
     const object=dealControl(body,'Объект'); object.value=S.kp.object || '';
     const company=dealControl(body,'Исполнитель'); company.value=S.kp.company || '';
+    const email=dealControl(body,'Email клиента (если нужен черновик письма)'); email.type='email';email.autocomplete='email';email.value=S.kp.clientEmail || '';
     const advance=dealControl(body,'Согласованный первый платёж, ₽','input','Например, 25000'); advance.inputMode='decimal';
+    const followup=dealControl(body,'Когда вернуться к клиенту (если не подписывает сразу)'); followup.type='date';followup.min=localDatePlus();
+    dealButton(body,'Через день',()=>{followup.value=localDatePlus(1);});
+    dealButton(body,'Через два дня',()=>{followup.value=localDatePlus(2);});
     body.appendChild(el('p','measure-note','Итого по КП ' + fmt(calc().grand) + '. Впишите сумму, которую обсудили с клиентом. Укажите 0, если договорились без аванса.'));
     let withAllowance;
     if (calc().allowance > 0) {
@@ -2869,15 +3035,22 @@ function renderDeal() {
     dealButton(body,'Зафиксировать согласованную смету',() => {
       const amount=moneyInput(advance), total=Math.round(calc().grand)*100;
       if (![client,object,company].every(i=>i.value.trim())) { toast('Укажите обе стороны и объект'); return; }
+      if (!validDealEmail(email.value.trim())) {toast('Проверьте email клиента');return;}
+      if (followup.value && followup.value<localDatePlus()) {toast('Дата следующего контакта уже прошла');return;}
       if (!(amount>=0 && amount<=total)) { toast('Проверьте сумму первого платежа'); return; }
       if (withAllowance && !withAllowance.checked) { toast('Согласуйте оценку материалов с клиентом');return; }
       if (!readyForEstimate() || total<=0) return;
-      const identity={client:client.value.trim(),object:object.value.trim(),company:company.value.trim()};
-      Object.assign(S.kp,identity);
+      const identity={client:client.value.trim(),object:object.value.trim(),company:company.value.trim(),email:email.value.trim()};
+      Object.assign(S.kp,{client:identity.client,object:identity.object,company:identity.company,clientEmail:identity.email});
       ['client','object','company'].forEach(k=>{kpEl(kpInputId(k)).value=S.kp[k];});
       save();
-      const data=smetaData();
-      const record={id:uid(), num:S.kp.num, created:new Date().toISOString(), client:client.value.trim(), object:object.value.trim(), company:company.value.trim(), total, advance:amount, quote:frozenQuoteText(), data, template:localStorage.getItem('stroysmeta_contract_form') || '', signed:null, payments:[], link:''};
+      const profile=fieldProfile();
+      const {logo,details,act}=profile;
+      const data=freezeDealData(identity,S.kp.num);
+      const record={id:uid(), num:S.kp.num, created:new Date().toISOString(), ...identity,
+        profile:{logo,details,act}, total, advance:amount, quote:frozenQuoteText(), data,
+        template:profile.contract || localStorage.getItem('stroysmeta_contract_form') || '',
+        followup:followup.value||'',signed:null,payments:[], link:''};
       dealStore(entries=>{
         if (entries.some(x=>x.num===record.num)) return 'Этот номер уже зафиксирован. Откройте сделку или измените номер КП.';
         entries.unshift(record);activeDeal=record.id;
@@ -2892,10 +3065,21 @@ function renderDeal() {
   const modify = action => dealStore(entries=>{
     const current=entries.find(x=>x.id===d.id);
     if (!current) return 'Сделка отсутствует';
-    return action(current);
+    return action(current,entries);
   });
+  if(d.email)body.appendChild(el('p','measure-note','Email клиента: '+d.email));
+  dealButton(body,'Скачать PDF согласованного КП',()=>downloadDealPdf(d,'quote'));
+  if(d.email)dealButton(body,'Скачать КП и открыть письмо',()=>downloadDealPdf(d,'quote',true));
   let template;
   if (!d.signed) {
+    const next=dealControl(body,'Следующий контакт');next.type='date';next.value=d.followup||'';
+    dealButton(body,'Назначить на завтра',()=>{next.value=localDatePlus(1);});
+    dealButton(body,'Назначить через два дня',()=>{next.value=localDatePlus(2);});
+    dealButton(body,'Сохранить дату контакта',()=>modify(cur=>{
+      if(next.value && next.value<localDatePlus())return 'Выберите сегодняшнюю или будущую дату';
+      cur.followup=next.value;
+    }));
+    body.appendChild(el('p','measure-note','Дата также видна в разделе «Сметы и сделки». Автоматического напоминания или отправки нет.'));
     template=dealControl(body,'Текст договора по форме вашей компании','textarea','Вставьте утверждённый текст. Приложение со сметой добавится автоматически.');
     template.rows=6; template.value=d.template;
     body.appendChild(el('p','measure-note','Доступна подстановка {заказчик}, {исполнитель}, {объект}, {номер}, {сумма}, {аванс}. Перед печатью проверьте реквизиты и условия.'));
@@ -2914,6 +3098,17 @@ function renderDeal() {
     if (unsavedTemplate()) { toast('Сначала сохраните изменения в договоре'); return; }
     printDeal(d);
   });
+  if(d.template){
+    dealButton(body,'Скачать PDF договора со сметой',()=>{
+      if(unsavedTemplate()){toast('Сначала сохраните текст договора');return;}
+      downloadDealPdf(d,'contract');
+    });
+    if(d.email)dealButton(body,'Скачать договор и открыть письмо',()=>{
+      if(unsavedTemplate()){toast('Сначала сохраните текст договора');return;}
+      downloadDealPdf(d,'contract',true);
+    });
+  }
+  if(d.profile?.act && d.signed)dealButton(body,'Скачать проект акта',()=>downloadDealPdf(d,'act'));
   if (!d.signed) {
     const ref=dealControl(body,'Номер или ссылка на подписанный договор');
     const date=dealControl(body,'Дата подписания');date.type='date';
@@ -2927,25 +3122,32 @@ function renderDeal() {
   }
   body.appendChild(el('p',null,'Договор подписан ' + d.signed.date + ' · ' + d.signed.ref));
   if (d.advance > received) {
-    const link=dealControl(body,'Ссылка банка на согласованный платёж','input','https://…');link.value=d.link;link.type='url';
+    const balance=d.advance-received;
+    const link=dealControl(body,'Ссылка банка на остаток первого платежа','input','https://…');link.value=d.link;link.type='url';
+    const bankRef=dealControl(body,'Номер заказа или счёта в банке');bankRef.value=d.bankRef||'';
+    const checked=dealControl(body,'Проверил в банке, что ссылка относится к этой сделке и сумме '+cashText(balance));checked.type='checkbox';
+    body.appendChild(el('p','measure-note','Создайте ссылку в банке и проверьте сумму. Калькулятор не открывает ссылку и не обращается к банку.'));
     dealButton(body,'Сохранить платёжную ссылку',()=>modify(cur=>{
-      if (link.value.trim()) {
-        try { if(new URL(link.value).protocol!=='https:') throw Error(); }
-        catch { return 'Нужна полная HTTPS-ссылка банка'; }
-      }
-      cur.link=link.value.trim();
+      if (!link.value.trim()) {cur.link='';cur.bankRef='';cur.linkedBalance=null;return;}
+      if(!checked.checked || !bankRef.value.trim())return 'Укажите номер заказа банка и подтвердите сумму';
+      try {const u=new URL(link.value);if(u.protocol!=='https:'||u.username||u.password)throw Error();}
+      catch {return 'Нужна полная HTTPS-ссылка банка без логина или пароля';}
+      cur.link=link.value.trim();cur.bankRef=bankRef.value.trim();cur.linkedBalance=balance;
     }));
-    if(d.link) dealButton(body,'Скопировать ссылку для клиента',()=>copyText(d.link,'Платёжная ссылка скопирована'));
+    if(d.link && d.bankRef && d.linkedBalance===balance) dealButton(body,'Скопировать ссылку для клиента',()=>copyText(d.link,'Платёжная ссылка скопирована'));
     body.appendChild(el('p','measure-note','К доплате по авансу ' + cashText(d.advance-received) + '. Сверьте поступление по выписке или кассе, затем внесите его ниже.'));
     const amount=dealControl(body,'Фактически поступило, ₽');amount.inputMode='decimal';
     const reference=dealControl(body,'Идентификатор операции или номер документа');
     const date=dealControl(body,'Дата поступления');date.type='date';
-    dealButton(body,'Записать подтверждённое поступление',()=>modify(cur=>{
+    const verified=dealControl(body,'Поступление сверено с выпиской банка или кассовым документом');verified.type='checkbox';
+    dealButton(body,'Записать подтверждённое поступление',()=>modify((cur,entries)=>{
+      if (!verified.checked)return 'Сначала сверьте поступление и отметьте проверку';
       const k=moneyInput(amount), id=reference.value.trim();
       if (!id || !date.value || !(k>0)) return 'Укажите сумму, дату и идентификатор поступления';
-      if (cur.payments.some(p=>p.ref===id)) return 'Это поступление уже записано';
+      if (entries.some(d=>d.payments.some(p=>p.ref===id))) return 'Это поступление уже записано';
       if (k>cur.advance-cur.payments.reduce((t,p)=>t+p.kopecks,0)) return 'Сумма превышает остаток первого платежа';
-      cur.payments.push({kopecks:k,ref:id,date:date.value});
+      cur.payments.push({kopecks:k,ref:id,date:date.value,verifiedManually:true});
+      cur.link='';cur.bankRef='';cur.linkedBalance=null;
     }));
   }
   for (const p of d.payments) body.appendChild(el('div','measure-note',p.date + ' · ' + cashText(p.kopecks) + ' · ' + p.ref));
@@ -2953,9 +3155,8 @@ function renderDeal() {
 function printDeal(d) {
   const target=document.getElementById('dealPrint');
   target.replaceChildren();
-  const tags={'заказчик':d.client,'исполнитель':d.company,'объект':d.object,'номер':d.num,'сумма':cashText(d.total),'аванс':cashText(d.advance)};
   if (d.template) {
-    const contract=el('section'); contract.append(el('h1',null,'Договор № ' + d.num),el('div','deal-text',d.template.replace(/\{(заказчик|исполнитель|объект|номер|сумма|аванс)\}/g,(_,k)=>tags[k])));
+    const contract=el('section'); contract.append(el('h1',null,'Договор № ' + d.num),el('div','deal-text',fillDealTemplate(d.template,d)));
     target.appendChild(contract);
   }
   const appendix=el('section');
@@ -2977,7 +3178,7 @@ function renderArc() {
   const deals=readDeals().filter(d => [d.num,d.client,d.object].join(' ').toLowerCase().includes(q));
   for (const d of deals) {
     const row=el('div','arc-row');
-    row.appendChild(el('span',null,'Сделка № ' + d.num + ' · ' + d.client + ' · ' + dealStatus(d)));
+    row.appendChild(el('span',null,'Сделка № ' + d.num + ' · ' + d.client + ' · ' + dealStatus(d) + (!d.signed && d.followup ? ' · контакт ' + d.followup : '')));
     dealButton(row,'Открыть сделку',()=>showDeal(d.id));
     box.appendChild(row);
   }
@@ -3232,6 +3433,8 @@ function init() {
     measureEl('Card').open=true;measureEl('Card').scrollIntoView({block:'start'});
     if(!currentMeasureRoom()) measureEl('RoomName').focus();
   };
+  document.getElementById('btnCompanyProfile').onclick=showFieldProfile;
+  document.getElementById('profileClose').onclick=()=>document.getElementById('profileModal').classList.remove('show');
   document.getElementById('kpDeal').onclick = () => {
     if (!S.kp.num?.trim()) { toast('Укажите номер КП');return; }
     const existing=readDeals().find(d=>d.num===S.kp.num);
