@@ -2860,7 +2860,7 @@ function freezeDealData(identity,num) {
   return {...data,num,client:{...data.client,name:identity.client,email:identity.email},
     object:identity.object,address:identity.object,company:identity.company};
 }
-function validDealEmail(v) { return !v || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); }
+function validDealEmail(v) { return !v || (v.length<=254 && /^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+$/.test(v)); }
 function localDatePlus(days=0) {
   const d=new Date();d.setDate(d.getDate()+days);
   return [d.getFullYear(), String(d.getMonth()+1).padStart(2,'0'), String(d.getDate()).padStart(2,'0')].join('-');
@@ -2876,7 +2876,7 @@ function fillDealTemplate(template,doc) {
 }
 function documentName(d,kind) {
   const type={quote:'КП',contract:'Договор',act:'Проект-акта'}[kind];
-  return type+'-'+String(d.num).replace(/[^\p{L}\p{N}._-]+/gu,'-')+'.pdf';
+  return type+'-'+Array.from(String(d.num).replace(/[^\p{L}\p{N}._-]+/gu,'-')).slice(0,48).join('')+'.pdf';
 }
 function dealDocument(d,kind) {
   const recordHeader=d.company+'\nЗаказчик: '+d.client+'\nОбъект: '+d.object;
@@ -2966,10 +2966,63 @@ async function downloadDealPdf(d,kind,thenMail=false) {
     else toast('PDF сохранён для скачивания');
   } catch {toast('PDF не удалось подготовить. Можно напечатать документ из карточки сделки.');}
 }
+function dealMailText(d,kind) {
+  return {
+    subject:kind==='contract' ? 'Договор и согласованная смета № '+d.num : 'Согласованное предложение № '+d.num,
+    body:'Здравствуйте!\r\n\r\nНаправляю '+(kind==='contract'?'договор со сметой':'коммерческое предложение')+' по объекту «'+
+      d.object+'». Документ во вложении.\r\n\r\n'+d.company,
+  };
+}
+function bytesBase64(bytes) {
+  let raw='';
+  for(let i=0;i<bytes.length;i+=0x4000)raw+=String.fromCharCode(...bytes.subarray(i,i+0x4000));
+  return btoa(raw);
+}
+function mimeBase64(bytes) {
+  return bytesBase64(bytes).match(/.{1,76}/g)?.join('\r\n') || '';
+}
+function mimeHeader(text) {
+  const encoder=new TextEncoder(), words=[];
+  let word='', length=0;
+  for(const ch of text) {
+    const n=encoder.encode(ch).length;
+    if(length+n>36){words.push(word);word='';length=0;}
+    word+=ch;length+=n;
+  }
+  if(word)words.push(word);
+  return words.map(w=>'=?UTF-8?B?'+bytesBase64(encoder.encode(w))+'?=').join('\r\n ');
+}
+function emailFileName(d,kind) {
+  return documentName(d,kind).replace(/\.pdf$/i,'.eml');
+}
+async function dealEml(d,kind,pdf) {
+  if(!d.email || !validDealEmail(d.email))throw Error('Invalid recipient');
+  const {subject,body}=dealMailText(d,kind), header=['To: '+d.email], ni=d.profile?.sender || '';
+  if(ni && validDealEmail(ni))header.push('From: '+ni);
+  const boundary='=_stroysmeta_'+Math.random().toString(36).slice(2)+'_'+Date.now().toString(36);
+  const name=encodeURIComponent(documentName(d,kind)).replace(/[!'()*]/g,c=>'%'+c.charCodeAt(0).toString(16).toUpperCase());
+  const localeDate=new Date().toUTCString().replace(/GMT$/,'+0000');
+  header.push('Date: '+localeDate,'Subject: '+mimeHeader(subject),'X-Unsent: 1','MIME-Version: 1.0',
+    'Content-Type: multipart/mixed; boundary="'+boundary+'"');
+  const lines=[...header,'','--'+boundary,'Content-Type: text/plain; charset=UTF-8',
+    'Content-Transfer-Encoding: base64','',mimeBase64(new TextEncoder().encode(body)),
+    '--'+boundary,'Content-Type: application/pdf','Content-Transfer-Encoding: base64',
+    'Content-Disposition: attachment;'," filename*=UTF-8''"+name+';',' filename="document.pdf"','',
+    mimeBase64(new Uint8Array(await pdf.arrayBuffer())),'--'+boundary+'--',''];
+  return new Blob([lines.join('\r\n')],{type:'message/rfc822'});
+}
+async function downloadDealEmail(d,kind) {
+  try{
+    const pdf=await dealPDF(d,kind);
+    const draft=await dealEml(d,kind,pdf);
+    downloadFile(emailFileName(d,kind),draft,'message/rfc822');
+    toast('Черновик .eml с PDF скачан. Откройте его в почтовой программе и проверьте перед отправкой.');
+  }catch{toast('Черновик не сформирован. Скачайте PDF и откройте письмо отдельно.');}
+}
+
 function mailDealDraft(d,kind) {
   if(!d.email || !validDealEmail(d.email)) {toast('В сделке не указан email клиента');return;}
-  const subject=kind==='contract' ? 'Договор и согласованная смета № '+d.num : 'Согласованное предложение № '+d.num;
-  const body='Здравствуйте!\n\nНаправляю '+(kind==='contract'?'договор со сметой':'коммерческое предложение')+' по объекту «'+d.object+'».\n\n'+d.company;
+  const {subject,body}=dealMailText(d,kind);
   const route='mailto:'+encodeURIComponent(d.email)+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);
   toast('Почта откроет черновик. Прикрепите скачанный PDF вручную. Ничего не отправлено.');
   window.location.href=route;
@@ -2979,6 +3032,7 @@ function showFieldProfile() {
   const old=fieldProfile(); body.replaceChildren();
   body.appendChild(el('p','measure-note','Настройки хранятся на этом устройстве и применяются к новым сделкам. Подписи и печати не подставляются.'));
   const company=dealControl(body,'Название компании'); company.value=old.company||'';
+  const sender=dealControl(body,'Рабочая почта отправителя для .eml (если используется)');sender.type='email';sender.value=old.sender||'';
   const details=dealControl(body,'Реквизиты компании','textarea');details.value=old.details||'';
   const template=dealControl(body,'Утверждённый шаблон договора','textarea');template.value=old.contract||'';
   const act=dealControl(body,'Утверждённый шаблон акта','textarea');act.value=old.act||'';
@@ -2996,7 +3050,8 @@ function showFieldProfile() {
   dealButton(body,'Убрать логотип',()=>{if(waiting)return;logo='';image.value='';hint.textContent='Логотип не добавлен';});
   dealButton(body,'Сохранить настройки компании',()=>{
     if(waiting){toast('Дождитесь загрузки логотипа');return;}
-    try {localStorage.setItem(FIELD_PROFILE_KEY,JSON.stringify({company:company.value.trim(),details:details.value.trim(),contract:template.value.trim(),act:act.value.trim(),logo}));
+    if(!validDealEmail(sender.value.trim())){toast('Проверьте рабочую почту');return;}
+    try {localStorage.setItem(FIELD_PROFILE_KEY,JSON.stringify({company:company.value.trim(),sender:sender.value.trim(),details:details.value.trim(),contract:template.value.trim(),act:act.value.trim(),logo}));
       modal.classList.remove('show');toast('Настройки сохранены для новых сделок');
     } catch {toast('Не удалось сохранить настройки');}
   });
@@ -3045,10 +3100,10 @@ function renderDeal() {
       ['client','object','company'].forEach(k=>{kpEl(kpInputId(k)).value=S.kp[k];});
       save();
       const profile=fieldProfile();
-      const {logo,details,act}=profile;
+      const {logo,details,act,sender}=profile;
       const data=freezeDealData(identity,S.kp.num);
       const record={id:uid(), num:S.kp.num, created:new Date().toISOString(), ...identity,
-        profile:{logo,details,act}, total, advance:amount, quote:frozenQuoteText(), data,
+        profile:{logo,details,act,sender}, total, advance:amount, quote:frozenQuoteText(), data,
         template:profile.contract || localStorage.getItem('stroysmeta_contract_form') || '',
         followup:followup.value||'',signed:null,payments:[], link:''};
       dealStore(entries=>{
@@ -3069,7 +3124,10 @@ function renderDeal() {
   });
   if(d.email)body.appendChild(el('p','measure-note','Email клиента: '+d.email));
   dealButton(body,'Скачать PDF согласованного КП',()=>downloadDealPdf(d,'quote'));
-  if(d.email)dealButton(body,'Скачать КП и открыть письмо',()=>downloadDealPdf(d,'quote',true));
+  if(d.email){
+    dealButton(body,'Скачать письмо .eml с КП во вложении',()=>downloadDealEmail(d,'quote'));
+    dealButton(body,'Скачать КП и открыть черновик без вложения',()=>downloadDealPdf(d,'quote',true));
+  }
   let template;
   if (!d.signed) {
     const next=dealControl(body,'Следующий контакт');next.type='date';next.value=d.followup||'';
@@ -3103,10 +3161,16 @@ function renderDeal() {
       if(unsavedTemplate()){toast('Сначала сохраните текст договора');return;}
       downloadDealPdf(d,'contract');
     });
-    if(d.email)dealButton(body,'Скачать договор и открыть письмо',()=>{
-      if(unsavedTemplate()){toast('Сначала сохраните текст договора');return;}
-      downloadDealPdf(d,'contract',true);
-    });
+    if(d.email){
+      dealButton(body,'Скачать письмо .eml с договором во вложении',()=>{
+        if(unsavedTemplate()){toast('Сначала сохраните текст договора');return;}
+        downloadDealEmail(d,'contract');
+      });
+      dealButton(body,'Скачать договор и открыть черновик без вложения',()=>{
+        if(unsavedTemplate()){toast('Сначала сохраните текст договора');return;}
+        downloadDealPdf(d,'contract',true);
+      });
+    }
   }
   if(d.profile?.act && d.signed)dealButton(body,'Скачать проект акта',()=>downloadDealPdf(d,'act'));
   if (!d.signed) {
